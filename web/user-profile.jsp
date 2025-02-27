@@ -774,7 +774,7 @@
                                     </div>
                                 </div>
                                 <div class="flex flex-col items-center justify-between">
-                                    <div class="w-[250px] h-[250px] border-2 border-blue-500 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden">
+                                    <div class="w-[250px] h-[250px] border-2 border-blue-500 rounded-lg flex items-center justify-center mb-4 relative overflow-hidden avatar-preview-container">
                                         <c:choose>
                                             <c:when test="${empty user.avatar}">
                                                 <span class="material-symbols-outlined text-8xl text-blue-500">person</span>
@@ -848,7 +848,7 @@
                             const reader = new FileReader();
                             reader.onload = function (e) {
                                 // Update preview image
-                                const previewContainer = document.querySelector('.w-[250px].h-[250px]');
+                                const previewContainer = document.querySelector('.avatar-preview-container');
                                 previewContainer.innerHTML = '<img src="' + e.target.result + '" alt="Avatar Preview" class="w-full h-full object-cover">';
 
                                 // Upload file

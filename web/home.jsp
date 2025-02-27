@@ -940,7 +940,9 @@
                                     <div class="relative" x-data="{ isOpen: false }">
                                         <button @click="isOpen = !isOpen" 
                                                 class="flex items-center space-x-3 focus:outline-none bg-gray-100 hover:bg-gray-200 rounded-full py-2 px-4">
-                                            <img src="https://ui-avatars.com/api/?name=<%= user.getFullName() %>&background=random" 
+                                            <img src="<%= user.getAvatar() != null && !user.getAvatar().isEmpty() ? 
+                                                user.getAvatar() : 
+                                                "https://ui-avatars.com/api/?name=" + user.getFullName() + "&background=random" %>" 
                                                  alt="avatar" 
                                                  class="w-8 h-8 rounded-full border-2 border-white"/>
                                             <span class="font-medium text-gray-700">Xin chào, <%= user.getFullName() %></span>
@@ -959,7 +961,7 @@
                                              x-transition:leave-end="opacity-0 transform scale-95"
                                              class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50"
                                              style="display: none;">
-                                            <a href="./user-profile.jsp" 
+                                            <a href="./user-profile" 
                                                class="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200">
                                                 <i class="fas fa-user-circle text-gray-600 w-5"></i>
                                                 <span class="ml-2">Thông tin của tôi</span>
@@ -1000,7 +1002,7 @@
                     </a>
                     <div class="flex items-center gap-8"> <a href="#" class="hover:text-blue-500 transition">Trang
                             chủ</a>
-                        <a href="#" class="hover:text-blue-500 transition">Địa điểm</a> <a href="./tour.html"
+                        <a href="#" class="hover:text-blue-500 transition">Địa điểm</a> <a href="./tour"
                             class="hover:text-blue-500 transition">Tour</a> <a href="#"
                             class="hover:text-blue-500 transition">Đánh giá</a> <a href="#"
                             class="hover:text-blue-500 transition">Liên hệ</a>

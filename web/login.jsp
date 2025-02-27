@@ -704,17 +704,79 @@
                         Đăng nhập
                     </button>
                     <div class="text-center text-sm"> <span>hoặc đăng nhập với</span> </div>
-                    <div class="grid grid-cols-2 gap-4"> <button
-                            class="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200">
-                            <i class="fa-brands fa-facebook text-blue-600 mr-2"></i> Facebook </button> <button
-                            class="flex items-center justify-center py-2 px-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition duration-200">
-                            <i class="fa-brands fa-google text-red-500 mr-2"></i> Google </button> </div>
+                    <div class="flex justify-center">
+                        <div class="g_id_signin"
+                            data-type="standard"
+                            data-size="large"
+                            data-theme="outline"
+                            data-text="sign_in_with"
+                            data-shape="rectangular"
+                            data-logo_alignment="left">
+                        </div>
+                    </div>
                     <div class="text-center text-sm"> <span>Bạn chưa có tài khoản? </span> <a href="./register"
                             class="text-blue-600 hover:underline">Đăng ký tại đây</a> </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- Add Google Sign-In script -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <div id="g_id_onload"
+         data-client_id="426229865715-6j4c6434pinslumq0m1l8mqjkcf6i3fv.apps.googleusercontent.com"
+         data-context="signin"
+         data-ux_mode="popup"
+         data-callback="handleGoogleCallback"
+         data-auto_prompt="false">
+    </div>
+
+    <script>
+        // Store the previous page URL when the page loads
+        if (!sessionStorage.getItem('prevPage') && document.referrer) {
+            sessionStorage.setItem('prevPage', document.referrer);
+        }
+
+        function handleGoogleCallback(response) {
+            if (!response.credential) {
+                console.error('No credential received');
+                return;
+            }
+
+            // Send the ID token to your server
+            const prevPage = sessionStorage.getItem('prevPage') || '';
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = 'login?action=google_login';
+
+            const credentialInput = document.createElement('input');
+            credentialInput.type = 'hidden';
+            credentialInput.name = 'credential';
+            credentialInput.value = response.credential;
+            form.appendChild(credentialInput);
+
+            const prevPageInput = document.createElement('input');
+            prevPageInput.type = 'hidden';
+            prevPageInput.name = 'prevPage';
+            prevPageInput.value = prevPage;
+            form.appendChild(prevPageInput);
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+
+        // Update the normal login form
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const prevPage = sessionStorage.getItem('prevPage');
+            if (prevPage) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'prevPage';
+                input.value = prevPage;
+                this.appendChild(input);
+            }
+        });
+    </script>
 
     <jsp:include page="components/footer.jsp" />
 </body>

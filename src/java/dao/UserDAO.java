@@ -140,6 +140,55 @@ public class UserDAO {
         }
     }
 
+    public User findByEmail(String email) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM Account WHERE email = ? AND is_delete = 0";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setFullName(rs.getString("full_name").trim());
+                    user.setEmail(rs.getString("email").trim());
+                    user.setRoleId(rs.getInt("roleId"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setAddress(rs.getString("address"));
+                    user.setGender(rs.getBoolean("gender"));
+                    user.setDob(rs.getString("dob"));
+                    user.setAvatar(rs.getString("avatar"));
+                    user.setGoogleId(rs.getString("googleID"));
+                    user.setCreateDate(rs.getString("create_date"));
+                    user.setIsDelete(rs.getBoolean("is_delete"));
+                    return user;
+                }
+            }
+        }
+        return null;
+    }
+
+    public void registerGoogleUser(User user) throws SQLException, ClassNotFoundException {
+        String sql = "INSERT INTO Account (full_name, email, roleId, googleID, is_delete, create_date) VALUES (?, ?, ?, ?, 0, GETDATE())";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, user.getFullName().trim());
+            ps.setString(2, user.getEmail().trim());
+            ps.setInt(3, user.getRoleId());
+            ps.setString(4, user.getGoogleId());
+            ps.executeUpdate();
+        }
+    }
+
+    public void updateGoogleId(int userId, String googleId) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Account SET googleID = ? WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, googleId);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
     public static void main(String[] args) {
         try {
             UserDAO dao = new UserDAO();

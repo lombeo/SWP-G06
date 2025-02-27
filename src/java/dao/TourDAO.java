@@ -149,7 +149,7 @@ public class TourDAO {
         List<Tour> tours = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "WITH NumberedTours AS ("
-                + "SELECT t.*, c.name as departure_city, "
+                + "SELECT DISTINCT t.*, c.name as departure_city, "
                 + "ROW_NUMBER() OVER (ORDER BY "
         );
 
@@ -174,7 +174,9 @@ public class TourDAO {
 
         sql.append(") as RowNum FROM tours t "
                 + "JOIN city c ON t.departure_location_id = c.id "
-                + "LEFT JOIN trip tr ON t.id = tr.tour_id WHERE 1=1");
+                + "INNER JOIN trip tr ON t.id = tr.tour_id "
+                + "WHERE tr.available_slot > 0 AND tr.is_delete = 0 "
+                + "AND tr.departure_date >= GETDATE()");
 
         List<Object> params = new ArrayList<>();
 
@@ -273,9 +275,11 @@ public class TourDAO {
             String departureDate, String suitableFor,
             List<Integer> categoryIds) throws SQLException, ClassNotFoundException {
         StringBuilder sql = new StringBuilder(
-                "SELECT COUNT(*) FROM tours t "
+                "SELECT COUNT(DISTINCT t.id) FROM tours t "
                 + "JOIN city c ON t.departure_location_id = c.id "
-                + "LEFT JOIN trip tr ON t.id = tr.tour_id WHERE 1=1"
+                + "INNER JOIN trip tr ON t.id = tr.tour_id "
+                + "WHERE tr.available_slot > 0 AND tr.is_delete = 0 "
+                + "AND tr.departure_date >= GETDATE()"
         );
 
         List<Object> params = new ArrayList<>();

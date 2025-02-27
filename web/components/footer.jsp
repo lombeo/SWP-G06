@@ -1,6 +1,6 @@
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
 
-<footer class="bg-gray-800 text-white mt-8">
+<footer class="bg-gray-800 text-white mt-8 w-full">
     <div class="container mx-auto px-6 py-8">
         <div class="grid grid-cols-4 gap-8">
             <div>
