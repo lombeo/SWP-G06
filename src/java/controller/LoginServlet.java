@@ -58,7 +58,10 @@ public class LoginServlet extends HttpServlet {
                     // Implement remember me functionality if needed
                 }
                 
-                if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
+                // Redirect to admin page if user is an admin (roleId = 2)
+                if (user.getRoleId() == 2) {
+                    response.sendRedirect(request.getContextPath() + "/admin");
+                } else if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
                     response.sendRedirect(prevPage);
                 } else {
                     response.sendRedirect("home.jsp");
@@ -112,8 +115,10 @@ public class LoginServlet extends HttpServlet {
                 HttpSession session = request.getSession();
                 session.setAttribute("user", user);
                 
-                // Redirect directly instead of returning JSON
-                if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
+                // Redirect to admin page if user is an admin (roleId = 2)
+                if (user.getRoleId() == 2) {
+                    response.sendRedirect(request.getContextPath() + "/admin");
+                } else if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
                     response.sendRedirect(prevPage);
                 } else {
                     response.sendRedirect("home.jsp");

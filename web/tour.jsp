@@ -329,8 +329,7 @@
                                                                         departureDates =
                                                                         tourDAO.getDepartureDates(tour.getId());
                                                                         %>
-                                                                        <div
-                                                                            class="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition">
+                                                                        <div class="bg-white rounded-lg overflow-hidden border hover:shadow-lg transition">
                                                                             <div class="flex">
                                                                                 <div class="w-[300px] relative">
                                                                                     <img src="<%= tour.getImg() %>"
@@ -382,12 +381,26 @@
                                                                                             <div
                                                                                                 class="text-sm text-gray-600">
                                                                                                 Giá từ:</div>
-                                                                                            <div
-                                                                                                class="text-red-500 font-bold">
-                                                                                                <%= String.format("%,.0f",
-                                                                                                    tour.getPriceAdult())
-                                                                                                    %> đ
-                                                                                            </div>
+                                                                                            <% 
+                                                                                                Promotion promotion = tourDAO.getActivePromotion(tour.getId());
+                                                                                                if (promotion != null) {
+                                                                                                    double discountPercent = promotion.getDiscountPercentage() / 100.0;
+                                                                                                    double discountedPrice = tour.getPriceAdult() * (1 - discountPercent);
+                                                                                            %>
+                                                                                                <div class="text-gray-500 line-through text-sm">
+                                                                                                    <%= String.format("%,.0f", tour.getPriceAdult()) %> đ
+                                                                                                </div>
+                                                                                                <div class="text-red-500 font-bold">
+                                                                                                    <%= String.format("%,.0f", discountedPrice) %> đ
+                                                                                                </div>
+                                                                                                <div class="text-red-500 text-sm">
+                                                                                                    Giảm <%= String.format("%.0f", promotion.getDiscountPercentage()) %>%
+                                                                                                </div>
+                                                                                            <% } else { %>
+                                                                                                <div class="text-red-500 font-bold">
+                                                                                                    <%= String.format("%,.0f", tour.getPriceAdult()) %> đ
+                                                                                                </div>
+                                                                                            <% } %>
                                                                                         </div>
                                                                                         <a href="tour-detail?id=<%= tour.getId() %>"
                                                                                             class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">

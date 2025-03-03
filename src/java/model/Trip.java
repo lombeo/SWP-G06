@@ -1,149 +1,126 @@
 package model;
 
-import java.sql.Date;
-import java.sql.Time;
+import java.sql.Timestamp;
 
 public class Trip {
     private int id;
+    private int tourId;
     private int departureCityId;
     private int destinationCityId;
-    private int tourId;
-    private Date departureDate;
-    private Date returnDate;
-    private Time startTime;
-    private Time endTime;
+    private Timestamp departureDate;
+    private Timestamp returnDate;
+    private String startTime;
+    private String endTime;
     private int availableSlot;
     private String status;
-    private Date createdDate;
-    private Date deletedDate;
+    private Timestamp createdDate;
+    private Timestamp deletedDate;
     private boolean isDelete;
     
     public Trip() {
     }
     
-    // Constructor đầy đủ
-    public Trip(int id, int departureCityId, int destinationCityId, int tourId,
-                Date departureDate, Date returnDate, Time startTime, Time endTime,
-                int availableSlot, String status, Date createdDate, Date deletedDate,
-                boolean isDelete) {
-        this.id = id;
-        this.departureCityId = departureCityId;
-        this.destinationCityId = destinationCityId;
-        this.tourId = tourId;
-        this.departureDate = departureDate;
-        this.returnDate = returnDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
-        this.availableSlot = availableSlot;
-        this.status = status;
-        this.createdDate = createdDate;
-        this.deletedDate = deletedDate;
-        this.isDelete = isDelete;
-    }
-
     public int getId() {
         return id;
     }
-
+    
     public void setId(int id) {
         this.id = id;
     }
-
-    public int getDepartureCityId() {
-        return departureCityId;
-    }
-
-    public void setDepartureCityId(int departureCityId) {
-        this.departureCityId = departureCityId;
-    }
-
-    public int getDestinationCityId() {
-        return destinationCityId;
-    }
-
-    public void setDestinationCityId(int destinationCityId) {
-        this.destinationCityId = destinationCityId;
-    }
-
+    
     public int getTourId() {
         return tourId;
     }
-
+    
     public void setTourId(int tourId) {
         this.tourId = tourId;
     }
-
-    public Date getDepartureDate() {
+    
+    public int getDepartureCityId() {
+        return departureCityId;
+    }
+    
+    public void setDepartureCityId(int departureCityId) {
+        this.departureCityId = departureCityId;
+    }
+    
+    public int getDestinationCityId() {
+        return destinationCityId;
+    }
+    
+    public void setDestinationCityId(int destinationCityId) {
+        this.destinationCityId = destinationCityId;
+    }
+    
+    public Timestamp getDepartureDate() {
         return departureDate;
     }
-
-    public void setDepartureDate(Date departureDate) {
+    
+    public void setDepartureDate(Timestamp departureDate) {
         this.departureDate = departureDate;
     }
-
-    public Date getReturnDate() {
+    
+    public Timestamp getReturnDate() {
         return returnDate;
     }
-
-    public void setReturnDate(Date returnDate) {
+    
+    public void setReturnDate(Timestamp returnDate) {
         this.returnDate = returnDate;
     }
-
-    public Time getStartTime() {
+    
+    public String getStartTime() {
         return startTime;
     }
-
-    public void setStartTime(Time startTime) {
+    
+    public void setStartTime(String startTime) {
         this.startTime = startTime;
     }
-
-    public Time getEndTime() {
+    
+    public String getEndTime() {
         return endTime;
     }
-
-    public void setEndTime(Time endTime) {
+    
+    public void setEndTime(String endTime) {
         this.endTime = endTime;
     }
-
+    
     public int getAvailableSlot() {
         return availableSlot;
     }
-
+    
     public void setAvailableSlot(int availableSlot) {
         this.availableSlot = availableSlot;
     }
-
+    
     public String getStatus() {
         return status;
     }
-
+    
     public void setStatus(String status) {
         this.status = status;
     }
-
-    public Date getCreatedDate() {
+    
+    public Timestamp getCreatedDate() {
         return createdDate;
     }
-
-    public void setCreatedDate(Date createdDate) {
+    
+    public void setCreatedDate(Timestamp createdDate) {
         this.createdDate = createdDate;
     }
-
-    public Date getDeletedDate() {
+    
+    public Timestamp getDeletedDate() {
         return deletedDate;
     }
-
-    public void setDeletedDate(Date deletedDate) {
+    
+    public void setDeletedDate(Timestamp deletedDate) {
         this.deletedDate = deletedDate;
     }
-
+    
     public boolean isIsDelete() {
         return isDelete;
     }
-
+    
     public void setIsDelete(boolean isDelete) {
         this.isDelete = isDelete;
     }
-    
-    
 } 

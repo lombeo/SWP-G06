@@ -17,6 +17,8 @@ public class Tour {
     private int departureLocationId;
     private String departureCity;
     private int categoryId;
+    private String destinationCity;
+    private double discountPercentage;
 
     public Tour() {
     }
@@ -24,7 +26,8 @@ public class Tour {
     public Tour(int id, String name, String img, String region, double priceChildren, 
                 double priceAdult, String suitableFor, String bestTime, String cuisine, 
                 String duration, String sightseeing, int availableSlot, int maxCapacity, 
-                int departureLocationId, String departureCity, int categoryId) {
+                int departureLocationId, String departureCity, int categoryId,
+                String destinationCity, double discountPercentage) {
         this.id = id;
         this.name = name;
         this.img = img;
@@ -41,6 +44,8 @@ public class Tour {
         this.departureLocationId = departureLocationId;
         this.departureCity = departureCity;
         this.categoryId = categoryId;
+        this.destinationCity = destinationCity;
+        this.discountPercentage = discountPercentage;
     }
 
     public int getId() {
@@ -169,5 +174,21 @@ public class Tour {
 
     public void setCategoryId(int categoryId) {
         this.categoryId = categoryId;
+    }
+
+    public String getDestinationCity() {
+        return destinationCity;
+    }
+
+    public void setDestinationCity(String destinationCity) {
+        this.destinationCity = destinationCity;
+    }
+
+    public double getDiscountPercentage() {
+        return discountPercentage;
+    }
+
+    public void setDiscountPercentage(double discountPercentage) {
+        this.discountPercentage = discountPercentage;
     }
 } 

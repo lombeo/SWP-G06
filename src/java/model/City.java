@@ -3,6 +3,8 @@ package model;
 public class City {
     private int id;
     private String name;
+    private Integer departureCount;
+    private Integer destinationCount;
     
     public City() {
     }
@@ -27,5 +29,21 @@ public class City {
     
     public void setName(String name) {
         this.name = name;
+    }
+    
+    public Integer getDepartureCount() {
+        return departureCount;
+    }
+    
+    public void setDepartureCount(Integer departureCount) {
+        this.departureCount = departureCount;
+    }
+    
+    public Integer getDestinationCount() {
+        return destinationCount;
+    }
+    
+    public void setDestinationCount(Integer destinationCount) {
+        this.destinationCount = destinationCount;
     }
 } 

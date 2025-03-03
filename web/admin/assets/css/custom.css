@@ -1,0 +1,119 @@
+/* Admin Panel Custom Styles */
+
+/* Card shadows and hover effects */
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Button hover effects */
+.btn {
+    transition: all 0.2s;
+}
+
+/* Table row hover */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+/* Form validation styles */
+.was-validated .form-control:valid:focus, 
+.form-control.is-valid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(25, 135, 84, 0.25);
+}
+
+.was-validated .form-control:invalid:focus, 
+.form-control.is-invalid:focus {
+    box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+}
+
+/* Dashboard card styles */
+.stat-card {
+    border-left: 4px solid;
+    transition: transform 0.15s ease-in-out;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+}
+
+.stat-card.primary {
+    border-color: #4e73df;
+}
+
+.stat-card.success {
+    border-color: #1cc88a;
+}
+
+.stat-card.info {
+    border-color: #36b9cc;
+}
+
+.stat-card.warning {
+    border-color: #f6c23e;
+}
+
+/* Modal animations */
+.modal.fade .modal-dialog {
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* Dashboard chart containers */
+.chart-container {
+    position: relative;
+    height: 300px;
+    margin: 0 auto;
+}
+
+/* Pagination styles */
+.pagination-container {
+    margin-top: 20px;
+}
+
+.pagination {
+    margin-bottom: 0;
+}
+
+.page-item.active .page-link {
+    background-color: #4e73df;
+    border-color: #4e73df;
+}
+
+.page-link {
+    color: #4e73df;
+}
+
+.page-link:hover {
+    color: #2e59d9;
+}
+
+.pagination-info {
+    color: #6c757d;
+}
+
+.pagination-size {
+    width: 70px;
+}
+
+/* Print styles */
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    
+    .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+    
+    .content-container {
+        padding: 0 !important;
+    }
+}

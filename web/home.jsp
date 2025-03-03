@@ -1,7 +1,13 @@
 <%@ page contentType="text/html" pageEncoding="UTF-8" %>
 <%@ page import="dao.TourDAO" %>
 <%@ page import="model.City" %>
+<%@ page import="model.Tour" %>
 <%@ page import="java.util.List" %>
+<%
+    TourDAO tourDAO = new TourDAO();
+    List<Tour> topDiscountedTours = tourDAO.getTopDiscountedCities();
+    List<City> cities = tourDAO.getAllCities();
+%>
 <%-- Document : home Created on : Feb 25, 2025, 3:19:54 PM Author : Lom --%>
 
     <!DOCTYPE html>
@@ -1046,8 +1052,6 @@
                                     <select name="departure" class="w-full pl-10 pr-4 py-2 border rounded hover:border-blue-500 focus:border-blue-500 focus:outline-none transition">
                                         <option value="">Khởi hành từ</option>
                                         <% 
-                                        TourDAO tourDAO = new TourDAO();
-                                        List<City> cities = tourDAO.getAllCities();
                                         for(City city : cities) { 
                                         %>
                                             <option value="<%= city.getId() %>"><%= city.getName() %></option>
@@ -1088,42 +1092,21 @@
                         </div>
                         <section class="mb-16">
                             <h2 class="text-2xl font-bold mb-8 text-center">CÁC ĐỊA ĐIỂM YÊU THÍCH</h2>
-                            <p class="text-center mb-8 text-gray-600">Các địa điểm yêu thích của du khách đang giá
-                                rẻ đợt
-                                này, bạn hãm xét trải nghiệm của khách hàng</p>
+                            <p class="text-center mb-8 text-gray-600">Các địa điểm có tour giảm giá cao nhất hiện nay</p>
                             <div class="grid grid-cols-2 gap-8">
+                                <% for(Tour tour : topDiscountedTours) { %>
                                 <div class="relative h-[240px] rounded-lg overflow-hidden group cursor-pointer">
-                                    <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482"
-                                        alt="Đà Nẵng"
+                                    <img src="<%= tour.getImg() %>"
+                                        alt="<%= tour.getDestinationCity() %>"
                                         class="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
                                     <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition">
                                     </div>
-                                    <h3 class="absolute bottom-4 left-4 text-white text-xl font-bold">Đà Nẵng</h3>
-                                </div>
-                                <div class="relative h-[240px] rounded-lg overflow-hidden group cursor-pointer">
-                                    <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482"
-                                        alt="Huế"
-                                        class="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition">
+                                    <div class="absolute bottom-4 left-4 text-white">
+                                        <h3 class="text-xl font-bold"><%= tour.getDestinationCity() %></h3>
+                                        <p class="text-sm">Giảm giá <%= String.format("%.1f", tour.getDiscountPercentage()) %>%</p>
                                     </div>
-                                    <h3 class="absolute bottom-4 left-4 text-white text-xl font-bold">Huế</h3>
                                 </div>
-                                <div class="relative h-[240px] rounded-lg overflow-hidden group cursor-pointer">
-                                    <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482"
-                                        alt="Cần Thơ"
-                                        class="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition">
-                                    </div>
-                                    <h3 class="absolute bottom-4 left-4 text-white text-xl font-bold">Cần Thơ</h3>
-                                </div>
-                                <div class="relative h-[240px] rounded-lg overflow-hidden group cursor-pointer">
-                                    <img src="https://images.unsplash.com/photo-1583417319070-4a69db38a482"
-                                        alt="Hạ Long"
-                                        class="w-full h-full object-cover group-hover:scale-110 transition duration-500" />
-                                    <div class="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition">
-                                    </div>
-                                    <h3 class="absolute bottom-4 left-4 text-white text-xl font-bold">Hạ Long</h3>
-                                </div>
+                                <% } %>
                             </div>
                         </section>
                         <section class="mb-16">

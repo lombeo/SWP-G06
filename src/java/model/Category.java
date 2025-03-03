@@ -3,6 +3,7 @@ package model;
 public class Category {
     private int id;
     private String name;
+    private int tourCount;
     
     public Category() {
     }
@@ -27,5 +28,13 @@ public class Category {
     
     public void setName(String name) {
         this.name = name;
+    }
+    
+    public int getTourCount() {
+        return tourCount;
+    }
+    
+    public void setTourCount(int tourCount) {
+        this.tourCount = tourCount;
     }
 } 
