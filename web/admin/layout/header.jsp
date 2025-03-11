@@ -183,11 +183,14 @@
         <a href="${pageContext.request.contextPath}/admin?action=cities" class="sidebar-link ${param.active == 'cities' ? 'active' : ''}">
             <i class="fas fa-city me-2"></i> Cities
         </a>
-        <a href="${pageContext.request.contextPath}/admin?action=users" class="sidebar-link ${param.active == 'users' ? 'active' : ''}">
-            <i class="fas fa-users me-2"></i> Users
+        <a href="${pageContext.request.contextPath}/admin?action=reviews" class="sidebar-link ${param.active == 'reviews' ? 'active' : ''}">
+            <i class="fas fa-star me-2"></i> Reviews
+        </a>
+        <a href="${pageContext.request.contextPath}/admin/users" class="sidebar-link ${param.active == 'account_management' ? 'active' : ''}">
+            <i class="fas fa-user-cog me-2"></i> Account Management
         </a>
         <hr class="bg-light">
-        <a href="${pageContext.request.contextPath}/LogoutServlet" class="sidebar-link">
+        <a href="${pageContext.request.contextPath}/logout" class="sidebar-link">
             <i class="fas fa-sign-out-alt me-2"></i> Logout
         </a>
     </div>
@@ -196,23 +199,6 @@
 <!-- Main Content -->
 <div class="main-content">
     <!-- Top navbar -->
-    <nav class="top-navbar">
-        <div class="d-flex justify-content-between align-items-center">
-            <button class="toggle-sidebar" id="toggleSidebar">
-                <i class="fas fa-bars"></i>
-            </button>
-            <div class="dropdown ms-auto">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-user-circle me-1"></i> ${sessionScope.user.fullName}
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/admin?action=profile"><i class="fas fa-user me-2"></i> Profile</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="${pageContext.request.contextPath}/LogoutServlet"><i class="fas fa-sign-out-alt me-2"></i> Logout</a></li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
     <!-- Content Container -->
     <div class="content-container">

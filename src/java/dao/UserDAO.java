@@ -167,6 +167,37 @@ public class UserDAO {
         return null;
     }
 
+    /**
+     * Find a user by email regardless of whether they are banned (is_delete status)
+     * Used for checking if email exists before creating a new account
+     */
+    public User findUserByEmailIncludingBanned(String email) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM Account WHERE email = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setFullName(rs.getString("full_name").trim());
+                    user.setEmail(rs.getString("email").trim());
+                    user.setRoleId(rs.getInt("roleId"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setAddress(rs.getString("address"));
+                    user.setGender(rs.getBoolean("gender"));
+                    user.setDob(rs.getString("dob"));
+                    user.setAvatar(rs.getString("avatar"));
+                    user.setGoogleId(rs.getString("googleID"));
+                    user.setCreateDate(rs.getString("create_date"));
+                    user.setIsDelete(rs.getBoolean("is_delete"));
+                    return user;
+                }
+            }
+        }
+        return null;
+    }
+
     public void registerGoogleUser(User user) throws SQLException, ClassNotFoundException {
         String sql = "INSERT INTO Account (full_name, email, roleId, googleID, is_delete, create_date) VALUES (?, ?, ?, ?, 0, GETDATE())";
         try (Connection conn = DBContext.getConnection();
@@ -184,6 +215,160 @@ public class UserDAO {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, googleId);
+            ps.setInt(2, userId);
+            ps.executeUpdate();
+        }
+    }
+
+    public int getTotalUsers(String searchQuery, Integer roleFilter, Boolean statusFilter) throws SQLException, ClassNotFoundException {
+        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM Account WHERE 1=1");
+        
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            sql.append(" AND (email LIKE ? OR full_name LIKE ?)");
+        }
+        
+        if (roleFilter != null) {
+            sql.append(" AND roleId = ?");
+        }
+        
+        if (statusFilter != null) {
+            sql.append(" AND is_delete = ?");
+        }
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            
+            int paramIndex = 1;
+            
+            if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+                String likeParam = "%" + searchQuery.trim() + "%";
+                ps.setString(paramIndex++, likeParam);
+                ps.setString(paramIndex++, likeParam);
+            }
+            
+            if (roleFilter != null) {
+                ps.setInt(paramIndex++, roleFilter);
+            }
+            
+            if (statusFilter != null) {
+                ps.setBoolean(paramIndex++, statusFilter);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        
+        return 0;
+    }
+
+    public java.util.List<User> getAllUsers(int page, int pageSize, String searchQuery, Integer roleFilter, Boolean statusFilter, String sortBy, String sortOrder) throws SQLException, ClassNotFoundException {
+        int offset = (page - 1) * pageSize;
+        
+        StringBuilder sql = new StringBuilder("SELECT * FROM Account WHERE 1=1");
+        
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            sql.append(" AND (email LIKE ? OR full_name LIKE ?)");
+        }
+        
+        if (roleFilter != null) {
+            sql.append(" AND roleId = ?");
+        }
+        
+        if (statusFilter != null) {
+            sql.append(" AND is_delete = ?");
+        }
+        
+        if (sortBy != null && !sortBy.isEmpty()) {
+            String column;
+            switch (sortBy) {
+                case "name":
+                    column = "full_name";
+                    break;
+                case "email":
+                    column = "email";
+                    break;
+                case "role":
+                    column = "roleId";
+                    break;
+                case "date":
+                    column = "create_date";
+                    break;
+                case "status":
+                    column = "is_delete";
+                    break;
+                default:
+                    column = "id";
+                    break;
+            }
+            
+            sql.append(" ORDER BY ").append(column);
+            
+            if ("desc".equalsIgnoreCase(sortOrder)) {
+                sql.append(" DESC");
+            } else {
+                sql.append(" ASC");
+            }
+        } else {
+            sql.append(" ORDER BY id ASC");
+        }
+        
+        sql.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        
+        java.util.List<User> users = new java.util.ArrayList<>();
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            
+            int paramIndex = 1;
+            
+            if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+                String likeParam = "%" + searchQuery.trim() + "%";
+                ps.setString(paramIndex++, likeParam);
+                ps.setString(paramIndex++, likeParam);
+            }
+            
+            if (roleFilter != null) {
+                ps.setInt(paramIndex++, roleFilter);
+            }
+            
+            if (statusFilter != null) {
+                ps.setBoolean(paramIndex++, statusFilter);
+            }
+            
+            ps.setInt(paramIndex++, offset);
+            ps.setInt(paramIndex++, pageSize);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setFullName(rs.getString("full_name"));
+                    user.setEmail(rs.getString("email"));
+                    user.setRoleId(rs.getInt("roleId"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setAddress(rs.getString("address"));
+                    user.setGender(rs.getBoolean("gender"));
+                    user.setDob(rs.getString("dob"));
+                    user.setAvatar(rs.getString("avatar"));
+                    user.setGoogleId(rs.getString("googleID"));
+                    user.setCreateDate(rs.getString("create_date"));
+                    user.setIsDelete(rs.getBoolean("is_delete"));
+                    users.add(user);
+                }
+            }
+        }
+        
+        return users;
+    }
+
+    public void toggleUserStatus(int userId, boolean isDelete) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Account SET is_delete = ? WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setBoolean(1, isDelete);
             ps.setInt(2, userId);
             ps.executeUpdate();
         }

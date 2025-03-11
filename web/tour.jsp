@@ -26,6 +26,36 @@
 
                                 @import url(https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css);
 
+                                /* Toast notification styles */
+                                .toast {
+                                    position: fixed;
+                                    top: 20px;
+                                    right: 20px;
+                                    padding: 12px 24px;
+                                    border-radius: 4px;
+                                    z-index: 9999;
+                                    color: white;
+                                    font-weight: 500;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: 8px;
+                                    opacity: 0;
+                                    transform: translateY(-20px);
+                                    transition: opacity 0.3s, transform 0.3s;
+                                }
+
+                                .toast.error {
+                                    background-color: #ef4444;
+                                }
+
+                                .toast.success {
+                                    background-color: #10b981;
+                                }
+
+                                .toast.show {
+                                    opacity: 1;
+                                    transform: translateY(0);
+                                }
                              </style>   
                         </head>
 
@@ -51,6 +81,10 @@
                                                 }
                                                 }
                                                 %>
+                                                
+                                                <!-- Toast notification -->
+                                                <div id="toast" class="toast" role="alert"></div>
+                                                
                                                 <div id="webcrumbs">
                                                     <div class="font-sans">
                                                         <header
@@ -402,10 +436,12 @@
                                                                                                 </div>
                                                                                             <% } %>
                                                                                         </div>
-                                                                                        <a href="tour-detail?id=<%= tour.getId() %>"
-                                                                                            class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
-                                                                                            Xem chi tiết
-                                                                                        </a>
+                                                                                        <div class="flex flex-col space-y-2">
+                                                                                            <a href="tour-detail?id=<%= tour.getId() %>"
+                                                                                               class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition">
+                                                                                                Xem chi tiết
+                                                                                            </a>
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
                                                                             </div>
@@ -620,5 +656,52 @@
                                                     </div>
                                                     <% } %>
                         </body>
+
+                        <script>
+                            function bookTour(tourId) {
+                                // Check if user is logged in
+                                <% if (session.getAttribute("user") == null) { %>
+                                    // User not logged in, redirect to login page
+                                    window.location.href = "login?redirect=booking&tourId=" + tourId;
+                                <% } else { %>
+                                    // User is logged in, check tour availability
+                                    fetch('check-tour-availability?tourId=' + tourId)
+                                        .then(response => response.json())
+                                        .then(data => {
+                                            if (data.available) {
+                                                // Tour is available, redirect to booking page
+                                                window.location.href = "booking?tourId=" + tourId;
+                                            } else {
+                                                // Tour is not available, show toast notification
+                                                showToast('error', data.message || 'Rất tiếc, tour này hiện không có chỗ trống hoặc lịch trình.');
+                                            }
+                                        })
+                                        .catch(error => {
+                                            console.error('Error checking tour availability:', error);
+                                            showToast('error', 'Có lỗi xảy ra, vui lòng thử lại sau.');
+                                        });
+                                <% } %>
+                            }
+                            
+                            function showToast(type, message) {
+                                const toast = document.getElementById('toast');
+                                toast.className = 'toast ' + type + ' show';
+                                
+                                // Add icon based on type
+                                let icon = '';
+                                if (type === 'error') {
+                                    icon = '<i class="fas fa-exclamation-circle"></i>';
+                                } else if (type === 'success') {
+                                    icon = '<i class="fas fa-check-circle"></i>';
+                                }
+                                
+                                toast.innerHTML = icon + message;
+                                
+                                // Hide toast after 3 seconds
+                                setTimeout(() => {
+                                    toast.className = 'toast';
+                                }, 3000);
+                            }
+                        </script>
 
                         </html>

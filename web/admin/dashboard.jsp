@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="dashboard"/>
 </jsp:include>
@@ -19,7 +20,7 @@
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 Tours</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">15</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${totalTours}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-map-marked-alt fa-2x text-gray-300"></i>
@@ -29,14 +30,14 @@
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="card border-left-success shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
                                 Bookings</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">32</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${totalBookings}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-calendar-check fa-2x text-gray-300"></i>
@@ -46,18 +47,53 @@
             </div>
         </div>
 
-        <div class="col-md-4 mb-4">
+        <div class="col-md-3 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
                                 Users</div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">7</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">${totalUsers}</div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-users fa-2x text-gray-300"></i>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Revenue</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                <fmt:formatNumber value="${totalRevenue}" type="currency" currencySymbol="$" />
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Revenue Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                    <h6 class="m-0 font-weight-bold text-primary">Monthly Revenue</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-area">
+                        <canvas id="revenueChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -83,27 +119,47 @@
                                     <th>Status</th>
                                 </thead>
                             <tbody>
+                                <c:forEach items="${recentBookings}" var="booking">
                                 <tr>
-                                    <td>1</td>
-                                    <td>John Doe</td>
-                                    <td>Hanoi Explorer</td>
-                                    <td>2023-07-15</td>
-                                    <td><span class="badge bg-success">Confirmed</span></td>
+                                    <td>${booking.id}</td>
+                                    <td>${booking.user.fullName}</td>
+                                    <td>${booking.trip.tour.name}</td>
+                                    <td><fmt:formatDate value="${booking.createdDate}" pattern="yyyy-MM-dd" /></td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${booking.status eq 'Chờ thanh toán'}">
+                                                <span class="badge bg-warning">Chờ thanh toán</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Đã thanh toán'}">
+                                                <span class="badge bg-primary">Đã thanh toán</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Đã duyệt'}">
+                                                <span class="badge bg-success">Đã duyệt</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Đang hoàn tiền'}">
+                                                <span class="badge bg-info">Đang hoàn tiền</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Đã hoàn tiền'}">
+                                                <span class="badge bg-secondary">Đã hoàn tiền</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Hoàn thành'}">
+                                                <span class="badge bg-dark">Hoàn thành</span>
+                                            </c:when>
+                                            <c:when test="${booking.status eq 'Đã hủy'}">
+                                                <span class="badge bg-danger">Đã hủy</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-secondary">${booking.status}</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
                                 </tr>
+                                </c:forEach>
+                                <c:if test="${empty recentBookings}">
                                 <tr>
-                                    <td>2</td>
-                                    <td>Jane Smith</td>
-                                    <td>Saigon City Tour</td>
-                                    <td>2023-07-20</td>
-                                    <td><span class="badge bg-warning">Pending</span></td>
+                                    <td colspan="5" class="text-center">No recent bookings found</td>
                                 </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Michael Johnson</td>
-                                    <td>Hue Imperial City</td>
-                                    <td>2023-08-01</td>
-                                    <td><span class="badge bg-info">Processing</span></td>
-                                </tr>
+                                </c:if>
                             </tbody>
                         </table>
                     </div>
@@ -125,28 +181,23 @@
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Destination</th>
-                                    <th>Bookings</th>
+                                    <th>Price (Adult)</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                <c:forEach items="${popularTours}" var="tour">
                                 <tr>
-                                    <td>1</td>
-                                    <td>Halong Bay Cruise</td>
-                                    <td>Halong Bay</td>
-                                    <td>24</td>
+                                    <td>${tour.id}</td>
+                                    <td>${tour.name}</td>
+                                    <td>${tour.destinationCity}</td>
+                                    <td><fmt:formatNumber value="${tour.priceAdult}" type="currency" currencySymbol="$" /></td>
                                 </tr>
+                                </c:forEach>
+                                <c:if test="${empty popularTours}">
                                 <tr>
-                                    <td>2</td>
-                                    <td>Sapa Trekking</td>
-                                    <td>Sapa</td>
-                                    <td>18</td>
+                                    <td colspan="4" class="text-center">No tours found</td>
                                 </tr>
-                                <tr>
-                                    <td>3</td>
-                                    <td>Mekong Delta Experience</td>
-                                    <td>Mekong Delta</td>
-                                    <td>15</td>
-                                </tr>
+                                </c:if>
                             </tbody>
                         </table>
                     </div>
@@ -155,5 +206,67 @@
         </div>
     </div>
 </div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Revenue Chart Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('revenueChart').getContext('2d');
+    
+    // Convert the monthlyRevenue data from the server to arrays for Chart.js
+    const months = [];
+    const revenue = [];
+    
+    <c:forEach items="${monthlyRevenue}" var="entry">
+        months.push("${entry.key}");
+        revenue.push(${entry.value});
+    </c:forEach>
+    
+    const revenueChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Monthly Revenue',
+                data: revenue,
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                tension: 0.3,
+                borderWidth: 3,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: "rgba(0, 0, 0, 0.05)"
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return '$' + value;
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
 
 <jsp:include page="layout/footer.jsp" />

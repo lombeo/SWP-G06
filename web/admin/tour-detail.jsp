@@ -179,7 +179,6 @@
                             <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="list-group-item list-group-item-action">
                                 <div class="d-flex w-100 justify-content-between">
                                     <h5 class="mb-1">Trip #${trip.id}</h5>
-                                    <small class="text-muted">${trip.status}</small>
                                 </div>
                                 <p class="mb-1">Departure: ${trip.departureDate}</p>
                                 <small class="text-muted">Available Slots: ${trip.availableSlot}</small>

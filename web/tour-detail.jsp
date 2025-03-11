@@ -29,7 +29,7 @@
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
         <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     </head>
-    <body class="bg-gray-50">
+    <body class="bg-gray-50" data-initial-trip-id="${trip.id}">
         <!-- Include Header -->
         <jsp:include page="components/header.jsp" />
 
@@ -130,14 +130,14 @@
                                 <span class="material-symbols-outlined text-gray-600 mr-3">location_on</span>
                                 <div>
                                     <span class="font-medium">Khởi hành từ: </span>
-                                    <span>${departureCity.name}</span>
+                                    <span class="departure-city-name">${departureCity.name}</span>
                                 </div>
                             </div>
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">calendar_today</span>
                                 <div>
                                     <span class="font-medium">Ngày khởi hành: </span>
-                                    <span class="text-blue-600">
+                                    <span class="text-blue-600 main-departure-date">
                                         <%
                                             Trip trip = (Trip) request.getAttribute("trip");
                                             if (trip != null && trip.getDepartureDate() != null) {
@@ -162,7 +162,7 @@
                                 <span class="material-symbols-outlined text-gray-600 mr-3">airline_seat_recline_normal</span>
                                 <div>
                                     <span class="font-medium">Số chỗ còn: </span>
-                                    <span class="text-red-600 font-medium">${trip.availableSlot} chỗ</span>
+                                    <span class="text-red-600 font-medium"><span class="available-slots">${trip.availableSlot}</span> chỗ</span>
                                 </div>
                             </div>
 
@@ -189,7 +189,8 @@
                     <!-- Booking Section -->
                     <div class="bg-gray-50 p-6 rounded-lg">
                         <div class="space-y-4">
-                            <a href="booking?tourId=${tour.id}&tripId=${trip.id}" 
+                            <a href="booking?tourId=${tour.id}&tripId=${trip.id}${promotion != null ? '&checkPromotion=true' : ''}" 
+                               id="booking-button"
                                class="block w-full bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg transition font-semibold text-center">
                                 Đặt tour
                             </a>
@@ -396,6 +397,236 @@
                 
                 <!-- Import Tour Calendar JavaScript -->
                 <script type="text/javascript" src="js/tour-detail-calendar.js"></script>
+
+                <!-- Reviews Section -->
+                <div id="reviews" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                    <div class="bg-white rounded-lg shadow-lg overflow-hidden p-6">
+                        <h2 class="text-2xl font-bold mb-6 flex items-center">
+                            <span class="material-symbols-outlined mr-2">rate_review</span>
+                            Đánh giá từ khách hàng
+                        </h2>
+                        
+                        <%
+                            // Get the tour object from request attributes
+                            Tour tour = (Tour) request.getAttribute("tour");
+                            
+                            // Import ReviewDAO
+                            dao.ReviewDAO reviewDAO = new dao.ReviewDAO();
+                            
+                            // Get reviews for this tour
+                            java.util.List<model.Review> reviews = reviewDAO.getReviewsByTourId(tour.getId());
+                            
+                            // Get average rating
+                            double avgRating = reviewDAO.getAverageRatingForTour(tour.getId());
+                            
+                            // Get review count
+                            int reviewCount = reviewDAO.getReviewCountForTour(tour.getId());
+                            
+                            // Format avg rating to 1 decimal place
+                            String formattedAvgRating = String.format("%.1f", avgRating);
+                            
+                            // Check if user is logged in - making sure we use the correct session attribute
+                            User currentUser = (User) session.getAttribute("user");
+                            boolean userCanReview = false;
+                            boolean userHasReviewed = false;
+                            
+                            // Add debugging info for the current user
+                            String userDebugInfo = "User is not logged in";
+                            if (currentUser != null) {
+                                userDebugInfo = "User ID: " + currentUser.getId();
+                                userCanReview = reviewDAO.isUserEligibleToReview(tour.getId(), currentUser.getId());
+                                userHasReviewed = reviewDAO.hasUserReviewedTour(tour.getId(), currentUser.getId());
+                            }
+                            
+                            // Debug info for conditions
+                            boolean isLoggedIn = (currentUser != null);
+                            String debugConditions = "isLoggedIn: " + isLoggedIn + 
+                                                   ", userCanReview: " + userCanReview + 
+                                                   ", userHasReviewed: " + userHasReviewed;
+                        %>
+                        
+                        <!-- Review Summary -->
+                        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                            <div class="flex flex-col md:flex-row items-center">
+                                <div class="flex items-center md:w-1/3 mb-4 md:mb-0">
+                                    <div class="text-5xl font-bold text-blue-600 mr-4"><%= formattedAvgRating %></div>
+                                    <div>
+                                        <div class="flex text-yellow-400 mb-1">
+                                            <% 
+                                                // Display stars based on average rating
+                                                for (int i = 1; i <= 5; i++) {
+                                                    if (i <= avgRating) {
+                                                        // Full star
+                                            %>
+                                                        <span class="material-symbols-outlined">star</span>
+                                            <%
+                                                    } else if (i - 0.5 <= avgRating) {
+                                                        // Half star
+                                            %>
+                                                        <span class="material-symbols-outlined">star_half</span>
+                                            <%
+                                                    } else {
+                                                        // Empty star
+                                            %>
+                                                        <span class="material-symbols-outlined">star_outline</span>
+                                            <%
+                                                    }
+                                                }
+                                            %>
+                                        </div>
+                                        <div class="text-gray-600"><%= reviewCount %> đánh giá</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="w-full md:w-2/3">
+                                    <%
+                                        // Count ratings by star
+                                        int[] ratingCounts = new int[5];
+                                        for (model.Review review : reviews) {
+                                            if (review.getRating() >= 1 && review.getRating() <= 5) {
+                                                ratingCounts[review.getRating() - 1]++;
+                                            }
+                                        }
+                                        
+                                        // Display rating distribution
+                                        for (int i = 5; i >= 1; i--) { %>
+                                    <%
+                                        int count = ratingCounts[i - 1];
+                                        double percentage = reviewCount > 0 ? (double) count / reviewCount * 100 : 0;
+                                        int widthPercentage = (int)percentage;
+                                    %>
+                                    <div class="flex items-center mb-1">
+                                        <div class="w-16 text-sm text-gray-600"><%= i %> sao</div>
+                                        <div class="flex-1 mx-2">
+                                            <div class="h-2 bg-gray-200 rounded-full">
+                                                <div class="h-2 bg-yellow-400 rounded-full" style="width: <%= widthPercentage %>%"></div>
+                                            </div>
+                                        </div>
+                                        <div class="w-10 text-xs text-gray-600"><%= count %></div>
+                                    </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Review Form - Only show if user is eligible -->
+                        <% if (currentUser != null && userCanReview && !userHasReviewed) { %>
+                        <div class="mb-8 border p-4 rounded-lg bg-blue-50">
+                            <h3 class="font-bold text-lg mb-4">Đánh giá tour</h3>
+                            <form action="review" method="post" id="reviewForm">
+                                <input type="hidden" name="tourId" value="${tour.id}">
+                                
+                                <!-- Star Rating Selector -->
+                                <div class="mb-4">
+                                    <label class="block text-gray-700 mb-2">Đánh giá của bạn:</label>
+                                    <div class="flex text-gray-400" id="ratingStars">
+                                        <span class="material-symbols-outlined cursor-pointer hover:text-yellow-400 transition-colors text-3xl" data-rating="1">star</span>
+                                        <span class="material-symbols-outlined cursor-pointer hover:text-yellow-400 transition-colors text-3xl" data-rating="2">star</span>
+                                        <span class="material-symbols-outlined cursor-pointer hover:text-yellow-400 transition-colors text-3xl" data-rating="3">star</span>
+                                        <span class="material-symbols-outlined cursor-pointer hover:text-yellow-400 transition-colors text-3xl" data-rating="4">star</span>
+                                        <span class="material-symbols-outlined cursor-pointer hover:text-yellow-400 transition-colors text-3xl" data-rating="5">star</span>
+                                    </div>
+                                    <input type="hidden" name="rating" id="ratingValue" value="5">
+                                </div>
+                                
+                                <!-- Comment -->
+                                <div class="mb-4">
+                                    <label for="comment" class="block text-gray-700 mb-2">Chia sẻ trải nghiệm của bạn:</label>
+                                    <textarea id="comment" name="comment" rows="4" 
+                                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" 
+                                             placeholder="Nhập đánh giá của bạn về tour này..."></textarea>
+                                </div>
+                                
+                                <div class="text-right">
+                                    <button type="submit" 
+                                           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                        Gửi đánh giá
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                        <% } else if (currentUser != null && userHasReviewed) { %>
+                        <div class="mb-8 p-4 rounded-lg bg-green-50 border border-green-200">
+                            <div class="flex items-center text-green-700">
+                                <span class="material-symbols-outlined mr-2">check_circle</span>
+                                <p>Cảm ơn bạn đã đánh giá tour này!</p>
+                            </div>
+                        </div>
+                        <% } else if (currentUser != null && !userCanReview) { %>
+                        <div class="mb-8 p-4 rounded-lg bg-orange-50 border border-orange-200">
+                            <div class="flex items-center text-orange-700">
+                                <span class="material-symbols-outlined mr-2">info</span>
+                                <p>Bạn chỉ có thể đánh giá sau khi đã đặt và hoàn thành chuyến đi.</p>
+                            </div>
+                        </div>
+                        <% } else { %>
+                        <div class="mb-8 p-4 rounded-lg bg-blue-50 border border-blue-200">
+                            <div class="flex items-center text-blue-700">
+                                <span class="material-symbols-outlined mr-2">login</span>
+                                <p>Vui lòng <a href="login" class="underline font-medium">đăng nhập</a> để đánh giá tour này.</p>
+                            </div>
+                        </div>
+                        <% } %>
+                        
+                        <!-- Review List -->
+                        <div>
+                            <h3 class="font-bold text-lg mb-4 border-b pb-2">Tất cả đánh giá (<%= reviewCount %>)</h3>
+                            
+                            <% if (reviews.isEmpty()) { %>
+                            <div class="text-center py-12 text-gray-500">
+                                <span class="material-symbols-outlined text-5xl mb-4">rate_review</span>
+                                <p>Chưa có đánh giá nào cho tour này.</p>
+                                <p class="text-sm mt-2">Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!</p>
+                            </div>
+                            <% } else { %>
+                            <div class="space-y-6">
+                                <% for (model.Review review : reviews) { %>
+                                <div class="border-b pb-6 mb-6 last:border-b-0">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0 mr-4">
+                                            <% if (review.getUserAvatar() != null && !review.getUserAvatar().isEmpty()) { %>
+                                            <img src="<%= review.getUserAvatar() %>" 
+                                                 alt="<%= review.getUserName() %>" 
+                                                 class="w-12 h-12 rounded-full object-cover"/>
+                                            <% } else { %>
+                                            <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-500 font-bold">
+                                                <%= review.getUserName() != null && !review.getUserName().isEmpty() ? 
+                                                    review.getUserName().substring(0, 1).toUpperCase() : "?" %>
+                                            </div>
+                                            <% } %>
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex flex-wrap items-center mb-1">
+                                                <h4 class="font-bold mr-3"><%= review.getUserName() %></h4>
+                                                <div class="text-xs text-gray-500">
+                                                <% 
+                                                    // Format date
+                                                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy");
+                                                    String formattedDate = "";
+                                                    if (review.getCreatedDate() != null) {
+                                                        formattedDate = sdf.format(review.getCreatedDate());
+                                                    }
+                                                %>
+                                                    <%= formattedDate %>
+                                                </div>
+                                            </div>
+                                            <div class="flex text-yellow-400 mb-2">
+                                                <% for (int i = 5; i >= 1; i--) { %>
+                                                    <span class="material-symbols-outlined">
+                                                        <%= i <= review.getRating() ? "star" : "star_outline" %>
+                                                    </span>
+                                                <% } %>
+                                            </div>
+                                            <p class="text-gray-800"><%= review.getComment() %></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <% } %>
+                            </div>
+                            <% } %>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Additional Information -->
                 <div class="py-8 border-t">
@@ -705,6 +936,81 @@
                 </div>
             </div>
         </div>
+
+        <!-- Rating Stars Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Star rating functionality
+                const stars = document.querySelectorAll('#ratingStars .material-symbols-outlined');
+                const ratingInput = document.getElementById('ratingValue');
+                
+                // Set initial 5-star rating
+                updateStars(5);
+                
+                stars.forEach(star => {
+                    star.addEventListener('click', function() {
+                        const rating = parseInt(this.getAttribute('data-rating'));
+                        ratingInput.value = rating;
+                        updateStars(rating);
+                    });
+                    
+                    star.addEventListener('mouseover', function() {
+                        const rating = parseInt(this.getAttribute('data-rating'));
+                        hoverStars(rating);
+                    });
+                    
+                    star.addEventListener('mouseout', function() {
+                        const currentRating = parseInt(ratingInput.value);
+                        updateStars(currentRating);
+                    });
+                });
+                
+                function updateStars(rating) {
+                    stars.forEach(star => {
+                        const starRating = parseInt(star.getAttribute('data-rating'));
+                        if (starRating <= rating) {
+                            star.classList.add('text-yellow-400');
+                            star.classList.remove('text-gray-400');
+                        } else {
+                            star.classList.remove('text-yellow-400');
+                            star.classList.add('text-gray-400');
+                        }
+                    });
+                }
+                
+                function hoverStars(rating) {
+                    stars.forEach(star => {
+                        const starRating = parseInt(star.getAttribute('data-rating'));
+                        if (starRating <= rating) {
+                            star.classList.add('text-yellow-400');
+                            star.classList.remove('text-gray-400');
+                        } else {
+                            star.classList.remove('text-yellow-400');
+                            star.classList.add('text-gray-400');
+                        }
+                    });
+                }
+                
+                // Form validation
+                const reviewForm = document.getElementById('reviewForm');
+                if (reviewForm) {
+                    reviewForm.addEventListener('submit', function(e) {
+                        const rating = parseInt(ratingInput.value);
+                        const comment = document.getElementById('comment').value.trim();
+                        
+                        if (rating < 1 || rating > 5) {
+                            e.preventDefault();
+                            alert('Vui lòng chọn số sao đánh giá từ 1 đến 5.');
+                            return false;
+                        }
+                        
+                        // Comment is optional, so we don't validate it
+                        
+                        return true;
+                    });
+                }
+            });
+        </script>
 
         <!-- Include Footer -->
         <jsp:include page="components/footer.jsp" />

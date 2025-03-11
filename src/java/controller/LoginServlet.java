@@ -48,6 +48,15 @@ public class LoginServlet extends HttpServlet {
             String prevPage = request.getParameter("prevPage");
             
             UserDAO userDAO = new UserDAO();
+            
+            // First check if the email exists but account is banned
+            User checkUser = userDAO.findByEmail(email);
+            if (checkUser != null && checkUser.isIsDelete()) {
+                request.setAttribute("error", "Tài khoản của bạn đã bị cấm. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.");
+                request.getRequestDispatcher("login.jsp").forward(request, response);
+                return;
+            }
+            
             User user = userDAO.login(email, password);
             
             if (user != null) {
@@ -64,6 +73,19 @@ public class LoginServlet extends HttpServlet {
                 } else if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
                     response.sendRedirect(prevPage);
                 } else {
+                    // Handle redirect if available
+                    String redirect = request.getParameter("redirect");
+                    if (redirect != null && !redirect.isEmpty()) {
+                        if (redirect.equals("booking")) {
+                            String tourId = request.getParameter("tourId");
+                            if (tourId != null && !tourId.isEmpty()) {
+                                response.sendRedirect("booking?tourId=" + tourId);
+                                return;
+                            }
+                        }
+                    }
+
+                    // Default redirect to home
                     response.sendRedirect("home.jsp");
                 }
             } else {
@@ -94,17 +116,35 @@ public class LoginServlet extends HttpServlet {
                 String name = (String) payload.get("name");
                 
                 UserDAO userDAO = new UserDAO();
+                
+                // First check if the email exists (including banned accounts)
+                User bannedCheck = userDAO.findUserByEmailIncludingBanned(email);
+                if (bannedCheck != null && bannedCheck.isIsDelete()) {
+                    request.setAttribute("error", "Tài khoản của bạn đã bị cấm. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.");
+                    request.getRequestDispatcher("login.jsp").forward(request, response);
+                    return;
+                }
+                
+                // Now get the active user if it exists
                 User user = userDAO.findByEmail(email);
                 
                 if (user == null) {
-                    // Create new user
-                    user = new User();
-                    user.setEmail(email);
-                    user.setFullName(name);
-                    user.setGoogleId(googleId);
-                    user.setRoleId(1); // Default role
-                    userDAO.registerGoogleUser(user);
-                    user = userDAO.findByEmail(email); // Get the newly created user with ID
+                    // Only create a new user if no account (including banned) exists with this email
+                    if (bannedCheck == null) {
+                        // Create new user
+                        user = new User();
+                        user.setEmail(email);
+                        user.setFullName(name);
+                        user.setGoogleId(googleId);
+                        user.setRoleId(1); // Default role
+                        userDAO.registerGoogleUser(user);
+                        user = userDAO.findByEmail(email); // Get the newly created user with ID
+                    } else {
+                        // Should never reach here due to previous check, but as a fallback
+                        request.setAttribute("error", "Không thể đăng nhập với tài khoản này.");
+                        request.getRequestDispatcher("login.jsp").forward(request, response);
+                        return;
+                    }
                 } else if (user.getGoogleId() == null) {
                     // Update existing user with Google ID
                     user.setGoogleId(googleId);
@@ -115,6 +155,18 @@ public class LoginServlet extends HttpServlet {
                 HttpSession session = request.getSession();
                 session.setAttribute("user", user);
                 
+                // Handle redirect if available
+                String redirect = request.getParameter("redirect");
+                if (redirect != null && !redirect.isEmpty()) {
+                    if (redirect.equals("booking")) {
+                        String tourId = request.getParameter("tourId");
+                        if (tourId != null && !tourId.isEmpty()) {
+                            response.sendRedirect("booking?tourId=" + tourId);
+                            return;
+                        }
+                    }
+                }
+
                 // Redirect to admin page if user is an admin (roleId = 2)
                 if (user.getRoleId() == 2) {
                     response.sendRedirect(request.getContextPath() + "/admin");

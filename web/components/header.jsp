@@ -933,62 +933,62 @@
             </style>
         </head>
 
-        <header class="bg-white shadow-md mb-8 w-full">
-            <div class="container mx-auto px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <a href="./home.jsp"><img src="./image/logo.svg"
-                                alt="TourNest Logo" style="height: 80px; width: auto;" /></a>
-                        <nav class="ml-8">
-                            <ul class="flex space-x-6">
-                                <li><a href="./home.jsp" class="text-gray-700 hover:text-blue-600">Trang chủ</a></li>
-                                <li><a href="./tour" class="text-gray-700 hover:text-blue-600">Tours</a></li>
-                                <li><a href="/about" class="text-gray-700 hover:text-blue-600">Về chúng tôi</a></li>
-                                <li><a href="/contact" class="text-gray-700 hover:text-blue-600">Liên hệ</a></li>
-                            </ul>
-                        </nav>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <c:choose>
-                            <c:when test="${sessionScope.user != null}">
-                                <div class="relative group">
-                                    <button class="flex items-center space-x-2 text-gray-700 hover:text-blue-600">
-                                        <c:choose>
-                                            <c:when test="${empty sessionScope.user.avatar}">
-                                                <div
-                                                    class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
-                                                    ${sessionScope.user.fullName.charAt(0)}
-                                                </div>
-                                            </c:when>
-                                            <c:otherwise>
-                                                <img src="${sessionScope.user.avatar}" alt="Avatar"
-                                                    class="w-8 h-8 rounded-full object-cover">
-                                            </c:otherwise>
-                                        </c:choose>
-                                        <span>${sessionScope.user.fullName}</span>
-                                    </button>
-                                    <div
-                                        class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
-                                        <a href="user-profile"
-                                            class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Thông tin cá
-                                            nhân</a>
-                                        <a href="my-bookings" class="block px-4 py-2 text-gray-700 hover:bg-blue-50">Đơn
-                                            đặt tour</a>
-                                        <hr class="my-1">
-                                        <a href="logout" class="block px-4 py-2 text-red-600 hover:bg-red-50">Đăng
-                                            xuất</a>
-                                    </div>
-                                </div>
-                            </c:when>
-                            <c:otherwise>
-                                <a href="login" class="text-gray-700 hover:text-blue-600">Đăng nhập</a>
-                                <a href="register"
-                                    class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">Đăng
-                                    ký</a>
-                            </c:otherwise>
-                        </c:choose>
-                    </div>
-                </div>
+        <header class="bg-sky-500 flex flex-col md:flex-row justify-between items-center py-2 px-4 text-white text-sm w-full">
+            <div class="flex items-center mb-2 md:mb-0">
+                <span class="material-symbols-outlined mr-1">call</span>
+                <span>1900 1839 - Từ 8:00 - 11:00 hàng ngày</span>
             </div>
+            <div>
+                <% if (session.getAttribute("user") != null) { 
+                    model.User user = (model.User) session.getAttribute("user"); 
+                %>
+                    <div class="relative" x-data="{ isOpen: false }">
+                        <button @click="isOpen = !isOpen" class="flex items-center space-x-3 focus:outline-none bg-gray-100 hover:bg-gray-200 rounded-full py-2 px-4">
+                            <img 
+                                src="<%= user.getAvatar() != null && !user.getAvatar().isEmpty() ? user.getAvatar() : "https://ui-avatars.com/api/?name=" + user.getFullName() + "&background=random" %>" 
+                                alt="avatar" 
+                                class="w-8 h-8 rounded-full border-2 border-white"
+                            />
+                            <span class="font-medium text-gray-700">Xin chào, <%= user.getFullName() %></span>
+                            <i class="fas fa-chevron-down text-gray-500 text-sm transition-transform duration-200" :class="{ 'transform rotate-180': isOpen }"></i>
+                        </button>
+                        <!-- Dropdown menu -->
+                        <div x-show="isOpen" @click.away="isOpen = false" class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50">
+                            <a href="./user-profile" class="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200">
+                                <i class="fas fa-user-circle text-gray-600 w-5"></i>
+                                <span class="ml-2">Thông tin của tôi</span>
+                            </a>
+                            <a href="my-bookings" class="flex items-center px-4 py-2 text-gray-800 hover:bg-gray-100 transition-colors duration-200">
+                                <i class="fas fa-calendar-check text-gray-600 w-5"></i>
+                                <span class="ml-2">Đơn đặt tour</span>
+                            </a>
+                            <hr class="my-1 border-gray-200" />
+                            <a href="logout" class="flex items-center px-4 py-2 text-red-600 hover:bg-gray-100 transition-colors duration-200">
+                                <i class="fas fa-sign-out-alt text-red-600 w-5"></i>
+                                <span class="ml-2">Đăng xuất</span>
+                            </a>
+                        </div>
+                    </div>
+                <% } else { %>
+                    <div class="flex items-center space-x-4">
+                        <a href="login" class="text-white hover:text-gray-200">
+                            <i class="fas fa-sign-in-alt mr-1"></i>
+                            Đăng nhập
+                        </a>
+                        <a href="register" class="bg-white text-sky-500 px-6 py-2 rounded-full hover:bg-gray-100 transition duration-200">
+                            <i class="fas fa-user-plus mr-1"></i>
+                            Đăng ký
+                        </a>
+                    </div>
+                <% } %>
             </div>
         </header>
+
+        <nav class="py-4 px-4 md:px-8">
+            <div class="flex justify-center items-center">
+                <a href="./home.jsp" class="flex items-center">
+                    <img src="./image/logo.svg" alt="TourNest Logo" class="h-16 md:h-24 w-auto" />
+                </a>
+            </div>
+            <p class="text-center mt-2">Hãy đến và trải nghiệm những dịch vụ tour du lịch của Tour<span class="text-sky-500">Nest</span></p>
+        </nav>
