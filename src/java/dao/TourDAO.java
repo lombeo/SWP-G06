@@ -886,11 +886,12 @@ public class TourDAO {
      * Get paginated list of tours with filters applied
      * @param searchQuery The search query string (can be null or empty)
      * @param region The region filter (can be null or empty)
+     * @param sort The sort option (can be null or empty)
      * @param page The page number (1-based)
      * @param itemsPerPage Number of items per page
      * @return List of tours matching the filters for the requested page
      */
-    public List<Tour> getFilteredToursByPage(String searchQuery, String region, int page, int itemsPerPage) 
+    public List<Tour> getFilteredToursByPage(String searchQuery, String region, String sort, int page, int itemsPerPage) 
             throws SQLException, ClassNotFoundException {
         List<Tour> tours = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
@@ -910,8 +911,32 @@ public class TourDAO {
             params.add(region);
         }
         
-        // Removed DISTINCT and fixed ORDER BY to avoid SQL Server error
-        sql.append(" ORDER BY t.id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        // Add sorting
+        sql.append(" ORDER BY ");
+        if (sort != null && !sort.trim().isEmpty()) {
+            switch (sort) {
+                case "name_asc":
+                    sql.append("t.name ASC");
+                    break;
+                case "name_desc":
+                    sql.append("t.name DESC");
+                    break;
+                case "price_asc":
+                    sql.append("t.price_adult ASC");
+                    break;
+                case "price_desc":
+                    sql.append("t.price_adult DESC");
+                    break;
+                default:
+                    sql.append("t.id"); // Default sorting
+                    break;
+            }
+        } else {
+            sql.append("t.id"); // Default sorting
+        }
+        
+        // Add pagination
+        sql.append(" OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
         params.add((page - 1) * itemsPerPage);
         params.add(itemsPerPage);
         

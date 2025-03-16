@@ -53,6 +53,8 @@ public class AdminReviewController extends HttpServlet {
         
         if (pathInfo.equals("/delete")) {
             deleteReview(request, response);
+        } else if (pathInfo.equals("/feedback")) {
+            addFeedback(request, response);
         } else {
             // Redirect back to the reviews page
             response.sendRedirect(request.getContextPath() + "/admin?action=reviews");
@@ -83,6 +85,50 @@ public class AdminReviewController extends HttpServlet {
             session.setAttribute("errorMessage", "Invalid review ID format.");
         } catch (Exception e) {
             session.setAttribute("errorMessage", "Error: " + e.getMessage());
+        }
+        
+        // Redirect back to the reviews page
+        response.sendRedirect(request.getContextPath() + "/admin?action=reviews");
+    }
+    
+    private void addFeedback(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        
+        try {
+            String reviewIdParam = request.getParameter("reviewId");
+            String feedback = request.getParameter("feedback");
+            
+            if (reviewIdParam != null && !reviewIdParam.isEmpty()) {
+                int reviewId = Integer.parseInt(reviewIdParam);
+                
+                // Validate feedback content
+                if (feedback == null || feedback.trim().isEmpty()) {
+                    session.setAttribute("errorMessage", "Feedback content cannot be empty.");
+                    response.sendRedirect(request.getContextPath() + "/admin?action=reviews");
+                    return;
+                }
+                
+                // Get the admin's account ID from the session
+                int adminAccountId = user.getId();
+                
+                ReviewDAO reviewDAO = new ReviewDAO();
+                boolean success = reviewDAO.addFeedbackToReview(reviewId, feedback, adminAccountId);
+                
+                if (success) {
+                    session.setAttribute("successMessage", "Feedback added successfully.");
+                } else {
+                    session.setAttribute("errorMessage", "Failed to add feedback.");
+                }
+            } else {
+                session.setAttribute("errorMessage", "Review ID is required.");
+            }
+        } catch (NumberFormatException e) {
+            session.setAttribute("errorMessage", "Invalid review ID format.");
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Error: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging in the server logs
         }
         
         // Redirect back to the reviews page

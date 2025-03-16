@@ -86,7 +86,7 @@ public class LoginServlet extends HttpServlet {
                     }
 
                     // Default redirect to home
-                    response.sendRedirect("home.jsp");
+                    response.sendRedirect("home");
                 }
             } else {
                 request.setAttribute("error", "Email hoặc mật khẩu không đúng");
@@ -173,7 +173,7 @@ public class LoginServlet extends HttpServlet {
                 } else if (prevPage != null && !prevPage.isEmpty() && !prevPage.contains("/login") && !prevPage.contains("/register")) {
                     response.sendRedirect(prevPage);
                 } else {
-                    response.sendRedirect("home.jsp");
+                    response.sendRedirect("home");
                 }
             } else {
                 request.setAttribute("error", "Invalid ID token");

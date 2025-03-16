@@ -34,7 +34,11 @@ public class CategoryDAO {
         List<Category> categories = new ArrayList<>();
         
         try (Connection conn = DBContext.getConnection()) {
+            // SQL Server pagination syntax
             String sql = "SELECT * FROM category ORDER BY id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            System.out.println("Executing SQL: " + sql);
+            System.out.println("Parameters: page=" + page + ", pageSize=" + pageSize);
+            
             try (PreparedStatement statement = conn.prepareStatement(sql)) {
                 statement.setInt(1, (page - 1) * pageSize);
                 statement.setInt(2, pageSize);
@@ -47,6 +51,12 @@ public class CategoryDAO {
                     }
                 }
             }
+            
+            System.out.println("Retrieved " + categories.size() + " categories");
+        } catch (Exception e) {
+            System.err.println("Error in getCategoriesByPage: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
         
         return categories;
@@ -57,13 +67,20 @@ public class CategoryDAO {
         
         try (Connection conn = DBContext.getConnection()) {
             String sql = "SELECT COUNT(*) as total FROM category";
+            System.out.println("Executing SQL: " + sql);
+            
             try (PreparedStatement statement = conn.prepareStatement(sql)) {
                 try (ResultSet rs = statement.executeQuery()) {
                     if (rs.next()) {
                         total = rs.getInt("total");
+                        System.out.println("Total categories: " + total);
                     }
                 }
             }
+        } catch (Exception e) {
+            System.err.println("Error in getTotalCategories: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
         
         return total;
@@ -136,5 +153,63 @@ public class CategoryDAO {
         }
         
         return count;
+    }
+    
+    public int getTotalCategoriesBySearch(String search) throws SQLException, ClassNotFoundException {
+        int total = 0;
+        
+        try (Connection conn = DBContext.getConnection()) {
+            String sql = "SELECT COUNT(*) as total FROM category WHERE name LIKE ?";
+            System.out.println("Executing SQL: " + sql);
+            System.out.println("Search parameter: " + search);
+            
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                statement.setString(1, "%" + search + "%");
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (rs.next()) {
+                        total = rs.getInt("total");
+                        System.out.println("Total categories matching search: " + total);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error in getTotalCategoriesBySearch: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+        
+        return total;
+    }
+    
+    public List<Category> getCategoriesBySearch(String search, int page, int pageSize) throws SQLException, ClassNotFoundException {
+        List<Category> categories = new ArrayList<>();
+        
+        try (Connection conn = DBContext.getConnection()) {
+            String sql = "SELECT * FROM category WHERE name LIKE ? ORDER BY id OFFSET ? ROWS FETCH NEXT ? ROWS ONLY";
+            System.out.println("Executing SQL: " + sql);
+            System.out.println("Parameters: search=" + search + ", page=" + page + ", pageSize=" + pageSize);
+            
+            try (PreparedStatement statement = conn.prepareStatement(sql)) {
+                statement.setString(1, "%" + search + "%");
+                statement.setInt(2, (page - 1) * pageSize);
+                statement.setInt(3, pageSize);
+                try (ResultSet rs = statement.executeQuery()) {
+                    while (rs.next()) {
+                        Category category = new Category();
+                        category.setId(rs.getInt("id"));
+                        category.setName(rs.getString("name"));
+                        categories.add(category);
+                    }
+                }
+            }
+            
+            System.out.println("Retrieved " + categories.size() + " categories matching search");
+        } catch (Exception e) {
+            System.err.println("Error in getCategoriesBySearch: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+        
+        return categories;
     }
 } 

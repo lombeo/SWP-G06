@@ -77,6 +77,7 @@
                                     <th>Rating</th>
                                     <th>Comment</th>
                                     <th>Date</th>
+                                    <th>Admin Feedback</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -114,7 +115,7 @@
                                 %>
                                 <tr>
                                     <td><%= review.getId() %></td>
-                                    <td><a href="${pageContext.request.contextPath}/admin/tours/detail?id=<%= tour.getId() %>"><%= tour.getName() %></a></td>
+                                    <td><a href="${pageContext.request.contextPath}/admin/tours/view?id=<%= tour.getId() %>"><%= tour.getName() %></a></td>
                                     <td><%= user.getFullName() %> (<%= user.getEmail() %>)</td>
                                     <td>
                                         <div class="rating-stars">
@@ -126,9 +127,25 @@
                                     <td><%= review.getComment() %></td>
                                     <td><%= dateFormat.format(review.getCreatedDate()) %></td>
                                     <td>
-                                        <button class="btn btn-sm btn-danger delete-review" data-id="<%= review.getId() %>" data-bs-toggle="modal" data-bs-target="#deleteReviewModal">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <% if (review.getFeedback() != null && !review.getFeedback().isEmpty()) { %>
+                                            <span class="badge bg-success">Responded</span>
+                                        <% } else { %>
+                                            <span class="badge bg-secondary">No Response</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-primary add-feedback" 
+                                                    data-id="<%= review.getId() %>" 
+                                                    data-feedback="<%= review.getFeedback() != null ? review.getFeedback() : "" %>"
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#feedbackModal">
+                                                <i class="fas fa-reply"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger delete-review" data-id="<%= review.getId() %>" data-bs-toggle="modal" data-bs-target="#deleteReviewModal">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                                 <% 
@@ -166,6 +183,57 @@
     </div>
 </div>
 
+<!-- Feedback Modal -->
+<div class="modal fade" id="feedbackModal" tabindex="-1" aria-labelledby="feedbackModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="feedbackModalLabel">
+                    <i class="fas fa-reply me-2"></i>Respond to Review
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="feedbackForm" action="${pageContext.request.contextPath}/admin/reviews/feedback" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="reviewIdForFeedback" name="reviewId" value="">
+                    
+                    <div class="mb-3">
+                        <label for="feedbackContent" class="form-label">Your Response</label>
+                        <textarea class="form-control" id="feedbackContent" name="feedback" rows="4" 
+                                  placeholder="Enter your response to this review..."></textarea>
+                        <div class="form-text">
+                            This response will be visible to all users viewing the tour page.
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex">
+                            <div>
+                                <i class="fas fa-info-circle me-2 mt-1"></i>
+                            </div>
+                            <div>
+                                <strong>Guidelines for good responses:</strong>
+                                <ul class="mb-0 mt-1">
+                                    <li>Thank the reviewer for their feedback</li>
+                                    <li>Address specific concerns they mentioned</li>
+                                    <li>Explain any improvements or actions you'll take</li>
+                                    <li>Keep responses professional and courteous</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i> Send Response
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <jsp:include page="layout/footer.jsp"/>
 
 <script>
@@ -194,6 +262,24 @@
             button.addEventListener('click', function() {
                 const reviewId = this.getAttribute('data-id');
                 document.getElementById('reviewIdToDelete').value = reviewId;
+            });
+        });
+        
+        // Handle feedback button clicks
+        const feedbackButtons = document.querySelectorAll('.add-feedback');
+        feedbackButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const reviewId = this.getAttribute('data-id');
+                const existingFeedback = this.getAttribute('data-feedback');
+                
+                document.getElementById('reviewIdForFeedback').value = reviewId;
+                document.getElementById('feedbackContent').value = existingFeedback;
+                
+                // Focus the textarea after the modal is shown
+                const feedbackModal = document.getElementById('feedbackModal');
+                feedbackModal.addEventListener('shown.bs.modal', function () {
+                    document.getElementById('feedbackContent').focus();
+                }, { once: true });
             });
         });
         

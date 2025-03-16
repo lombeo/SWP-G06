@@ -77,6 +77,9 @@ public class AdminCityController extends HttpServlet {
             // Get pagination parameters
             int page = 1;
             int pageSize = 10;
+            String search = null;
+            String region = null;
+            String sort = null;
             
             String pageParam = request.getParameter("page");
             if (pageParam != null && !pageParam.isEmpty()) {
@@ -99,19 +102,81 @@ public class AdminCityController extends HttpServlet {
                 }
             }
             
+            // Get filter parameters
+            search = request.getParameter("search");
+            region = request.getParameter("region");
+            sort = request.getParameter("sort");
+            
+            System.out.println("Search parameter: " + search);
+            System.out.println("Region parameter: " + region);
+            System.out.println("Sort parameter: " + sort);
+            
+            if (search != null) {
+                try {
+                    search = java.net.URLDecoder.decode(search, "UTF-8");
+                    System.out.println("Search parameter after URL decode: " + search);
+                } catch (Exception e) {
+                    System.err.println("Error decoding search parameter: " + e.getMessage());
+                }
+            }
+            
             CityDAO cityDAO = new CityDAO();
             
-            // Get total cities count for pagination
-            int totalCities = cityDAO.getTotalCities();
+            // Get total cities count for pagination (filtered by search if needed)
+            int totalCities;
+            List<City> cities;
+            
+            // Apply filters
+            if (search != null && !search.trim().isEmpty()) {
+                // Search filter is applied
+                totalCities = cityDAO.getTotalCitiesBySearch(search);
+                cities = cityDAO.getCitiesBySearch(search, page, pageSize);
+                System.out.println("Filtered cities by search: " + totalCities);
+            } else if (region != null && !region.trim().isEmpty()) {
+                // Region filter is applied - shows cities that are departure locations for tours in the specified region
+                totalCities = cityDAO.getTotalCitiesByRegion(region);
+                cities = cityDAO.getCitiesByRegion(region, page, pageSize);
+                System.out.println("Filtered cities by region (departure cities for tours in region " + region + "): " + totalCities);
+            } else {
+                // No filters applied
+                totalCities = cityDAO.getTotalCities();
+                cities = cityDAO.getCitiesByPage(page, pageSize);
+                System.out.println("All cities: " + totalCities);
+            }
+            
+            // Apply sorting if specified
+            if (sort != null && !sort.trim().isEmpty()) {
+                if (sort.equals("asc")) {
+                    cities.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                } else if (sort.equals("desc")) {
+                    cities.sort((a, b) -> b.getName().compareToIgnoreCase(a.getName()));
+                }
+            }
+            
             int totalPages = (int) Math.ceil((double) totalCities / pageSize);
             
             // Ensure page is within bounds
             if (page > totalPages && totalPages > 0) {
                 page = totalPages;
+                
+                // Refetch data with corrected page
+                if (search != null && !search.trim().isEmpty()) {
+                    cities = cityDAO.getCitiesBySearch(search, page, pageSize);
+                } else if (region != null && !region.trim().isEmpty()) {
+                    cities = cityDAO.getCitiesByRegion(region, page, pageSize);
+                } else {
+                    cities = cityDAO.getCitiesByPage(page, pageSize);
+                }
+                
+                // Reapply sorting
+                if (sort != null && !sort.trim().isEmpty()) {
+                    if (sort.equals("asc")) {
+                        cities.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                    } else if (sort.equals("desc")) {
+                        cities.sort((a, b) -> b.getName().compareToIgnoreCase(a.getName()));
+                    }
+                }
             }
-            
-            // Get paginated cities
-            List<City> cities = cityDAO.getCitiesByPage(page, pageSize);
             
             // Get departure and destination counts for each city
             for (City city : cities) {
@@ -127,6 +192,9 @@ public class AdminCityController extends HttpServlet {
             request.setAttribute("pageSize", pageSize);
             request.setAttribute("totalPages", totalPages);
             request.setAttribute("totalCities", totalCities);
+            request.setAttribute("search", search);
+            request.setAttribute("region", region);
+            request.setAttribute("sort", sort);
             
             // Forward to the admin cities page
             request.getRequestDispatcher("/admin/cities.jsp").forward(request, response);
@@ -163,7 +231,7 @@ public class AdminCityController extends HttpServlet {
             session.setAttribute("successMessage", "City added successfully!");
             
             // Redirect to the cities list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=cities");
+            response.sendRedirect(request.getContextPath() + "/admin/city");
         } catch (Exception e) {
             request.setAttribute("errorMessage", "Error adding city: " + e.getMessage());
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
@@ -190,7 +258,7 @@ public class AdminCityController extends HttpServlet {
             session.setAttribute("successMessage", "City updated successfully!");
             
             // Redirect to the cities list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=cities");
+            response.sendRedirect(request.getContextPath() + "/admin/city");
         } catch (NumberFormatException e) {
             request.setAttribute("errorMessage", "Invalid city ID");
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
@@ -226,7 +294,7 @@ public class AdminCityController extends HttpServlet {
                     message += destinationCount + " trips as destination";
                 }
                 session.setAttribute("errorMessage", message);
-                response.sendRedirect(request.getContextPath() + "/admin?action=cities");
+                response.sendRedirect(request.getContextPath() + "/admin/city");
                 return;
             }
             
@@ -237,7 +305,7 @@ public class AdminCityController extends HttpServlet {
             session.setAttribute("successMessage", "City deleted successfully!");
             
             // Redirect to the cities list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=cities");
+            response.sendRedirect(request.getContextPath() + "/admin/city");
         } catch (NumberFormatException e) {
             request.setAttribute("errorMessage", "Invalid city ID");
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);

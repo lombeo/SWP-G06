@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="tours"/>
 </jsp:include>
@@ -26,10 +27,10 @@
         <div class="card-body">
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <strong>Departure City:</strong> ${tour.departureCity}
+                    <strong>Departure City:</strong> ${departureCity.name}
                 </div>
                 <div class="col-md-4">
-                    <strong>Destination:</strong> ${tour.destinationCity}
+                    <strong>Destination:</strong> ${destinationCity != null ? destinationCity.name : tour.destinationCity}
                 </div>
                 <div class="col-md-4">
                     <strong>Duration:</strong> ${tour.duration}
@@ -59,8 +60,8 @@
                         <c:forEach var="trip" items="${trips}">
                             <tr>
                                 <td>${trip.id}</td>
-                                <td>${trip.departureDate}</td>
-                                <td>${trip.returnDate}</td>
+                                <td><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></td>
+                                <td><fmt:formatDate value="${trip.returnDate}" pattern="dd/MM/yyyy" /></td>
                                 <td>${trip.startTime} - ${trip.endTime}</td>
                                 <td>${trip.availableSlot}</td>
                                 <td>
@@ -79,7 +80,7 @@
                             <div class="modal fade" id="editTripModal${trip.id}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog modal-lg">
                                     <div class="modal-content">
-                                        <form action="${pageContext.request.contextPath}/admin/tours" method="post">
+                                        <form action="${pageContext.request.contextPath}/admin/tours/trips" method="post">
                                             <input type="hidden" name="action" value="update-trip">
                                             <input type="hidden" name="tripId" value="${trip.id}">
                                             <input type="hidden" name="tourId" value="${tour.id}">
@@ -92,11 +93,13 @@
                                                 <div class="row mb-3">
                                                     <div class="col-md-6">
                                                         <label for="departureDate${trip.id}" class="form-label">Departure Date</label>
-                                                        <input type="date" class="form-control" id="departureDate${trip.id}" name="departureDate" value="${trip.departureDate}" required>
+                                                        <fmt:formatDate value="${trip.departureDate}" pattern="yyyy-MM-dd" var="formattedDepartureDate" />
+                                                        <input type="date" class="form-control" id="departureDate${trip.id}" name="departureDate" value="${formattedDepartureDate}" required>
                                                     </div>
                                                     <div class="col-md-6">
                                                         <label for="returnDate${trip.id}" class="form-label">Return Date</label>
-                                                        <input type="date" class="form-control" id="returnDate${trip.id}" name="returnDate" value="${trip.returnDate}" required>
+                                                        <fmt:formatDate value="${trip.returnDate}" pattern="yyyy-MM-dd" var="formattedReturnDate" />
+                                                        <input type="date" class="form-control" id="returnDate${trip.id}" name="returnDate" value="${formattedReturnDate}" required>
                                                     </div>
                                                 </div>
                                                 <div class="row mb-3">
@@ -129,7 +132,7 @@
                             <div class="modal fade" id="deleteTripModal${trip.id}" tabindex="-1" aria-hidden="true">
                                 <div class="modal-dialog">
                                     <div class="modal-content">
-                                        <form action="${pageContext.request.contextPath}/admin/tours" method="post">
+                                        <form action="${pageContext.request.contextPath}/admin/tours/trips" method="post">
                                             <input type="hidden" name="action" value="delete-trip">
                                             <input type="hidden" name="tripId" value="${trip.id}">
                                             <input type="hidden" name="tourId" value="${tour.id}">
@@ -160,8 +163,8 @@
     <div class="modal fade" id="addTripModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form action="${pageContext.request.contextPath}/admin/tours" method="post">
-                    <input type="hidden" name="action" value="add-trip">
+                <form id="addTripForm" action="${pageContext.request.contextPath}/admin/tours/trips" method="post">
+                    <input type="hidden" name="action" value="create-trip">
                     <input type="hidden" name="tourId" value="${tour.id}">
                     
                     <div class="modal-header">
@@ -207,3 +210,178 @@
 </div>
 
 <jsp:include page="layout/footer.jsp" />
+
+<script>
+// Wrap all JavaScript in a try-catch block to prevent uncaught errors
+try {
+    // Make sure DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        try {
+            // Simple function to validate form data
+            function validateTripForm(departureDate, returnDate, startTime, endTime, availableSlot, maxCapacity) {
+                if (!departureDate || !returnDate || !startTime || !endTime || !availableSlot) {
+                    alert('Please fill in all required fields');
+                    return false;
+                }
+
+                // Validate dates
+                const departureDateObj = new Date(departureDate);
+                const returnDateObj = new Date(returnDate);
+                
+                if (departureDateObj > returnDateObj) {
+                    alert('Return date must be after departure date');
+                    return false;
+                }
+
+                // Validate available slots
+                if (parseInt(availableSlot) > parseInt(maxCapacity)) {
+                    alert('Available slots cannot exceed maximum capacity of ' + maxCapacity);
+                    return false;
+                }
+                
+                return true;
+            }
+
+            // Add Trip Form Validation - using a safer selector and checking existence
+            const addTripForm = document.getElementById('addTripForm');
+            console.log("Add Trip Form found:", !!addTripForm);
+            
+            if (addTripForm) {
+                addTripForm.addEventListener('submit', function(e) {
+                    const departureDateInput = document.getElementById('departureDate');
+                    const returnDateInput = document.getElementById('returnDate');
+                    const startTimeInput = document.getElementById('startTime');
+                    const endTimeInput = document.getElementById('endTime');
+                    const availableSlotInput = document.getElementById('availableSlot');
+                    
+                    if (!departureDateInput || !returnDateInput || !startTimeInput || 
+                        !endTimeInput || !availableSlotInput) {
+                        e.preventDefault();
+                        alert('Form inputs not found');
+                        return false;
+                    }
+                    
+                    const departureDate = departureDateInput.value;
+                    const returnDate = returnDateInput.value;
+                    const startTime = startTimeInput.value;
+                    const endTime = endTimeInput.value;
+                    const availableSlot = availableSlotInput.value;
+                    const maxCapacity = availableSlotInput.getAttribute('max');
+
+                    if (!validateTripForm(departureDate, returnDate, startTime, endTime, availableSlot, maxCapacity)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            }
+
+            // Edit Trip Form Validation - with safer selectors
+            const editFormList = document.querySelectorAll('form[action*="update-trip"]');
+            console.log("Edit forms found:", editFormList.length);
+            
+            editFormList.forEach(form => {
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        const tripId = form.querySelector('input[name="tripId"]')?.value;
+                        if (!tripId) return;
+                        
+                        // Find inputs using a more reliable method - inside the current form
+                        const departureDateInput = form.querySelector('input[name="departureDate"]');
+                        const returnDateInput = form.querySelector('input[name="returnDate"]');
+                        const startTimeInput = form.querySelector('input[name="startTime"]');
+                        const endTimeInput = form.querySelector('input[name="endTime"]');
+                        const availableSlotInput = form.querySelector('input[name="availableSlot"]');
+                        
+                        if (!departureDateInput || !returnDateInput || !startTimeInput || 
+                            !endTimeInput || !availableSlotInput) {
+                            e.preventDefault();
+                            alert('Form inputs not found');
+                            return false;
+                        }
+                        
+                        const departureDate = departureDateInput.value;
+                        const returnDate = returnDateInput.value;
+                        const startTime = startTimeInput.value;
+                        const endTime = endTimeInput.value;
+                        const availableSlot = availableSlotInput.value;
+                        const maxCapacity = availableSlotInput.getAttribute('max');
+
+                        if (!validateTripForm(departureDate, returnDate, startTime, endTime, availableSlot, maxCapacity)) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+            });
+
+            // Set min date for date inputs
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Set min date for add form
+            const departureDateInput = document.getElementById('departureDate');
+            if (departureDateInput) {
+                departureDateInput.setAttribute('min', today);
+            }
+            
+            const returnDateInput = document.getElementById('returnDate');
+            if (returnDateInput) {
+                returnDateInput.setAttribute('min', today);
+            }
+            
+            // Set min date for edit forms
+            document.querySelectorAll('input[type="date"]').forEach(input => {
+                if (input) {
+                    input.setAttribute('min', today);
+                }
+            });
+            
+            // Add edit trip modal display event handler
+            document.querySelectorAll('[data-bs-target^="#editTripModal"]').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Get the modal ID from the button's data-bs-target attribute
+                    const modalId = this.getAttribute('data-bs-target');
+                    const modal = document.querySelector(modalId);
+                    if (!modal) return;
+                    
+                    // Get the tripId from the modal's hidden input
+                    const tripId = modal.querySelector('input[name="tripId"]').value;
+                    console.log('Opening edit modal for trip ID:', tripId);
+                    
+                    // Set min dates for date inputs
+                    const today = new Date().toISOString().split('T')[0];
+                    const departureDateInput = document.getElementById('departureDate' + tripId);
+                    const returnDateInput = document.getElementById('returnDate' + tripId);
+                    
+                    if (departureDateInput) {
+                        departureDateInput.setAttribute('min', today);
+                        console.log('Set departure date value:', departureDateInput.value);
+                    }
+                    
+                    if (returnDateInput) {
+                        returnDateInput.setAttribute('min', today);
+                        console.log('Set return date value:', returnDateInput.value);
+                    }
+                    
+                    // Log time values for debugging
+                    const startTimeInput = document.getElementById('startTime' + tripId);
+                    const endTimeInput = document.getElementById('endTime' + tripId);
+                    
+                    if (startTimeInput) {
+                        console.log('Start time value:', startTimeInput.value);
+                    }
+                    
+                    if (endTimeInput) {
+                        console.log('End time value:', endTimeInput.value);
+                    }
+                });
+            });
+            
+            console.log("Trip form script loaded successfully");
+        } catch (err) {
+            console.error("Error in trip form script:", err);
+        }
+    });
+} catch (mainErr) {
+    console.error("Fatal error in trip script:", mainErr);
+}
+</script>

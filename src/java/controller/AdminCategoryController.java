@@ -77,6 +77,8 @@ public class AdminCategoryController extends HttpServlet {
             // Get pagination parameters
             int page = 1;
             int pageSize = 10;
+            String search = null;
+            String sort = null;
             
             String pageParam = request.getParameter("page");
             if (pageParam != null && !pageParam.isEmpty()) {
@@ -99,19 +101,72 @@ public class AdminCategoryController extends HttpServlet {
                 }
             }
             
+            // Get filter parameters
+            search = request.getParameter("search");
+            sort = request.getParameter("sort");
+            
+            System.out.println("Search parameter: " + search);
+            System.out.println("Sort parameter: " + sort);
+            
+            if (search != null) {
+                try {
+                    search = java.net.URLDecoder.decode(search, "UTF-8");
+                    System.out.println("Search parameter after URL decode: " + search);
+                } catch (Exception e) {
+                    System.err.println("Error decoding search parameter: " + e.getMessage());
+                }
+            }
+            
             CategoryDAO categoryDAO = new CategoryDAO();
             
-            // Get total categories count for pagination
-            int totalCategories = categoryDAO.getTotalCategories();
+            // Get total categories count for pagination (filtered by search if needed)
+            int totalCategories;
+            List<Category> categories;
+            
+            // Apply filters
+            if (search != null && !search.trim().isEmpty()) {
+                // Search filter is applied
+                totalCategories = categoryDAO.getTotalCategoriesBySearch(search);
+                categories = categoryDAO.getCategoriesBySearch(search, page, pageSize);
+                System.out.println("Filtered categories by search: " + totalCategories);
+            } else {
+                // No filters applied
+                totalCategories = categoryDAO.getTotalCategories();
+                categories = categoryDAO.getCategoriesByPage(page, pageSize);
+                System.out.println("All categories: " + totalCategories);
+            }
+            
+            // Apply sorting if specified
+            if (sort != null && !sort.trim().isEmpty()) {
+                if (sort.equals("asc")) {
+                    categories.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                } else if (sort.equals("desc")) {
+                    categories.sort((a, b) -> b.getName().compareToIgnoreCase(a.getName()));
+                }
+            }
+            
             int totalPages = (int) Math.ceil((double) totalCategories / pageSize);
             
             // Ensure page is within bounds
             if (page > totalPages && totalPages > 0) {
                 page = totalPages;
+                
+                // Refetch data with corrected page
+                if (search != null && !search.trim().isEmpty()) {
+                    categories = categoryDAO.getCategoriesBySearch(search, page, pageSize);
+                } else {
+                    categories = categoryDAO.getCategoriesByPage(page, pageSize);
+                }
+                
+                // Reapply sorting
+                if (sort != null && !sort.trim().isEmpty()) {
+                    if (sort.equals("asc")) {
+                        categories.sort((a, b) -> a.getName().compareToIgnoreCase(b.getName()));
+                    } else if (sort.equals("desc")) {
+                        categories.sort((a, b) -> b.getName().compareToIgnoreCase(a.getName()));
+                    }
+                }
             }
-            
-            // Get paginated categories
-            List<Category> categories = categoryDAO.getCategoriesByPage(page, pageSize);
             
             // Get tour count for each category
             for (Category category : categories) {
@@ -125,6 +180,8 @@ public class AdminCategoryController extends HttpServlet {
             request.setAttribute("pageSize", pageSize);
             request.setAttribute("totalPages", totalPages);
             request.setAttribute("totalCategories", totalCategories);
+            request.setAttribute("search", search);
+            request.setAttribute("sort", sort);
             
             // Forward to the admin categories page
             request.getRequestDispatcher("/admin/categories.jsp").forward(request, response);
@@ -161,7 +218,7 @@ public class AdminCategoryController extends HttpServlet {
             session.setAttribute("successMessage", "Category added successfully!");
             
             // Redirect to the categories list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=categories");
+            response.sendRedirect(request.getContextPath() + "/admin/category");
         } catch (Exception e) {
             request.setAttribute("errorMessage", "Error adding category: " + e.getMessage());
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
@@ -188,7 +245,7 @@ public class AdminCategoryController extends HttpServlet {
             session.setAttribute("successMessage", "Category updated successfully!");
             
             // Redirect to the categories list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=categories");
+            response.sendRedirect(request.getContextPath() + "/admin/category");
         } catch (NumberFormatException e) {
             request.setAttribute("errorMessage", "Invalid category ID");
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
@@ -210,7 +267,7 @@ public class AdminCategoryController extends HttpServlet {
             if (tourCount > 0) {
                 HttpSession session = request.getSession();
                 session.setAttribute("errorMessage", "Cannot delete category because it is used by " + tourCount + " tours");
-                response.sendRedirect(request.getContextPath() + "/admin?action=categories");
+                response.sendRedirect(request.getContextPath() + "/admin/category");
                 return;
             }
             
@@ -221,7 +278,7 @@ public class AdminCategoryController extends HttpServlet {
             session.setAttribute("successMessage", "Category deleted successfully!");
             
             // Redirect to the categories list page
-            response.sendRedirect(request.getContextPath() + "/admin?action=categories");
+            response.sendRedirect(request.getContextPath() + "/admin/category");
         } catch (NumberFormatException e) {
             request.setAttribute("errorMessage", "Invalid category ID");
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);

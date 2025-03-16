@@ -35,7 +35,7 @@ public class AuthenticationFilter implements Filter {
         if (isLoggedIn) {
             // Nếu đã đăng nhập, không cho phép truy cập trang login và register
             if (isLoginPage || isRegisterPage) {
-                httpResponse.sendRedirect(httpRequest.getContextPath() + "/home.jsp");
+                httpResponse.sendRedirect(httpRequest.getContextPath() + "/home");
                 return;
             }
         } else {

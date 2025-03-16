@@ -441,8 +441,22 @@ public class AdminTourController extends HttpServlet {
             
             TourDAO tourDAO = new TourDAO();
             TripDAO tripDAO = new TripDAO();
+            CityDAO cityDAO = new CityDAO();
             
             Tour tour = tourDAO.getTourById(tourId);
+            
+            // Get city information
+            City departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
+            
+            // Get list of all cities to find destination
+            List<City> allCities = cityDAO.getAllCities();
+            City destinationCity = null;
+            for (City city : allCities) {
+                if (city.getName().equals(tour.getDestinationCity())) {
+                    destinationCity = city;
+                    break;
+                }
+            }
             
             // Get total count of trips for this tour
             int totalTrips = tripDAO.getTotalTripsByTourId(tourId);
@@ -450,7 +464,28 @@ public class AdminTourController extends HttpServlet {
             // Get paginated list of trips
             List<Trip> trips = tripDAO.getTripsByTourIdPaginated(tourId, page, itemsPerPage);
             
+            // Format trip times for proper display in time inputs
+            for (Trip trip : trips) {
+                // Ensure startTime and endTime are in the proper format for time inputs (HH:MM)
+                if (trip.getStartTime() != null && trip.getStartTime().contains(".")) {
+                    trip.setStartTime(trip.getStartTime().split("\\.")[0]);
+                }
+                if (trip.getEndTime() != null && trip.getEndTime().contains(".")) {
+                    trip.setEndTime(trip.getEndTime().split("\\.")[0]);
+                }
+                
+                // Ensure times are in proper format
+                if (trip.getStartTime() != null && trip.getStartTime().length() > 5) {
+                    trip.setStartTime(trip.getStartTime().substring(0, 5));
+                }
+                if (trip.getEndTime() != null && trip.getEndTime().length() > 5) {
+                    trip.setEndTime(trip.getEndTime().substring(0, 5));
+                }
+            }
+            
             request.setAttribute("tour", tour);
+            request.setAttribute("departureCity", departureCity);
+            request.setAttribute("destinationCity", destinationCity);
             request.setAttribute("trips", trips);
             request.setAttribute("totalTrips", totalTrips);
             request.setAttribute("currentPage", page);
@@ -468,19 +503,195 @@ public class AdminTourController extends HttpServlet {
     
     private void createTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Implementation for creating a trip
+        try {
+            int tourId = Integer.parseInt(request.getParameter("tourId"));
+            String departureDateStr = request.getParameter("departureDate");
+            String returnDateStr = request.getParameter("returnDate");
+            String startTimeStr = request.getParameter("startTime");
+            String endTimeStr = request.getParameter("endTime");
+            int availableSlot = Integer.parseInt(request.getParameter("availableSlot"));
+
+            // For debugging
+            System.out.println("Adding new trip with tourId=" + tourId);
+            System.out.println("Departure date: " + departureDateStr);
+            System.out.println("Return date: " + returnDateStr);
+            System.out.println("Start time: " + startTimeStr);
+            System.out.println("End time: " + endTimeStr);
+            System.out.println("Available slots: " + availableSlot);
+
+            // Get tour details to set departure and destination city IDs
+            TourDAO tourDAO = new TourDAO();
+            Tour tour = tourDAO.getTourById(tourId);
+
+            if (tour == null) {
+                throw new Exception("Tour not found with ID: " + tourId);
+            }
+
+            // Create Trip object
+            Trip trip = new Trip();
+            trip.setTourId(tourId);
+            
+            // Convert String dates to java.sql.Date
+            try {
+                // Use simple date format to parse the dates
+                java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                java.util.Date departureDateUtil = dateFormat.parse(departureDateStr);
+                java.util.Date returnDateUtil = dateFormat.parse(returnDateStr);
+                
+                // Convert to java.sql.Timestamp
+                java.sql.Timestamp departureTimestamp = new java.sql.Timestamp(departureDateUtil.getTime());
+                java.sql.Timestamp returnTimestamp = new java.sql.Timestamp(returnDateUtil.getTime());
+                
+                trip.setDepartureDate(departureTimestamp);
+                trip.setReturnDate(returnTimestamp);
+                
+                System.out.println("Parsed departure date: " + departureTimestamp);
+                System.out.println("Parsed return date: " + returnTimestamp);
+            } catch (java.text.ParseException e) {
+                throw new Exception("Error parsing dates: " + e.getMessage());
+            }
+            
+            // Set city IDs from tour
+            trip.setDepartureCityId(tour.getDepartureLocationId());
+            
+            // For destination city, find the city ID based on name
+            CityDAO cityDAO = new CityDAO();
+            List<City> cities = cityDAO.getAllCities();
+            int destinationCityId = 0;
+            for (City city : cities) {
+                if (city.getName().equals(tour.getDestinationCity())) {
+                    destinationCityId = city.getId();
+                    break;
+                }
+            }
+            
+            // If we couldn't find the destination city, use the first city as a fallback
+            if (destinationCityId == 0 && !cities.isEmpty()) {
+                destinationCityId = cities.get(0).getId();
+            }
+            
+            trip.setDestinationCityId(destinationCityId);
+            System.out.println("Departure city ID: " + trip.getDepartureCityId());
+            System.out.println("Destination city ID: " + destinationCityId);
+            
+            // Format time correctly
+            if (!startTimeStr.contains(":")) {
+                startTimeStr += ":00";
+            }
+            if (!endTimeStr.contains(":")) {
+                endTimeStr += ":00";
+            }
+            if (startTimeStr.split(":").length == 2) {
+                startTimeStr += ":00";
+            }
+            if (endTimeStr.split(":").length == 2) {
+                endTimeStr += ":00";
+            }
+            
+            trip.setStartTime(startTimeStr);
+            trip.setEndTime(endTimeStr);
+            trip.setAvailableSlot(availableSlot);
+            trip.setIsDelete(false);
+
+            // Add trip to database
+            TripDAO tripDAO = new TripDAO();
+            int newTripId = tripDAO.createTrip(trip);
+            System.out.println("Created new trip with ID: " + newTripId);
+
+            if (newTripId <= 0) {
+                throw new Exception("Failed to create trip. Database returned invalid ID.");
+            }
+
+            // Set success message
+            HttpSession session = request.getSession();
+            session.setAttribute("successMessage", "Trip created successfully!");
+        } catch (Exception e) {
+            HttpSession session = request.getSession();
+            session.setAttribute("errorMessage", "Error creating trip: " + e.getMessage());
+            e.printStackTrace(); // Print full stack trace for debugging
+        }
         response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + request.getParameter("tourId"));
     }
     
     private void updateTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Implementation for updating a trip
+        try {
+            int tripId = Integer.parseInt(request.getParameter("tripId"));
+            int tourId = Integer.parseInt(request.getParameter("tourId"));
+            String departureDateStr = request.getParameter("departureDate");
+            String returnDateStr = request.getParameter("returnDate");
+            String startTimeStr = request.getParameter("startTime");
+            String endTimeStr = request.getParameter("endTime");
+            int availableSlot = Integer.parseInt(request.getParameter("availableSlot"));
+
+            // Get existing trip to preserve some data
+            TripDAO tripDAO = new TripDAO();
+            Trip existingTrip = tripDAO.getTripById(tripId);
+            
+            if (existingTrip == null) {
+                throw new Exception("Trip not found");
+            }
+
+            // Create Trip object
+            Trip trip = new Trip();
+            trip.setId(tripId);
+            trip.setTourId(tourId);
+            trip.setDepartureCityId(existingTrip.getDepartureCityId());
+            trip.setDestinationCityId(existingTrip.getDestinationCityId());
+            
+            // Convert String dates to Timestamp
+            trip.setDepartureDate(java.sql.Timestamp.valueOf(departureDateStr + " 00:00:00"));
+            trip.setReturnDate(java.sql.Timestamp.valueOf(returnDateStr + " 00:00:00"));
+            
+            // Format time correctly
+            if (!startTimeStr.contains(":")) {
+                startTimeStr += ":00";
+            }
+            if (!endTimeStr.contains(":")) {
+                endTimeStr += ":00";
+            }
+            if (startTimeStr.split(":").length == 2) {
+                startTimeStr += ":00";
+            }
+            if (endTimeStr.split(":").length == 2) {
+                endTimeStr += ":00";
+            }
+            
+            trip.setStartTime(startTimeStr);
+            trip.setEndTime(endTimeStr);
+            trip.setAvailableSlot(availableSlot);
+            trip.setIsDelete(false);
+            trip.setCreatedDate(existingTrip.getCreatedDate());
+
+            // Update trip in database
+            tripDAO.updateTrip(trip);
+
+            // Set success message
+            HttpSession session = request.getSession();
+            session.setAttribute("successMessage", "Trip updated successfully!");
+        } catch (Exception e) {
+            HttpSession session = request.getSession();
+            session.setAttribute("errorMessage", "Error updating trip: " + e.getMessage());
+        }
         response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + request.getParameter("tourId"));
     }
     
     private void deleteTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // Implementation for deleting a trip
+        try {
+            int tripId = Integer.parseInt(request.getParameter("tripId"));
+            
+            // Soft delete the trip
+            TripDAO tripDAO = new TripDAO();
+            tripDAO.softDeleteTrip(tripId);
+
+            // Set success message
+            HttpSession session = request.getSession();
+            session.setAttribute("successMessage", "Trip deleted successfully!");
+        } catch (Exception e) {
+            HttpSession session = request.getSession();
+            session.setAttribute("errorMessage", "Error deleting trip: " + e.getMessage());
+        }
         response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + request.getParameter("tourId"));
     }
     

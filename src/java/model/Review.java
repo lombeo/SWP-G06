@@ -19,6 +19,9 @@ public class Review {
     private String userName;
     private String userAvatar;
     private String tourName;
+    
+    // Admin feedback
+    private String feedback;
 
     public Review() {
     }
@@ -122,6 +125,14 @@ public class Review {
 
     public void setTourName(String tourName) {
         this.tourName = tourName;
+    }
+
+    public String getFeedback() {
+        return feedback;
+    }
+
+    public void setFeedback(String feedback) {
+        this.feedback = feedback;
     }
 
     @Override

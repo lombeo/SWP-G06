@@ -33,7 +33,7 @@
                         <% } %>
                         
                         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                            <a href="home.jsp" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
+                            <a href="home" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition">
                                 <i class="fas fa-home mr-2"></i> Trang chủ
                             </a>
                             <a href="javascript:history.back()" class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition">

@@ -24,9 +24,10 @@ public class ReviewDAO {
      */
     public List<Review> getReviewsByTourId(int tourId) throws ClassNotFoundException {
         List<Review> reviews = new ArrayList<>();
-        String sql = "SELECT r.*, u.full_name, u.avatar "
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
                 + "FROM review r "
                 + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
                 + "WHERE r.tour_id = ? AND r.is_delete = 0 "
                 + "ORDER BY r.created_date DESC";
         
@@ -49,10 +50,14 @@ public class ReviewDAO {
                 review.setUserName(rs.getString("full_name"));
                 review.setUserAvatar(rs.getString("avatar"));
                 
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
+                
                 reviews.add(review);
             }
         } catch (SQLException e) {
             System.out.println("Error getReviewsByTourId: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return reviews;
@@ -241,7 +246,12 @@ public class ReviewDAO {
      */
     public List<Review> getAllReviews() throws ClassNotFoundException {
         List<Review> reviews = new ArrayList<>();
-        String sql = "SELECT * FROM review WHERE is_delete = 0 ORDER BY created_date DESC";
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.is_delete = 0 "
+                + "ORDER BY r.created_date DESC";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
@@ -257,11 +267,17 @@ public class ReviewDAO {
                 review.setCreatedDate(rs.getTimestamp("created_date"));
                 review.setDeletedDate(rs.getTimestamp("deleted_date"));
                 review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
                 
                 reviews.add(review);
             }
         } catch (SQLException e) {
             System.out.println("Error getAllReviews: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
         }
         
         return reviews;
@@ -274,7 +290,12 @@ public class ReviewDAO {
      */
     public List<Review> getReviewsByTour(int tourId) throws ClassNotFoundException {
         List<Review> reviews = new ArrayList<>();
-        String sql = "SELECT * FROM review WHERE tour_id = ? AND is_delete = 0 ORDER BY created_date DESC";
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.tour_id = ? AND r.is_delete = 0 "
+                + "ORDER BY r.created_date DESC";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -292,11 +313,17 @@ public class ReviewDAO {
                 review.setCreatedDate(rs.getTimestamp("created_date"));
                 review.setDeletedDate(rs.getTimestamp("deleted_date"));
                 review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
                 
                 reviews.add(review);
             }
         } catch (SQLException e) {
             System.out.println("Error getReviewsByTour: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
         }
         
         return reviews;
@@ -309,7 +336,12 @@ public class ReviewDAO {
      */
     public List<Review> getReviewsByRating(int rating) throws ClassNotFoundException {
         List<Review> reviews = new ArrayList<>();
-        String sql = "SELECT * FROM review WHERE rating = ? AND is_delete = 0 ORDER BY created_date DESC";
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.rating = ? AND r.is_delete = 0 "
+                + "ORDER BY r.created_date DESC";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -327,11 +359,17 @@ public class ReviewDAO {
                 review.setCreatedDate(rs.getTimestamp("created_date"));
                 review.setDeletedDate(rs.getTimestamp("deleted_date"));
                 review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
                 
                 reviews.add(review);
             }
         } catch (SQLException e) {
             System.out.println("Error getReviewsByRating: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
         }
         
         return reviews;
@@ -345,7 +383,12 @@ public class ReviewDAO {
      */
     public List<Review> getReviewsByTourAndRating(int tourId, int rating) throws ClassNotFoundException {
         List<Review> reviews = new ArrayList<>();
-        String sql = "SELECT * FROM review WHERE tour_id = ? AND rating = ? AND is_delete = 0 ORDER BY created_date DESC";
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.tour_id = ? AND r.rating = ? AND r.is_delete = 0 "
+                + "ORDER BY r.created_date DESC";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -364,11 +407,17 @@ public class ReviewDAO {
                 review.setCreatedDate(rs.getTimestamp("created_date"));
                 review.setDeletedDate(rs.getTimestamp("deleted_date"));
                 review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
                 
                 reviews.add(review);
             }
         } catch (SQLException e) {
             System.out.println("Error getReviewsByTourAndRating: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
         }
         
         return reviews;
@@ -377,10 +426,14 @@ public class ReviewDAO {
     /**
      * Get a review by its ID
      * @param reviewId The review ID
-     * @return The review object or null if not found
+     * @return Review object or null if not found
      */
     public Review getReviewById(int reviewId) throws ClassNotFoundException {
-        String sql = "SELECT * FROM review WHERE id = ?";
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.id = ?";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -398,13 +451,72 @@ public class ReviewDAO {
                 review.setCreatedDate(rs.getTimestamp("created_date"));
                 review.setDeletedDate(rs.getTimestamp("deleted_date"));
                 review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
                 
                 return review;
             }
         } catch (SQLException e) {
             System.out.println("Error getReviewById: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
         }
         
         return null;
+    }
+    
+    /**
+     * Add feedback to a review
+     * @param reviewId The review ID
+     * @param feedback The feedback text from admin
+     * @param accountId The admin's account ID
+     * @return true if successful, false otherwise
+     */
+    public boolean addFeedbackToReview(int reviewId, String feedback, int accountId) throws ClassNotFoundException {
+        // First check if a response already exists for this review
+        String checkSql = "SELECT COUNT(*) FROM feedback WHERE review_id = ?";
+        
+        try (Connection conn = new DBContext().getConnection()) {
+            boolean responseExists = false;
+            
+            // Check if response exists
+            try (PreparedStatement checkPs = conn.prepareStatement(checkSql)) {
+                checkPs.setInt(1, reviewId);
+                ResultSet rs = checkPs.executeQuery();
+                
+                if (rs.next() && rs.getInt(1) > 0) {
+                    responseExists = true;
+                }
+            }
+            
+            // Either update existing response or insert new one
+            String sql;
+            if (responseExists) {
+                sql = "UPDATE feedback SET feedback = ?, account_id = ? WHERE review_id = ?";
+            } else {
+                sql = "INSERT INTO feedback (review_id, feedback, account_id) VALUES (?, ?, ?)";
+            }
+            
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (responseExists) {
+                    ps.setString(1, feedback);
+                    ps.setInt(2, accountId);
+                    ps.setInt(3, reviewId);
+                } else {
+                    ps.setInt(1, reviewId);
+                    ps.setString(2, feedback);
+                    ps.setInt(3, accountId);
+                }
+                
+                int rowsAffected = ps.executeUpdate();
+                return rowsAffected > 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error adding feedback to review: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging
+            return false;
+        }
     }
 } 

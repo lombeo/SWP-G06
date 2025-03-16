@@ -236,10 +236,21 @@ public class TripDAO {
     public int createTrip(Trip trip) {
         String sql = "INSERT INTO trip (departure_city_id, destination_city_id, tour_id, departure_date, " +
                      "return_date, start_time, end_time, available_slot, created_date, is_delete) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), false)";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, GETDATE(), 0)";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            // Debug output to verify values being inserted
+            System.out.println("Creating trip with the following values:");
+            System.out.println("Tour ID: " + trip.getTourId());
+            System.out.println("Departure City ID: " + trip.getDepartureCityId());
+            System.out.println("Destination City ID: " + trip.getDestinationCityId());
+            System.out.println("Departure Date: " + trip.getDepartureDate());
+            System.out.println("Return Date: " + trip.getReturnDate());
+            System.out.println("Start Time: " + trip.getStartTime());
+            System.out.println("End Time: " + trip.getEndTime());
+            System.out.println("Available Slots: " + trip.getAvailableSlot());
             
             stmt.setInt(1, trip.getDepartureCityId());
             stmt.setInt(2, trip.getDestinationCityId());
@@ -255,12 +266,17 @@ public class TripDAO {
             if (rowsAffected > 0) {
                 try (ResultSet rs = stmt.getGeneratedKeys()) {
                     if (rs.next()) {
-                        return rs.getInt(1);
+                        int newId = rs.getInt(1);
+                        System.out.println("Successfully created trip with ID: " + newId);
+                        return newId;
                     }
                 }
             }
+            
+            System.out.println("No rows affected or no generated keys returned");
         } catch (SQLException | ClassNotFoundException e) {
             System.out.println("Error creating trip: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return -1;
@@ -279,6 +295,19 @@ public class TripDAO {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
+            // Debug output to verify values being updated
+            System.out.println("Updating trip with the following values:");
+            System.out.println("Trip ID: " + trip.getId());
+            System.out.println("Tour ID: " + trip.getTourId());
+            System.out.println("Departure City ID: " + trip.getDepartureCityId());
+            System.out.println("Destination City ID: " + trip.getDestinationCityId());
+            System.out.println("Departure Date: " + trip.getDepartureDate());
+            System.out.println("Return Date: " + trip.getReturnDate());
+            System.out.println("Start Time: " + trip.getStartTime());
+            System.out.println("End Time: " + trip.getEndTime());
+            System.out.println("Available Slots: " + trip.getAvailableSlot());
+            System.out.println("Is Delete: " + trip.isIsDelete());
+            
             stmt.setInt(1, trip.getDepartureCityId());
             stmt.setInt(2, trip.getDestinationCityId());
             stmt.setInt(3, trip.getTourId());
@@ -287,13 +316,14 @@ public class TripDAO {
             stmt.setString(6, trip.getStartTime());
             stmt.setString(7, trip.getEndTime());
             stmt.setInt(8, trip.getAvailableSlot());
-            stmt.setBoolean(9, trip.isIsDelete());
+            stmt.setInt(9, trip.isIsDelete() ? 1 : 0); // Convert boolean to int for SQL Server
             stmt.setInt(10, trip.getId());
             
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
         } catch (SQLException | ClassNotFoundException e) {
             System.out.println("Error updating trip: " + e.getMessage());
+            e.printStackTrace();
         }
         
         return false;
@@ -330,24 +360,26 @@ public class TripDAO {
     
     /**
      * Soft delete a trip by setting is_delete to true
-     * @param tripId The trip ID
-     * @return True if successful, false otherwise
+     * @param tripId The trip ID to soft delete
+     * @return true if the operation was successful, false otherwise
      */
-    public boolean deleteTrip(int tripId) {
-        String sql = "UPDATE trip SET is_delete = true, deleted_date = NOW() WHERE id = ?";
+    public boolean softDeleteTrip(int tripId) {
+        String sql = "UPDATE trip SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
+            System.out.println("Soft deleting trip with ID: " + tripId);
             stmt.setInt(1, tripId);
             
             int rowsAffected = stmt.executeUpdate();
+            System.out.println("Rows affected by delete: " + rowsAffected);
             return rowsAffected > 0;
         } catch (SQLException | ClassNotFoundException e) {
-            System.out.println("Error deleting trip: " + e.getMessage());
+            System.out.println("Error soft deleting trip: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
-        
-        return false;
     }
     
     /**

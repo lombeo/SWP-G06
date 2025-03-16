@@ -618,6 +618,23 @@
                                                 <% } %>
                                             </div>
                                             <p class="text-gray-800"><%= review.getComment() %></p>
+                                            
+                                            <% if (review.getFeedback() != null && !review.getFeedback().isEmpty()) { %>
+                                            <!-- Admin Response Section -->
+                                            <div class="mt-3 bg-blue-50 p-3 rounded-lg border border-blue-100">
+                                                <div class="flex items-start">
+                                                    <div class="flex-shrink-0 mr-3">
+                                                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white">
+                                                            <span class="material-symbols-outlined text-sm">support_agent</span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div class="font-semibold text-blue-800 mb-1 text-sm">Phản hồi từ TourNest</div>
+                                                        <p class="text-sm text-gray-700"><%= review.getFeedback() %></p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <% } %>
                                         </div>
                                     </div>
                                 </div>

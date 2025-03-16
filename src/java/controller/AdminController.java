@@ -186,11 +186,13 @@ public class AdminController extends HttpServlet {
             System.out.println("- Search: " + request.getParameter("search"));
             System.out.println("- Region: " + request.getParameter("region"));
             System.out.println("- Page: " + request.getParameter("page"));
+            System.out.println("- Sort: " + request.getParameter("sort"));
             
             int page = 1;
             int itemsPerPage = 10;
             String searchQuery = request.getParameter("search");
             String region = request.getParameter("region");
+            String sort = request.getParameter("sort");
             
             // Get page and itemsPerPage parameters
             String pageParam = request.getParameter("page");
@@ -228,7 +230,7 @@ public class AdminController extends HttpServlet {
             }
             
             // Get paginated list of tours with filters applied
-            List<Tour> tours = tourDAO.getFilteredToursByPage(searchQuery, region, page, itemsPerPage);
+            List<Tour> tours = tourDAO.getFilteredToursByPage(searchQuery, region, sort, page, itemsPerPage);
             
             request.setAttribute("tours", tours);
             request.setAttribute("totalTours", totalTours);

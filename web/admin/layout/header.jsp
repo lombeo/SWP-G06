@@ -177,10 +177,10 @@
         <a href="${pageContext.request.contextPath}/admin?action=bookings" class="sidebar-link ${param.active == 'bookings' ? 'active' : ''}">
             <i class="fas fa-calendar-check me-2"></i> Bookings
         </a>
-        <a href="${pageContext.request.contextPath}/admin?action=categories" class="sidebar-link ${param.active == 'categories' ? 'active' : ''}">
+        <a href="${pageContext.request.contextPath}/admin/category" class="sidebar-link ${param.active == 'categories' ? 'active' : ''}">
             <i class="fas fa-tags me-2"></i> Categories
         </a>
-        <a href="${pageContext.request.contextPath}/admin?action=cities" class="sidebar-link ${param.active == 'cities' ? 'active' : ''}">
+        <a href="${pageContext.request.contextPath}/admin/city" class="sidebar-link ${param.active == 'cities' ? 'active' : ''}">
             <i class="fas fa-city me-2"></i> Cities
         </a>
         <a href="${pageContext.request.contextPath}/admin?action=reviews" class="sidebar-link ${param.active == 'reviews' ? 'active' : ''}">

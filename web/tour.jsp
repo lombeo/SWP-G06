@@ -152,7 +152,7 @@
 
                                                         <nav class="py-4 px-4 md:px-8">
                                                             <div class="flex justify-center items-center">
-                                                                <a href="./home.jsp" class="flex items-center">
+                                                                <a href="./home" class="flex items-center">
                                                                     <img src="./image/logo.svg" alt="TourNest Logo"
                                                                         class="h-16 md:h-24 w-auto" />
                                                                 </a>
