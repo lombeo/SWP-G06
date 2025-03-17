@@ -124,20 +124,10 @@
                                                 <tr>
                                                     <th class="cell">ID</th>
                                                     <th class="cell">
-                                                        <a href="${pageContext.request.contextPath}/admin/users?page=${currentPage}&search=${search}&role=${role}&status=${status}&sort=name&order=${sort == 'name' && order == 'asc' ? 'desc' : 'asc'}">
-                                                            Name
-                                                            <c:if test="${sort == 'name'}">
-                                                                <i class="fas fa-sort-${order == 'asc' ? 'up' : 'down'}"></i>
-                                                            </c:if>
-                                                        </a>
+                                                        Name
                                                     </th>
                                                     <th class="cell">
-                                                        <a href="${pageContext.request.contextPath}/admin/users?page=${currentPage}&search=${search}&role=${role}&status=${status}&sort=email&order=${sort == 'email' && order == 'asc' ? 'desc' : 'asc'}">
-                                                            Email
-                                                            <c:if test="${sort == 'email'}">
-                                                                <i class="fas fa-sort-${order == 'asc' ? 'up' : 'down'}"></i>
-                                                            </c:if>
-                                                        </a>
+                                                        Email
                                                     </th>
                                                     <th class="cell">
                                                         <a href="${pageContext.request.contextPath}/admin/users?page=${currentPage}&search=${search}&role=${role}&status=${status}&sort=role&order=${sort == 'role' && order == 'asc' ? 'desc' : 'asc'}">
@@ -172,8 +162,6 @@
                                                     <tr>
                                                         <td class="cell">#${user.id}</td>
                                                         <td class="cell">
-                                                            <img src="${not empty user.avatar ? user.avatar : pageContext.request.contextPath.concat('/image/default-avatar.jpg')}" 
-                                                                 alt="Avatar" class="user-avatar rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
                                                             ${user.fullName}
                                                         </td>
                                                         <td class="cell">${user.email}</td>

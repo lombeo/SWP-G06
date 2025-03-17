@@ -90,17 +90,17 @@
                                         <td>${tour.duration}</td>
                                         <td>${tour.priceAdult} VNĐ</td>
                                         <td>
-                                            <div class="btn-group" role="group">
+                                            <div class="btn-group tour-actions" role="group" data-tour-id="${tour.id}">
                                                 <a href="${pageContext.request.contextPath}/admin/tours/view?id=${tour.id}" class="btn btn-info btn-sm" data-bs-toggle="tooltip" title="View">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <a href="${pageContext.request.contextPath}/admin/tours/edit?id=${tour.id}" class="btn btn-warning btn-sm" data-bs-toggle="tooltip" title="Edit">
+                                                <button type="button" class="btn btn-warning btn-sm edit-tour-btn" data-bs-toggle="modal" data-bs-target="#editTourModal${tour.id}" title="Edit">
                                                     <i class="fas fa-edit"></i>
-                                                </a>
-                                                <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Manage Trips">
+                                                </button>
+                                                <button type="button" class="btn btn-primary btn-sm manage-trips-btn" data-bs-toggle="modal" data-bs-target="#tripsModal${tour.id}" title="Manage Trips">
                                                     <i class="fas fa-calendar-alt"></i>
-                                                </a>
-                                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteTourModal${tour.id}" title="Delete">
+                                                </button>
+                                                <button type="button" class="btn btn-danger btn-sm delete-tour-btn" data-bs-toggle="modal" data-bs-target="#deleteTourModal${tour.id}" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </div>
@@ -119,6 +119,56 @@
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                                                             <a href="${pageContext.request.contextPath}/admin/tours/delete?id=${tour.id}" class="btn btn-danger">Delete</a>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Edit Tour Modal -->
+                                            <div class="modal fade" id="editTourModal${tour.id}" tabindex="-1" aria-labelledby="editTourModalLabel${tour.id}" aria-hidden="true">
+                                                <div class="modal-dialog modal-lg">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="editTourModalLabel${tour.id}">Edit Tour: ${tour.name}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="text-center p-4" id="editTourLoading${tour.id}">
+                                                                <div class="spinner-border text-primary" role="status">
+                                                                    <span class="visually-hidden">Loading...</span>
+                                                                </div>
+                                                                <p class="mt-2">Loading tour information...</p>
+                                                            </div>
+                                                            <div id="editTourContent${tour.id}"></div>
+                                                        </div>
+                                                        <div class="modal-footer" id="editTourFooter${tour.id}" style="display: none;">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                            <button type="button" class="btn btn-primary" id="saveEditTour${tour.id}">Save Changes</button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Manage Trips Modal -->
+                                            <div class="modal fade" id="tripsModal${tour.id}" tabindex="-1" aria-labelledby="tripsModalLabel${tour.id}" aria-hidden="true">
+                                                <div class="modal-dialog modal-xl">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="tripsModalLabel${tour.id}">Manage Trips: ${tour.name}</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <div class="text-center p-4" id="tripsLoading${tour.id}">
+                                                                <div class="spinner-border text-primary" role="status">
+                                                                    <span class="visually-hidden">Loading...</span>
+                                                                </div>
+                                                                <p class="mt-2">Loading trip information...</p>
+                                                            </div>
+                                                            <div id="tripsContent${tour.id}"></div>
+                                                        </div>
+                                                        <div class="modal-footer" id="tripsFooter${tour.id}" style="display: none;">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                            <button type="button" class="btn btn-success" id="addNewTrip${tour.id}">Add New Trip</button>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -256,6 +306,629 @@
                 tbody.appendChild(row);
             });
         });
+        
+        // Load modal content for edit tour
+        const editTourModals = document.querySelectorAll('[id^="editTourModal"]');
+        editTourModals.forEach(modal => {
+            modal.addEventListener('show.bs.modal', function(event) {
+                const tourId = this.id.replace('editTourModal', '');
+                const contentDiv = document.getElementById('editTourContent' + tourId);
+                const loadingDiv = document.getElementById('editTourLoading' + tourId);
+                const footerDiv = document.getElementById('editTourFooter' + tourId);
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+                footerDiv.style.display = 'none';
+                
+                // Log URL for debugging
+                const editUrl = '${pageContext.request.contextPath}/admin/tours/edit-content?id=' + tourId;
+                console.log('Fetching edit content from:', editUrl);
+                
+                // Fetch tour edit form content
+                fetch(editUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Hide loading indicator and show content
+                    loadingDiv.style.display = 'none';
+                    
+                    // Check if the HTML contains error message or is empty
+                    if (html.trim() === '' || html.includes('error') || html.includes('exception')) {
+                        throw new Error('Received invalid content from server');
+                    }
+                    
+                    contentDiv.innerHTML = html;
+                    footerDiv.style.display = 'flex';
+                    
+                    // Initialize any form elements in the loaded content
+                    initializeFormElements(contentDiv);
+                    
+                    // Handle form submission
+                    const saveButton = document.getElementById('saveEditTour' + tourId);
+                    saveButton.addEventListener('click', function() {
+                        const form = contentDiv.querySelector('form');
+                        if (form) {
+                            // Convert form to FormData
+                            const formData = new FormData(form);
+                            
+                            // Show saving indicator
+                            saveButton.disabled = true;
+                            saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                            
+                            // Submit form via AJAX
+                            fetch(form.action, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                                }
+                                return response.text();
+                            })
+                            .then(data => {
+                                // Check if the response contains success message
+                                if (data.includes('success')) {
+                                    // Show success message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-success mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tour updated successfully!';
+                                    contentDiv.prepend(alertDiv);
+                                    
+                                    // Reload the page after a delay to show updated data
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 1500);
+                                } else {
+                                    // Show error message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-danger mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour. Please try again.';
+                                    contentDiv.prepend(alertDiv);
+                                    
+                                    // Reset button
+                                    saveButton.disabled = false;
+                                    saveButton.innerHTML = 'Save Changes';
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error updating tour:', error);
+                                
+                                // Show error message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-danger mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour: ' + error.message;
+                                contentDiv.prepend(alertDiv);
+                                
+                                // Reset button
+                                saveButton.disabled = false;
+                                saveButton.innerHTML = 'Save Changes';
+                            });
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading tour edit form:', error);
+                    loadingDiv.style.display = 'none';
+                    contentDiv.innerHTML = '<div class="alert alert-danger">' +
+                        '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading tour information. Please try again.</p>' +
+                        '<p>Details: ' + error.message + '</p>' +
+                        '<p>URL: ' + editUrl + '</p>' +
+                        '</div>';
+                    
+                    // Show footer with just the close button
+                    footerDiv.style.display = 'flex';
+                    const saveButton = document.getElementById('saveEditTour' + tourId);
+                    if (saveButton) {
+                        saveButton.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Load modal content for manage trips
+        const tripsModals = document.querySelectorAll('[id^="tripsModal"]');
+        tripsModals.forEach(modal => {
+            modal.addEventListener('show.bs.modal', function(event) {
+                const tourId = this.id.replace('tripsModal', '');
+                const contentDiv = document.getElementById('tripsContent' + tourId);
+                const loadingDiv = document.getElementById('tripsLoading' + tourId);
+                const footerDiv = document.getElementById('tripsFooter' + tourId);
+                
+                // Show loading indicator
+                loadingDiv.style.display = 'block';
+                contentDiv.innerHTML = '';
+                footerDiv.style.display = 'none';
+                
+                // Log URL for debugging
+                const tripsUrl = '${pageContext.request.contextPath}/admin/tours/trips-content?id=' + tourId;
+                console.log('Fetching trips content from:', tripsUrl);
+                
+                // Fetch trips content
+                fetch(tripsUrl, {
+                    method: 'GET',
+                    headers: {
+                        'Cache-Control': 'no-cache',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Charset': 'UTF-8'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                    }
+                    console.log('Response headers:', response.headers);
+                    return response.text();
+                })
+                .then(html => {
+                    // Hide loading indicator and show content
+                    loadingDiv.style.display = 'none';
+                    
+                    console.log('Received HTML content length:', html.length);
+                    if (html.length > 100) {
+                        console.log('First 100 chars of response:', html.substring(0, 100));
+                    } else {
+                        console.log('Full response:', html);
+                    }
+                    
+                    // Check if the HTML contains error message or is empty
+                    if (html.trim() === '') {
+                        throw new Error('Received empty content from server');
+                    }
+                    
+                    // If HTML contains error or exception messages, but is still valid HTML, 
+                    // we should still display it rather than throwing an error
+                    contentDiv.innerHTML = html;
+                    footerDiv.style.display = 'flex';
+                    
+                    // Initialize any form elements or datepickers in the loaded content
+                    initializeFormElements(contentDiv);
+                    
+                    // Handle Add New Trip button click
+                    const addTripButton = document.getElementById('addNewTrip' + tourId);
+                    addTripButton.addEventListener('click', function() {
+                        // Show trip form
+                        const tripFormContainer = document.createElement('div');
+                        tripFormContainer.className = 'card mb-4';
+                        tripFormContainer.innerHTML = `
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Add New Trip</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="newTripForm${tourId}" action="${pageContext.request.contextPath}/admin/tours/add-trip" method="post">
+                                    <input type="hidden" name="tourId" value="${tourId}">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="departureDate${tourId}" class="form-label">Departure Date</label>
+                                            <input type="date" class="form-control" id="departureDate${tourId}" name="departureDate" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="returnDate${tourId}" class="form-label">Return Date</label>
+                                            <input type="date" class="form-control" id="returnDate${tourId}" name="returnDate" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="startTime${tourId}" class="form-label">Start Time</label>
+                                            <input type="time" class="form-control" id="startTime${tourId}" name="startTime" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="endTime${tourId}" class="form-label">End Time</label>
+                                            <input type="time" class="form-control" id="endTime${tourId}" name="endTime" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label for="availableSlots${tourId}" class="form-label">Available Slots</label>
+                                            <input type="number" class="form-control" id="availableSlots${tourId}" name="availableSlots" min="1" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Destination City</label>
+                                            <select class="form-select" id="destinationCity${tourId}" name="destinationCityId" required>
+                                                <option value="">Select destination...</option>
+                                                <!-- Will be populated dynamically -->
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-end gap-2">
+                                        <button type="button" class="btn btn-secondary" id="cancelAddTrip${tourId}">Cancel</button>
+                                        <button type="submit" class="btn btn-success">Add Trip</button>
+                                    </div>
+                                </form>
+                            </div>
+                        `;
+                        
+                        // Add form to the top of the content
+                        contentDiv.prepend(tripFormContainer);
+                        
+                        // Fetch cities for the select dropdown
+                        fetch('${pageContext.request.contextPath}/admin/tours/cities')
+                            .then(response => response.json())
+                            .then(cities => {
+                                const select = document.getElementById(`destinationCity${tourId}`);
+                                cities.forEach(city => {
+                                    const option = document.createElement('option');
+                                    option.value = city.id;
+                                    option.textContent = city.name;
+                                    select.appendChild(option);
+                                });
+                            })
+                            .catch(error => console.error('Error loading cities:', error));
+                        
+                        // Handle cancel button
+                        document.getElementById(`cancelAddTrip${tourId}`).addEventListener('click', function() {
+                            tripFormContainer.remove();
+                        });
+                        
+                        // Handle form submission
+                        document.getElementById(`newTripForm${tourId}`).addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            
+                            // Convert form to FormData
+                            const formData = new FormData(this);
+                            
+                            // Submit form via AJAX
+                            fetch(this.action, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => response.text())
+                            .then(data => {
+                                // Check if the response contains success message
+                                if (data.includes('success')) {
+                                    // Show success message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-success mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Trip added successfully!';
+                                    contentDiv.prepend(alertDiv);
+                                    
+                                    // Remove the form
+                                    tripFormContainer.remove();
+                                    
+                                    // Reload the trips content after a delay
+                                    setTimeout(() => {
+                                        modal.querySelector('[data-bs-dismiss="modal"]').click();
+                                        setTimeout(() => {
+                                            document.querySelector(`[data-bs-target="#tripsModal${tourId}"]`).click();
+                                        }, 500);
+                                    }, 1500);
+                                } else {
+                                    // Show error message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-danger mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error adding trip. Please try again.';
+                                    tripFormContainer.querySelector('.card-body').prepend(alertDiv);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error adding trip:', error);
+                                
+                                // Show error message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-danger mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error adding trip. Please try again.';
+                                tripFormContainer.querySelector('.card-body').prepend(alertDiv);
+                            });
+                        });
+                    });
+                    
+                    // Setup event handlers for trip actions (edit, delete)
+                    setupTripActionHandlers(contentDiv, tourId);
+                })
+                .catch(error => {
+                    console.error('Error loading trips:', error);
+                    loadingDiv.style.display = 'none';
+                    contentDiv.innerHTML = '<div class="alert alert-danger">' +
+                        '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading trip information. Please try again.</p>' +
+                        '<p>Details: ' + error.message + '</p>' +
+                        '<p>URL: ' + tripsUrl + '</p>' +
+                        '</div>';
+                    
+                    // Show footer with just the close button
+                    footerDiv.style.display = 'flex';
+                    const addButton = document.getElementById('addNewTrip' + tourId);
+                    if (addButton) {
+                        addButton.style.display = 'none';
+                    }
+                });
+            });
+        });
+        
+        // Function to set up action handlers for trip items
+        function setupTripActionHandlers(container, tourId) {
+            // Handle edit trip button clicks
+            const editButtons = container.querySelectorAll('.edit-trip-btn');
+            editButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tripId = this.getAttribute('data-trip-id');
+                    const tripRow = this.closest('tr');
+                    
+                    // Get trip data from the row
+                    const departureDate = tripRow.querySelector('[data-field="departure-date"]').textContent.trim();
+                    const returnDate = tripRow.querySelector('[data-field="return-date"]').textContent.trim();
+                    const startTime = tripRow.querySelector('[data-field="start-time"]').textContent.trim();
+                    const endTime = tripRow.querySelector('[data-field="end-time"]').textContent.trim();
+                    const availableSlots = tripRow.querySelector('[data-field="available-slots"]').textContent.trim();
+                    const destination = tripRow.querySelector('[data-field="destination"]').textContent.trim();
+                    
+                    // Create edit form
+                    const editForm = document.createElement('tr');
+                    editForm.className = 'trip-edit-form';
+                    editForm.innerHTML = `
+                        <td colspan="7">
+                            <form id="editTripForm${tripId}" action="${pageContext.request.contextPath}/admin/tours/update-trip" method="post" class="p-3 bg-light rounded">
+                                <input type="hidden" name="tripId" value="${tripId}">
+                                <input type="hidden" name="tourId" value="${tourId}">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Departure Date</label>
+                                        <input type="date" class="form-control" name="departureDate" value="` + formatDateForInput(departureDate) + `" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Return Date</label>
+                                        <input type="date" class="form-control" name="returnDate" value="` + formatDateForInput(returnDate) + `" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Start Time</label>
+                                        <input type="time" class="form-control" name="startTime" value="${startTime}" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">End Time</label>
+                                        <input type="time" class="form-control" name="endTime" value="${endTime}" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Available Slots</label>
+                                        <input type="number" class="form-control" name="availableSlots" value="${availableSlots}" min="1" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Destination City</label>
+                                        <select class="form-select" name="destinationCityId" required>
+                                            <!-- Will be populated dynamically -->
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <button type="button" class="btn btn-secondary cancel-edit-btn">Cancel</button>
+                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                </div>
+                            </form>
+                        </td>
+                    `;
+                    
+                    // Insert edit form after the trip row
+                    tripRow.after(editForm);
+                    
+                    // Hide the original row
+                    tripRow.style.display = 'none';
+                    
+                    // Fetch cities for the select dropdown
+                    fetch('${pageContext.request.contextPath}/admin/tours/cities')
+                        .then(response => response.json())
+                        .then(cities => {
+                            const select = editForm.querySelector('select[name="destinationCityId"]');
+                            cities.forEach(city => {
+                                const option = document.createElement('option');
+                                option.value = city.id;
+                                option.textContent = city.name;
+                                if (city.name === destination) {
+                                    option.selected = true;
+                                }
+                                select.appendChild(option);
+                            });
+                        })
+                        .catch(error => console.error('Error loading cities:', error));
+                    
+                    // Handle cancel button
+                    editForm.querySelector('.cancel-edit-btn').addEventListener('click', function() {
+                        // Show the original row
+                        tripRow.style.display = '';
+                        // Remove the edit form
+                        editForm.remove();
+                    });
+                    
+                    // Handle form submission
+                    editForm.querySelector('form').addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        // Convert form to FormData
+                        const formData = new FormData(this);
+                        
+                        // Submit form via AJAX
+                        fetch(this.action, {
+                            method: 'POST',
+                            body: formData
+                        })
+                        .then(response => response.text())
+                        .then(data => {
+                            // Check if the response contains success message
+                            if (data.includes('success')) {
+                                // Show success message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-success mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Trip updated successfully!';
+                                container.prepend(alertDiv);
+                                
+                                // Reload the trips content after a delay
+                                setTimeout(() => {
+                                    const modal = document.getElementById(`tripsModal${tourId}`);
+                                    modal.querySelector('[data-bs-dismiss="modal"]').click();
+                                    setTimeout(() => {
+                                        document.querySelector(`[data-bs-target="#tripsModal${tourId}"]`).click();
+                                    }, 500);
+                                }, 1500);
+                            } else {
+                                // Show error message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-danger mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating trip. Please try again.';
+                                editForm.querySelector('form').prepend(alertDiv);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error updating trip:', error);
+                            
+                            // Show error message
+                            const alertDiv = document.createElement('div');
+                            alertDiv.className = 'alert alert-danger mt-3';
+                            alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating trip. Please try again.';
+                            editForm.querySelector('form').prepend(alertDiv);
+                        });
+                    });
+                });
+            });
+            
+            // Handle delete trip button clicks
+            const deleteButtons = container.querySelectorAll('.delete-trip-btn');
+            deleteButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tripId = this.getAttribute('data-trip-id');
+                    
+                    // Confirm before deleting
+                    if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
+                        // Send delete request
+                        fetch(`${pageContext.request.contextPath}/admin/tours/delete-trip?id=${tripId}`)
+                            .then(response => response.text())
+                            .then(data => {
+                                // Check if the response contains success message
+                                if (data.includes('success')) {
+                                    // Show success message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-success mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Trip deleted successfully!';
+                                    container.prepend(alertDiv);
+                                    
+                                    // Reload the trips content after a delay
+                                    setTimeout(() => {
+                                        const modal = document.getElementById(`tripsModal${tourId}`);
+                                        modal.querySelector('[data-bs-dismiss="modal"]').click();
+                                        setTimeout(() => {
+                                            document.querySelector(`[data-bs-target="#tripsModal${tourId}"]`).click();
+                                        }, 500);
+                                    }, 1500);
+                                } else {
+                                    // Show error message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-danger mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error deleting trip. Please try again.';
+                                    container.prepend(alertDiv);
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error deleting trip:', error);
+                                
+                                // Show error message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-danger mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error deleting trip. Please try again.';
+                                container.prepend(alertDiv);
+                            });
+                    }
+                });
+            });
+        }
+        
+        // Helper function to format date for input fields
+        function formatDateForInput(dateStr) {
+            // Extract date parts (assuming format: DD/MM/YYYY)
+            const parts = dateStr.split('/');
+            if (parts.length === 3) {
+                // Format as YYYY-MM-DD for input[type="date"]
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+            return dateStr;
+        }
+        
+        // Helper function to initialize form elements in dynamically loaded content
+        function initializeFormElements(container) {
+            // Initialize any datepickers
+            const datepickers = container.querySelectorAll('input[type="date"]');
+            datepickers.forEach(datepicker => {
+                // Any datepicker initialization if needed
+            });
+            
+            // Initialize select2 if used
+            if (typeof $.fn.select2 !== 'undefined') {
+                $(container).find('select.select2').select2();
+            }
+            
+            // Initialize any other plugins or form elements
+        }
+        
+        // Function to check if a tour has bookings and disable edit/delete buttons if it does
+        function checkTourBookings() {
+            // For each tour action group
+            document.querySelectorAll('.tour-actions').forEach(actionGroup => {
+                const tourId = actionGroup.getAttribute('data-tour-id');
+                if (!tourId) return;
+                
+                const editBtn = actionGroup.querySelector('.edit-tour-btn');
+                const deleteBtn = actionGroup.querySelector('.delete-tour-btn');
+                
+                // Call the server to check if the tour has bookings
+                fetch('${pageContext.request.contextPath}/admin/tours?action=check-tour-bookings&id=' + tourId)
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data.includes('has-bookings')) {
+                            console.log('Tour #' + tourId + ' has bookings, disabling edit/delete');
+                            
+                            // Disable edit button
+                            if (editBtn) {
+                                editBtn.setAttribute('disabled', 'disabled');
+                                editBtn.setAttribute('title', 'Cannot edit: Tour has bookings');
+                                editBtn.classList.add('btn-secondary');
+                                editBtn.classList.remove('btn-warning');
+                                editBtn.setAttribute('data-bs-toggle', 'tooltip');
+                                // Remove modal trigger
+                                editBtn.removeAttribute('data-bs-target');
+                            }
+                            
+                            // Disable delete button
+                            if (deleteBtn) {
+                                deleteBtn.setAttribute('disabled', 'disabled');
+                                deleteBtn.setAttribute('title', 'Cannot delete: Tour has bookings');
+                                deleteBtn.classList.add('btn-secondary');
+                                deleteBtn.classList.remove('btn-danger');
+                                deleteBtn.setAttribute('data-bs-toggle', 'tooltip');
+                                // Remove modal trigger
+                                deleteBtn.removeAttribute('data-bs-target');
+                            }
+                            
+                            // Add a booking indicator badge
+                            const badge = document.createElement('span');
+                            badge.className = 'badge bg-info ms-2';
+                            badge.textContent = 'Booked';
+                            badge.setAttribute('title', 'This tour has bookings');
+                            badge.style.alignSelf = 'center';
+                            actionGroup.appendChild(badge);
+                            
+                            // Re-initialize tooltips
+                            new bootstrap.Tooltip(editBtn);
+                            new bootstrap.Tooltip(deleteBtn);
+                            new bootstrap.Tooltip(badge);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking tour bookings:', error);
+                    });
+            });
+        }
+        
+        // Run the check when the page loads
+        checkTourBookings();
     });
 </script>
 

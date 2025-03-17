@@ -116,6 +116,37 @@ public class BookingDAO {
     }
     
     /**
+     * Get all bookings for a specific tour
+     * @param tourId The tour ID
+     * @return List of bookings for the specified tour
+     */
+    public List<Booking> getBookingsByTourId(int tourId) {
+        List<Booking> bookings = new ArrayList<>();
+        // Join with trip to get bookings for this tour
+        String sql = "SELECT b.* FROM booking b " +
+                    "JOIN trip t ON b.trip_id = t.id " +
+                    "WHERE t.tour_id = ? AND b.is_delete = 0 " +
+                    "ORDER BY b.created_date DESC";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tourId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    bookings.add(mapBooking(rs));
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error getting bookings by tour ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return bookings;
+    }
+    
+    /**
      * Update a booking
      * @param booking The booking to update
      * @return True if successful, false otherwise
@@ -337,5 +368,59 @@ public class BookingDAO {
         }
         
         return bookings;
+    }
+    
+    /**
+     * Check if a trip has any bookings
+     * @param tripId The trip ID to check
+     * @return True if trip has bookings, false otherwise
+     */
+    public boolean tripHasBookings(int tripId) {
+        String sql = "SELECT COUNT(*) FROM booking WHERE trip_id = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tripId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error checking if trip has bookings: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false; // Default to false in case of errors
+    }
+    
+    /**
+     * Check if any trip in a tour has bookings
+     * @param tourId The tour ID to check
+     * @return True if any trip in the tour has bookings, false otherwise
+     */
+    public boolean tourHasBookings(int tourId) {
+        String sql = "SELECT COUNT(*) FROM booking b " +
+                     "JOIN trip t ON b.trip_id = t.id " +
+                     "WHERE t.tour_id = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tourId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error checking if tour has bookings: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false; // Default to false in case of errors
     }
 } 

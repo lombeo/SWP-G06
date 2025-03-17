@@ -1,5 +1,7 @@
 package model;
 
+import java.util.List;
+
 public class Tour {
     private int id;
     private String name;
@@ -19,6 +21,8 @@ public class Tour {
     private int categoryId;
     private String destinationCity;
     private double discountPercentage;
+    private List<Integer> categoryIds;
+    private String description;
 
     public Tour() {
     }
@@ -46,6 +50,32 @@ public class Tour {
         this.categoryId = categoryId;
         this.destinationCity = destinationCity;
         this.discountPercentage = discountPercentage;
+    }
+
+    public Tour(int id, String name, String img, String region, double priceChildren, 
+                double priceAdult, String suitableFor, String bestTime, String cuisine, 
+                String duration, String sightseeing, int availableSlot, int maxCapacity, 
+                int departureLocationId, String departureCity, int categoryId,
+                String destinationCity, double discountPercentage, String description) {
+        this.id = id;
+        this.name = name;
+        this.img = img;
+        this.region = region;
+        this.priceChildren = priceChildren;
+        this.priceAdult = priceAdult;
+        this.suitableFor = suitableFor;
+        this.bestTime = bestTime;
+        this.cuisine = cuisine;
+        this.duration = duration;
+        this.sightseeing = sightseeing;
+        this.availableSlot = availableSlot;
+        this.maxCapacity = maxCapacity;
+        this.departureLocationId = departureLocationId;
+        this.departureCity = departureCity;
+        this.categoryId = categoryId;
+        this.destinationCity = destinationCity;
+        this.discountPercentage = discountPercentage;
+        this.description = description;
     }
 
     public int getId() {
@@ -190,5 +220,21 @@ public class Tour {
 
     public void setDiscountPercentage(double discountPercentage) {
         this.discountPercentage = discountPercentage;
+    }
+
+    public List<Integer> getCategoryIds() {
+        return categoryIds;
+    }
+
+    public void setCategoryIds(List<Integer> categoryIds) {
+        this.categoryIds = categoryIds;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 } 

@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="tours"/>
 </jsp:include>
@@ -12,18 +13,35 @@
                 <a href="${pageContext.request.contextPath}/admin/tours" class="btn btn-secondary me-2">
                     <i class="fas fa-arrow-left me-1"></i> Back to Tours
                 </a>
-                <a href="${pageContext.request.contextPath}/admin/tours/edit?id=${tour.id}" class="btn btn-warning me-2">
+                <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTourModal">
                     <i class="fas fa-edit me-1"></i> Edit Tour
-                </a>
-                <a href="${pageContext.request.contextPath}/admin/tours/schedules?id=${tour.id}" class="btn btn-success me-2">
+                </button>
+                <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#manageScheduleModal">
                     <i class="fas fa-route me-1"></i> Manage Schedules
-                </a>
-                <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="btn btn-primary">
+                </button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#manageTripModal">
                     <i class="fas fa-calendar-alt me-1"></i> Manage Trips
-                </a>
+                </button>
             </div>
         </div>
     </div>
+
+    <!-- Display messages -->
+    <c:if test="${sessionScope.successMessage != null}">
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>${sessionScope.successMessage}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <c:remove var="successMessage" scope="session" />
+    </c:if>
+    
+    <c:if test="${sessionScope.errorMessage != null}">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>${sessionScope.errorMessage}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <c:remove var="errorMessage" scope="session" />
+    </c:if>
 
     <div class="row">
         <div class="col-md-8">
@@ -193,6 +211,9 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Tour Bookings Card -->
+            <jsp:include page="fragments/tour-bookings.jsp" />
         </div>
     </div>
 </div>
@@ -208,6 +229,7 @@
                 </div>
                 <div class="modal-body">
                     <input type="hidden" name="tourId" value="${tour.id}">
+                    <input type="hidden" name="action" value="addImage">
                     <div class="mb-3">
                         <label for="imageUrl" class="form-label">Image URL</label>
                         <input type="text" class="form-control" id="imageUrl" name="imageUrl" required>
@@ -221,5 +243,323 @@
         </div>
     </div>
 </div>
+
+<!-- Edit Tour Modal -->
+<div class="modal fade" id="editTourModal" tabindex="-1" aria-labelledby="editTourModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editTourModalLabel">Edit Tour: ${tour.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center p-4" id="editTourLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading tour information...</p>
+                </div>
+                <div id="editTourContent"></div>
+            </div>
+            <div class="modal-footer" id="editTourFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveEditTour">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Schedules Modal -->
+<div class="modal fade" id="manageScheduleModal" tabindex="-1" aria-labelledby="manageScheduleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageScheduleModalLabel">Manage Itinerary: ${tour.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center p-4" id="schedulesLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading itinerary information...</p>
+                </div>
+                <div id="schedulesContent"></div>
+            </div>
+            <div class="modal-footer" id="schedulesFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="addNewSchedule">Add New Day</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Trips Modal -->
+<div class="modal fade" id="manageTripModal" tabindex="-1" aria-labelledby="manageTripModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="manageTripModalLabel">Manage Trips: ${tour.name}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center p-4" id="tripsLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading trip information...</p>
+                </div>
+                <div id="tripsContent"></div>
+            </div>
+            <div class="modal-footer" id="tripsFooter" style="display: none;">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-success" id="addNewTrip">Add New Trip</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Edit Tour Modal
+        $('#editTourModal').on('show.bs.modal', function() {
+            const contentDiv = document.getElementById('editTourContent');
+            const loadingDiv = document.getElementById('editTourLoading');
+            const footerDiv = document.getElementById('editTourFooter');
+            
+            // Show loading indicator
+            loadingDiv.style.display = 'block';
+            contentDiv.innerHTML = '';
+            footerDiv.style.display = 'none';
+            
+            // Fetch tour edit form content
+            fetch('${pageContext.request.contextPath}/admin/tours/edit-content?id=${tour.id}')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    // Hide loading indicator and show content
+                    loadingDiv.style.display = 'none';
+                    
+                    // Check if the HTML contains error message or is empty
+                    if (html.trim() === '' || html.includes('error') || html.includes('exception')) {
+                        throw new Error('Received invalid content from server');
+                    }
+                    
+                    contentDiv.innerHTML = html;
+                    footerDiv.style.display = 'flex';
+                    
+                    // Handle form submission
+                    document.getElementById('saveEditTour').addEventListener('click', function() {
+                        const form = contentDiv.querySelector('form');
+                        if (form) {
+                            // Convert form to FormData
+                            const formData = new FormData(form);
+                            
+                            // Show saving indicator
+                            this.disabled = true;
+                            this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+                            
+                            // Submit form via AJAX
+                            fetch(form.action, {
+                                method: 'POST',
+                                body: formData
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                                }
+                                return response.text();
+                            })
+                            .then(data => {
+                                if (data.includes('success')) {
+                                    // Show success message
+                                    const alertDiv = document.createElement('div');
+                                    alertDiv.className = 'alert alert-success mt-3';
+                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tour updated successfully!';
+                                    contentDiv.prepend(alertDiv);
+                                    
+                                    // Reload the page after a delay to show updated data
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 1500);
+                                } else {
+                                    throw new Error('Failed to update tour');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error updating tour:', error);
+                                
+                                // Show error message
+                                const alertDiv = document.createElement('div');
+                                alertDiv.className = 'alert alert-danger mt-3';
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour: ' + error.message;
+                                contentDiv.prepend(alertDiv);
+                                
+                                // Reset button
+                                this.disabled = false;
+                                this.innerHTML = 'Save Changes';
+                            });
+                        }
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading tour edit form:', error);
+                    loadingDiv.style.display = 'none';
+                    contentDiv.innerHTML = '<div class="alert alert-danger">' +
+                        '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading tour information. Please try again.</p>' +
+                        '<p>Details: ' + error.message + '</p>' +
+                        '</div>';
+                    
+                    // Show footer with just the close button
+                    footerDiv.style.display = 'flex';
+                    document.getElementById('saveEditTour').style.display = 'none';
+                });
+        });
+        
+        // Manage Schedules Modal
+        const manageScheduleModal = document.getElementById('manageScheduleModal');
+        manageScheduleModal.addEventListener('show.bs.modal', function() {
+            const contentDiv = document.getElementById('schedulesContent');
+            const loadingDiv = document.getElementById('schedulesLoading');
+            const footerDiv = document.getElementById('schedulesFooter');
+            
+            // Show loading indicator
+            loadingDiv.style.display = 'block';
+            contentDiv.innerHTML = '';
+            footerDiv.style.display = 'none';
+            
+            // Log URL for debugging
+            const schedulesUrl = '${pageContext.request.contextPath}/admin/tours/schedules-content?id=${tour.id}';
+            console.log('Fetching schedules content from:', schedulesUrl);
+            
+            // Fetch schedules content
+            fetch(schedulesUrl, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Charset': 'UTF-8'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                }
+                console.log('Response headers:', response.headers);
+                return response.text();
+            })
+            .then(html => {
+                // Hide loading indicator and show content
+                loadingDiv.style.display = 'none';
+                
+                console.log('Received HTML content length:', html.length);
+                if (html.length > 100) {
+                    console.log('First 100 chars of response:', html.substring(0, 100));
+                } else {
+                    console.log('Full response:', html);
+                }
+                
+                // Check if the HTML contains error message or is empty
+                if (html.trim() === '') {
+                    throw new Error('Received empty content from server');
+                }
+                
+                // If HTML contains error or exception messages, but is still valid HTML, 
+                // we should still display it rather than throwing an error
+                contentDiv.innerHTML = html;
+                footerDiv.style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error loading schedules:', error);
+                loadingDiv.style.display = 'none';
+                contentDiv.innerHTML = '<div class="alert alert-danger">' +
+                    '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading itinerary information. Please try again.</p>' +
+                    '<p>Details: ' + error.message + '</p>' +
+                    '</div>';
+                
+                // Show footer with just the close button
+                footerDiv.style.display = 'flex';
+                const addButton = document.getElementById('addNewSchedule');
+                if (addButton) {
+                    addButton.style.display = 'none';
+                }
+            });
+        });
+        
+        // Manage Trips Modal
+        const manageTripModal = document.getElementById('manageTripModal');
+        manageTripModal.addEventListener('show.bs.modal', function() {
+            const contentDiv = document.getElementById('tripsContent');
+            const loadingDiv = document.getElementById('tripsLoading');
+            const footerDiv = document.getElementById('tripsFooter');
+            
+            // Show loading indicator
+            loadingDiv.style.display = 'block';
+            contentDiv.innerHTML = '';
+            footerDiv.style.display = 'none';
+            
+            // Log URL for debugging
+            const tripsUrl = '${pageContext.request.contextPath}/admin/tours/trips-content?id=${tour.id}';
+            console.log('Fetching trips content from:', tripsUrl);
+            
+            // Fetch trips content
+            fetch(tripsUrl, {
+                method: 'GET',
+                headers: {
+                    'Cache-Control': 'no-cache',
+                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                    'Accept-Charset': 'UTF-8'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                }
+                console.log('Response headers:', response.headers);
+                return response.text();
+            })
+            .then(html => {
+                // Hide loading indicator and show content
+                loadingDiv.style.display = 'none';
+                
+                console.log('Received HTML content length:', html.length);
+                if (html.length > 100) {
+                    console.log('First 100 chars of response:', html.substring(0, 100));
+                } else {
+                    console.log('Full response:', html);
+                }
+                
+                // Check if the HTML contains error message or is empty
+                if (html.trim() === '') {
+                    throw new Error('Received empty content from server');
+                }
+                
+                // If HTML contains error or exception messages, but is still valid HTML, 
+                // we should still display it rather than throwing an error
+                contentDiv.innerHTML = html;
+                footerDiv.style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error loading trips:', error);
+                loadingDiv.style.display = 'none';
+                contentDiv.innerHTML = '<div class="alert alert-danger">' +
+                    '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading trip information. Please try again.</p>' +
+                    '<p>Details: ' + error.message + '</p>' +
+                    '</div>';
+                
+                // Show footer with just the close button
+                footerDiv.style.display = 'flex';
+                const addButton = document.getElementById('addNewTrip');
+                if (addButton) {
+                    addButton.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
 
 <jsp:include page="layout/footer.jsp" />

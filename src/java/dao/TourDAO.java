@@ -4,7 +4,10 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import model.Category;
 import model.City;
@@ -12,6 +15,7 @@ import model.Promotion;
 import model.Tour;
 import model.Trip;
 import utils.DBContext;
+import dao.BookingDAO;
 
 public class TourDAO {
 
@@ -151,7 +155,25 @@ public class TourDAO {
         List<Tour> tours = new ArrayList<>();
         StringBuilder sql = new StringBuilder(
                 "WITH FilteredTours AS ("
-                + "SELECT t.*, c.name as departure_city "
+                + "SELECT t.*, c.name as departure_city, "
+                // Add calculation for discounted price and percentage for sorting
+                + "(SELECT TOP 1 p.discount_percentage "
+                + "FROM tour_promotion tp "
+                + "JOIN promotion p ON tp.promotion_id = p.id "
+                + "WHERE tp.tour_id = t.id "
+                + "AND p.start_date <= GETDATE() AND p.end_date >= GETDATE() AND p.is_delete = 0 "
+                + "ORDER BY p.discount_percentage DESC) as discount_percentage, "
+                + "CASE WHEN EXISTS (SELECT 1 FROM tour_promotion tp "
+                + "JOIN promotion p ON tp.promotion_id = p.id "
+                + "WHERE tp.tour_id = t.id "
+                + "AND p.start_date <= GETDATE() AND p.end_date >= GETDATE() AND p.is_delete = 0) "
+                + "THEN t.price_adult * (1 - (SELECT TOP 1 p.discount_percentage / 100.0 "
+                + "FROM tour_promotion tp "
+                + "JOIN promotion p ON tp.promotion_id = p.id "
+                + "WHERE tp.tour_id = t.id "
+                + "AND p.start_date <= GETDATE() AND p.end_date >= GETDATE() AND p.is_delete = 0 "
+                + "ORDER BY p.discount_percentage DESC)) "
+                + "ELSE t.price_adult END as discounted_price "
                 + "FROM tours t "
                 + "JOIN city c ON t.departure_location_id = c.id "
                 + "WHERE EXISTS ("
@@ -187,15 +209,27 @@ public class TourDAO {
                 if (i > 0) {
                     sql.append(" OR ");
                 }
-                double priceRange = priceRanges[i];
-                if (priceRange == 0) {
+                double minPrice = priceRanges[i];
+                
+                System.out.println("Applying price filter for minPrice: " + minPrice);
+                
+                // Handle specific price ranges based on the minimum price value
+                if (minPrice < 1) { // Handle 0-5000000 range
                     sql.append("t.price_adult < 5000000");
-                } else if (priceRange == 5) {
+                    System.out.println("SQL condition: t.price_adult < 5000000");
+                } else if (minPrice >= 5000000 && minPrice < 5000001) { // Handle 5000000-10000000 range
                     sql.append("(t.price_adult >= 5000000 AND t.price_adult < 10000000)");
-                } else if (priceRange == 10) {
+                    System.out.println("SQL condition: (t.price_adult >= 5000000 AND t.price_adult < 10000000)");
+                } else if (minPrice >= 10000000 && minPrice < 10000001) { // Handle 10000000-20000000 range
                     sql.append("(t.price_adult >= 10000000 AND t.price_adult < 20000000)");
-                } else if (priceRange == 20) {
+                    System.out.println("SQL condition: (t.price_adult >= 10000000 AND t.price_adult < 20000000)");
+                } else if (minPrice >= 20000000) { // Handle 20000000+ range
                     sql.append("t.price_adult >= 20000000");
+                    System.out.println("SQL condition: t.price_adult >= 20000000");
+                } else {
+                    // Fallback for unexpected values - consider all prices
+                    sql.append("1=1");
+                    System.out.println("SQL condition: 1=1 (fallback)");
                 }
             }
             sql.append(")");
@@ -235,13 +269,25 @@ public class TourDAO {
         if (sortBy != null) {
             switch (sortBy) {
                 case "price_asc":
-                    sql.append("price_adult ASC");
+                    sql.append("discounted_price ASC");
                     break;
                 case "price_desc":
-                    sql.append("price_adult DESC");
+                    sql.append("discounted_price DESC");
                     break;
                 case "duration":
                     sql.append("duration");
+                    break;
+                case "discount_price_asc":
+                    // Sort by discounted price (price after applying promotion)
+                    sql.append("discounted_price ASC");
+                    break;
+                case "discount_price_desc":
+                    // Sort by discounted price (price after applying promotion) - descending
+                    sql.append("discounted_price DESC");
+                    break;
+                case "discount_percent_desc":
+                    // Sort by discount percentage - highest discount first
+                    sql.append("discount_percentage DESC");
                     break;
                 default:
                     sql.append("id");
@@ -319,15 +365,27 @@ public class TourDAO {
                 if (i > 0) {
                     sql.append(" OR ");
                 }
-                double priceRange = priceRanges[i];
-                if (priceRange == 0) {
+                double minPrice = priceRanges[i];
+                
+                System.out.println("Applying price filter for minPrice: " + minPrice);
+                
+                // Handle specific price ranges based on the minimum price value
+                if (minPrice < 1) { // Handle 0-5000000 range
                     sql.append("t.price_adult < 5000000");
-                } else if (priceRange == 5) {
+                    System.out.println("SQL condition: t.price_adult < 5000000");
+                } else if (minPrice >= 5000000 && minPrice < 5000001) { // Handle 5000000-10000000 range
                     sql.append("(t.price_adult >= 5000000 AND t.price_adult < 10000000)");
-                } else if (priceRange == 10) {
+                    System.out.println("SQL condition: (t.price_adult >= 5000000 AND t.price_adult < 10000000)");
+                } else if (minPrice >= 10000000 && minPrice < 10000001) { // Handle 10000000-20000000 range
                     sql.append("(t.price_adult >= 10000000 AND t.price_adult < 20000000)");
-                } else if (priceRange == 20) {
+                    System.out.println("SQL condition: (t.price_adult >= 10000000 AND t.price_adult < 20000000)");
+                } else if (minPrice >= 20000000) { // Handle 20000000+ range
                     sql.append("t.price_adult >= 20000000");
+                    System.out.println("SQL condition: t.price_adult >= 20000000");
+                } else {
+                    // Fallback for unexpected values - consider all prices
+                    sql.append("1=1");
+                    System.out.println("SQL condition: 1=1 (fallback)");
                 }
             }
             sql.append(")");
@@ -785,6 +843,32 @@ public class TourDAO {
     }
 
     public void updateTour(Tour tour) throws SQLException, ClassNotFoundException {
+        // First check if any trips for this tour have bookings
+        BookingDAO bookingDAO = new BookingDAO();
+        if (bookingDAO.tourHasBookings(tour.getId())) {
+            System.out.println("Warning: Tour #" + tour.getId() + " has associated bookings. Only updating non-critical fields.");
+            
+            // Update only non-critical fields that won't affect bookings
+            String safeSql = "UPDATE tours SET name = ?, img = ?, cuisine = ?, region = ?, "
+                    + "category_id = ?, sightseeing = ? "
+                    + "WHERE id = ?";
+                    
+            try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(safeSql)) {
+                ps.setString(1, tour.getName());
+                ps.setString(2, tour.getImg());
+                ps.setString(3, tour.getCuisine());
+                ps.setString(4, tour.getRegion());
+                ps.setInt(5, tour.getCategoryId());
+                ps.setString(6, tour.getSightseeing());
+                ps.setInt(7, tour.getId());
+                
+                System.out.println("Performing safe update of tour with ID: " + tour.getId());
+                ps.executeUpdate();
+            }
+            return;
+        }
+        
+        // If no bookings, proceed with full update
         String sql = "UPDATE tours SET name = ?, img = ?, price_adult = ?, price_children = ?, "
                 + "duration = ?, suitable_for = ?, best_time = ?, cuisine = ?, region = ?, "
                 + "max_capacity = ?, departure_location_id = ?, category_id = ?, sightseeing = ? "
@@ -1116,5 +1200,52 @@ public class TourDAO {
             }
         }
         return tours;
+    }
+
+    /**
+     * Get all category IDs associated with a tour
+     * @param tourId ID of the tour
+     * @return List of category IDs
+     */
+    public List<Integer> getCategoryIdsForTour(int tourId) throws SQLException, ClassNotFoundException {
+        List<Integer> categoryIds = new ArrayList<>();
+        // In this simple implementation, we'll just return the categoryId as a single-item list
+        // In a real application with many-to-many relationships, you would query a join table
+        Tour tour = getTourById(tourId);
+        if (tour != null && tour.getCategoryId() > 0) {
+            categoryIds.add(tour.getCategoryId());
+        }
+        return categoryIds;
+    }
+
+    /**
+     * Soft delete a tour by setting is_delete to true
+     * @param tourId The ID of the tour to delete
+     * @return True if successful, false otherwise
+     */
+    public boolean softDeleteTour(int tourId) {
+        // First check if any trips for this tour have bookings
+        BookingDAO bookingDAO = new BookingDAO();
+        if (bookingDAO.tourHasBookings(tourId)) {
+            System.out.println("Cannot delete tour #" + tourId + " as it has associated bookings");
+            return false;
+        }
+        
+        String sql = "UPDATE tours SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement st = conn.prepareStatement(sql)) {
+            
+            st.setInt(1, tourId);
+            
+            int rowsAffected = st.executeUpdate();
+            System.out.println("Soft-deleted tour #" + tourId + ", rows affected: " + rowsAffected);
+            return rowsAffected > 0;
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error soft-deleting tour: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return false;
     }
 }
