@@ -118,7 +118,7 @@
                         </div>
 
                         <!-- Tour Details -->
-                        <div class="space-y-4 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">confirmation_number</span>
                                 <div>
@@ -165,8 +165,6 @@
                                     <span class="text-red-600 font-medium"><span class="available-slots">${trip.availableSlot}</span> chỗ</span>
                                 </div>
                             </div>
-
-                            <!-- New: Suitable For -->
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">group</span>
                                 <div>
@@ -174,8 +172,6 @@
                                     <span>${tour.suitableFor}</span>
                                 </div>
                             </div>
-
-                            <!-- New: Best Time -->
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">event_available</span>
                                 <div>

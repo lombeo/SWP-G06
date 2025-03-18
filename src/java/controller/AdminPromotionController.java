@@ -53,6 +53,9 @@ public class AdminPromotionController extends HttpServlet {
                 case "/link":
                     showLinkForm(request, response);
                     break;
+                case "/unlink":
+                    unlinkPromotionFromTour(request, response);
+                    break;
                 case "/view":
                     viewPromotion(request, response);
                     break;

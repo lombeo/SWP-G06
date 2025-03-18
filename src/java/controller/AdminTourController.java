@@ -10,6 +10,7 @@ import dao.UserDAO;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -645,51 +646,57 @@ public class AdminTourController extends HttpServlet {
     private void viewTourTrips(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            int tourId = Integer.parseInt(request.getParameter("id"));
+            // Get tour ID from request parameter
+            String tourIdParam = request.getParameter("id");
+            if (tourIdParam == null || tourIdParam.isEmpty()) {
+                request.setAttribute("errorMessage", "Tour ID is required");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            int tourId = Integer.parseInt(tourIdParam);
+            
+            // Get pagination parameters
             int page = 1;
             int itemsPerPage = 10;
             
-            // Get page and itemsPerPage parameters
             String pageParam = request.getParameter("page");
-            String itemsPerPageParam = request.getParameter("itemsPerPage");
-            
             if (pageParam != null && !pageParam.isEmpty()) {
-                try {
-                    page = Integer.parseInt(pageParam);
-                    if (page < 1) page = 1;
-                } catch (NumberFormatException e) {
-                    // If page is not a valid number, default to 1
-                }
+                page = Integer.parseInt(pageParam);
             }
             
+            String itemsPerPageParam = request.getParameter("items");
             if (itemsPerPageParam != null && !itemsPerPageParam.isEmpty()) {
-                try {
-                    itemsPerPage = Integer.parseInt(itemsPerPageParam);
-                    if (itemsPerPage < 5) itemsPerPage = 5;
-                    if (itemsPerPage > 100) itemsPerPage = 100;
-                } catch (NumberFormatException e) {
-                    // If itemsPerPage is not a valid number, default to 10
-                }
+                itemsPerPage = Integer.parseInt(itemsPerPageParam);
             }
             
+            // Get tour from database
             TourDAO tourDAO = new TourDAO();
-            TripDAO tripDAO = new TripDAO();
-            CityDAO cityDAO = new CityDAO();
-            
             Tour tour = tourDAO.getTourById(tourId);
             
-            // Get city information
-            City departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
-            
-            // Get list of all cities to find destination
-            List<City> allCities = cityDAO.getAllCities();
-            City destinationCity = null;
-            for (City city : allCities) {
-                if (city.getName().equals(tour.getDestinationCity())) {
-                    destinationCity = city;
-                    break;
-                }
+            if (tour == null) {
+                request.setAttribute("errorMessage", "Tour not found");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
             }
+            
+            // Get tour's associated cities
+            CityDAO cityDAO = new CityDAO();
+            City departureCity = null;
+            City destinationCity = null;
+            
+            try {
+                departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
+                // Get all cities for dropdown
+                List<City> allCities = cityDAO.getAllCities();
+                request.setAttribute("allCities", allCities);
+            } catch (SQLException | ClassNotFoundException e) {
+                System.out.println("Error fetching cities: " + e.getMessage());
+                e.printStackTrace();
+            }
+            
+            // Get trips for this tour
+            TripDAO tripDAO = new TripDAO();
             
             // Get total count of trips for this tour
             int totalTrips = tripDAO.getTotalTripsByTourId(tourId);
@@ -699,7 +706,7 @@ public class AdminTourController extends HttpServlet {
             
             // Format trip times for proper display in time inputs
             for (Trip trip : trips) {
-                // Ensure startTime and endTime are in the proper format for time inputs (HH:MM)
+                // Format time string: remove milliseconds if present
                 if (trip.getStartTime() != null && trip.getStartTime().contains(".")) {
                     trip.setStartTime(trip.getStartTime().split("\\.")[0]);
                 }
@@ -707,7 +714,7 @@ public class AdminTourController extends HttpServlet {
                     trip.setEndTime(trip.getEndTime().split("\\.")[0]);
                 }
                 
-                // Ensure times are in proper format
+                // Truncate time string to just HH:MM if longer
                 if (trip.getStartTime() != null && trip.getStartTime().length() > 5) {
                     trip.setStartTime(trip.getStartTime().substring(0, 5));
                 }
@@ -716,19 +723,19 @@ public class AdminTourController extends HttpServlet {
                 }
             }
             
+            // Set attributes for the JSP page
             request.setAttribute("tour", tour);
             request.setAttribute("departureCity", departureCity);
-            request.setAttribute("destinationCity", destinationCity);
             request.setAttribute("trips", trips);
             request.setAttribute("totalTrips", totalTrips);
             request.setAttribute("currentPage", page);
             request.setAttribute("itemsPerPage", itemsPerPage);
+            request.setAttribute("totalPages", (int) Math.ceil((double) totalTrips / itemsPerPage));
             
+            // Forward to JSP page
             request.getRequestDispatcher("/admin/tour-trips.jsp").forward(request, response);
-        } catch (NumberFormatException e) {
-            request.setAttribute("errorMessage", "Invalid tour ID");
-            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
         } catch (Exception e) {
+            e.printStackTrace();
             request.setAttribute("errorMessage", "Error fetching tour trips: " + e.getMessage());
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
         }
@@ -756,6 +763,33 @@ public class AdminTourController extends HttpServlet {
             } catch (NumberFormatException e) {
                 System.out.println("Invalid tourId: " + request.getParameter("tourId"));
                 request.setAttribute("errorMessage", "ID tour không hợp lệ");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Get tour data to determine departure city
+            TourDAO tourDAO = new TourDAO();
+            Tour tour = tourDAO.getTourById(tourId);
+            
+            if (tour == null) {
+                System.out.println("Tour not found with ID: " + tourId);
+                request.setAttribute("errorMessage", "Tour không tồn tại");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Use the tour's departure city
+            int departureCityId = tour.getDepartureLocationId();
+            
+            // Get destination city from form
+            int destinationCityId;
+            try {
+                String destinationCityIdStr = request.getParameter("destinationCityId");
+                System.out.println("Raw destinationCityId: [" + destinationCityIdStr + "]");
+                destinationCityId = Integer.parseInt(destinationCityIdStr);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid destinationCityId: " + request.getParameter("destinationCityId"));
+                request.setAttribute("errorMessage", "ID thành phố đến không hợp lệ");
                 request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 return;
             }
@@ -913,46 +947,6 @@ public class AdminTourController extends HttpServlet {
                 return;
             }
             
-            // Safely parse destinationCityId with a default value if not present
-            int destinationCityId = 1; // Default value
-            String destinationCityIdParam = request.getParameter("destinationCityId");
-            System.out.println("Raw destinationCityId: [" + destinationCityIdParam + "]");
-            
-            if (destinationCityIdParam != null && !destinationCityIdParam.isEmpty()) {
-                try {
-                    destinationCityId = Integer.parseInt(destinationCityIdParam);
-                } catch (NumberFormatException e) {
-                    System.out.println("Error parsing destinationCityId: " + e.getMessage());
-                    // Use default value
-                }
-            }
-            
-            // Get tour information to determine departure city
-            TourDAO tourDAO = new TourDAO();
-            Tour tour = tourDAO.getTourById(tourId);
-            
-            if (tour == null) {
-                System.out.println("Tour not found with ID: " + tourId);
-                request.setAttribute("errorMessage", "Tour không tìm thấy với ID: " + tourId);
-                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
-                return;
-            }
-            
-            // Ensure departure city is set
-            int departureCityId = tour.getDepartureLocationId();
-            if (departureCityId <= 0) {
-                System.out.println("Invalid departure city ID: " + departureCityId + ", using default value 1");
-                departureCityId = 1; // Default to 1 if invalid
-            }
-            
-            // Check if departure date is before return date
-            if (departureDate.after(returnDate)) {
-                System.out.println("Departure date is after return date");
-                request.setAttribute("errorMessage", "Ngày khởi hành phải trước ngày trở về");
-                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
-                return;
-            }
-            
             // Set up transaction
             conn = DBContext.getConnection();
             conn.setAutoCommit(false);
@@ -965,14 +959,13 @@ public class AdminTourController extends HttpServlet {
             trip.setTourId(tourId);
             trip.setDepartureDate(departureDate);
             trip.setReturnDate(returnDate);
-            
-            // These setters now use the formatTimeForSqlServer method internally
             trip.setStartTime(startTime);
             trip.setEndTime(endTime);
-            
             trip.setAvailableSlot(availableSlots);
-            trip.setDepartureCityId(departureCityId);
-            trip.setDestinationCityId(destinationCityId);
+            trip.setCreatedDate(new Timestamp(System.currentTimeMillis()));
+            trip.setDepartureCityId(departureCityId); // Use tour's departure city
+            trip.setDestinationCityId(destinationCityId); // Use selected destination city
+            trip.setIsDelete(false);
             
             // Output final trip object data for debugging
             System.out.println("Final trip object values:");
@@ -1152,19 +1145,7 @@ public class AdminTourController extends HttpServlet {
                 return;
             }
             
-            // Parse and validate destination city ID
-            int destinationCityId = 1; // Default value
-            String destinationCityIdParam = request.getParameter("destinationCityId");
-            
-            if (destinationCityIdParam != null && !destinationCityIdParam.isEmpty()) {
-                try {
-                    destinationCityId = Integer.parseInt(destinationCityIdParam);
-                } catch (NumberFormatException e) {
-                    // Use default value
-                }
-            }
-            
-            // Get the trip using DAO to obtain its current properties
+            // Get trip's current data
             TripDAO tripDAO = new TripDAO();
             Trip existingTrip = tripDAO.getTripById(tripId);
             
@@ -1172,6 +1153,36 @@ public class AdminTourController extends HttpServlet {
                 request.setAttribute("errorMessage", "Trip not found with ID: " + tripId);
                 request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 return;
+            }
+            
+            // Get the tour to get the default departure city
+            TourDAO tourDAO = new TourDAO();
+            Tour tour = tourDAO.getTourById(tourId);
+            
+            if (tour == null) {
+                request.setAttribute("errorMessage", "Tour not found with ID: " + tourId);
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Use the tour's departure location ID for the trip
+            int departureCityId = tour.getDepartureLocationId();
+            
+            // Parse and validate destination city ID
+            int destinationCityId = 0;
+            String destinationCityIdParam = request.getParameter("destinationCityId");
+            
+            if (destinationCityIdParam != null && !destinationCityIdParam.isEmpty()) {
+                try {
+                    destinationCityId = Integer.parseInt(destinationCityIdParam);
+                } catch (NumberFormatException e) {
+                    request.setAttribute("errorMessage", "Invalid destination city ID");
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+            } else {
+                // If no destination city is provided, use the existing one
+                destinationCityId = existingTrip.getDestinationCityId();
             }
             
             // Use the database connection with transaction for update

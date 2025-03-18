@@ -477,6 +477,8 @@ public class AdminBookingController extends HttpServlet {
         String bookingIdParam = request.getParameter("bookingId");
         HttpSession session = request.getSession();
         
+        System.out.println("markBookingComplete method called with bookingId: " + bookingIdParam);
+        
         if (bookingIdParam == null || bookingIdParam.isEmpty()) {
             session.setAttribute("errorMessage", "Booking ID is required");
             response.sendRedirect(request.getContextPath() + "/admin?action=bookings");
@@ -488,13 +490,26 @@ public class AdminBookingController extends HttpServlet {
             Booking booking = bookingDAO.getBookingById(bookingId);
             
             if (booking == null) {
+                System.out.println("Booking not found for ID: " + bookingId);
                 session.setAttribute("errorMessage", "Booking not found");
                 response.sendRedirect(request.getContextPath() + "/admin?action=bookings");
                 return;
             }
             
+            System.out.println("Booking found. Current status: " + booking.getStatus());
+            
+            // Check if status is null and determine from transactions if needed
+            if (booking.getStatus() == null) {
+                // If status is null, get status from transactions
+                List<Transaction> transactions = transactionDAO.getTransactionsByBookingId(bookingId);
+                String bookingStatus = determineBookingStatus(transactions);
+                booking.setStatus(bookingStatus);
+                System.out.println("Status was null, determined from transactions: " + bookingStatus);
+            }
+            
             // Only allow marking bookings with "Đã duyệt" status as completed
             if (!"Đã duyệt".equals(booking.getStatus())) {
+                System.out.println("Cannot mark complete - booking status is not 'Đã duyệt': " + booking.getStatus());
                 session.setAttribute("errorMessage", "Only bookings with 'Đã duyệt' status can be marked as completed");
                 response.sendRedirect(request.getContextPath() + "/admin?action=bookings");
                 return;
@@ -503,6 +518,8 @@ public class AdminBookingController extends HttpServlet {
             // Check if tour has actually completed
             Trip trip = tripDAO.getTripById(booking.getTripId());
             if (trip == null || trip.getReturnDate() == null || !trip.getReturnDate().before(new java.util.Date())) {
+                System.out.println("Tour has not completed yet. Trip return date: " + 
+                                  (trip != null && trip.getReturnDate() != null ? trip.getReturnDate() : "null"));
                 session.setAttribute("errorMessage", "This tour has not completed yet. Cannot mark as completed.");
                 response.sendRedirect(request.getContextPath() + "/admin/bookings/view?id=" + bookingId);
                 return;
@@ -513,27 +530,38 @@ public class AdminBookingController extends HttpServlet {
             transaction.setBookingId(bookingId);
             transaction.setTransactionType("Status Update");
             transaction.setAmount(0.0); // No amount for status update
-            transaction.setDescription("Admin marked booking as completed: Changed status to 'Hoàn thành'");
+            transaction.setDescription("Hoàn thành");
             transaction.setStatus("Completed");
             
             // Convert java.util.Date to java.sql.Timestamp
             java.util.Date currentDate = new java.util.Date();
             java.sql.Timestamp timestamp = new java.sql.Timestamp(currentDate.getTime());
             transaction.setTransactionDate(timestamp);
+            transaction.setCreatedDate(timestamp); // Make sure created date is set
             
             // Insert transaction
-            transactionDAO.createTransaction(transaction);
+            int transactionId = transactionDAO.createTransaction(transaction);
+            System.out.println("Created transaction with ID: " + transactionId + " for 'Hoàn thành' status");
             
-            // Update booking status (this will be determined from transactions)
-            // This triggers the determineBookingStatus method in AdminController
+            if (transactionId <= 0) {
+                System.out.println("Failed to create transaction for booking completion!");
+                session.setAttribute("errorMessage", "Failed to mark booking as completed. Transaction could not be created.");
+                response.sendRedirect(request.getContextPath() + "/admin/bookings/view?id=" + bookingId);
+                return;
+            }
+            
+            // Manually force status update in case there's any caching issue
+            booking.setStatus("Hoàn thành");
             
             session.setAttribute("successMessage", "Booking #" + bookingId + " has been marked as completed");
-            response.sendRedirect(request.getContextPath() + "/admin/bookings/view?id=" + bookingId);
+            response.sendRedirect(request.getContextPath() + "/admin?action=bookings"); // Redirect to main bookings list to see updated status
             
         } catch (NumberFormatException e) {
+            System.out.println("Invalid booking ID format: " + bookingIdParam);
             session.setAttribute("errorMessage", "Invalid booking ID format");
             response.sendRedirect(request.getContextPath() + "/admin?action=bookings");
         } catch (Exception e) {
+            System.out.println("Error marking booking as complete: " + e.getMessage());
             e.printStackTrace();
             session.setAttribute("errorMessage", "Error marking booking as completed: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/admin?action=bookings");

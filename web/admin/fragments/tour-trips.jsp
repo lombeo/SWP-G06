@@ -39,7 +39,7 @@
                         <td>${trip.availableSlot}</td>
                         <td>
                             <div class="btn-group btn-group-sm">
-                                <button type="button" class="btn btn-warning edit-trip-btn" data-trip-id="${trip.id}">
+                                <button type="button" class="btn btn-warning edit-trip-btn" data-trip-id="${trip.id}" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}">
                                     <i class="fas fa-edit"></i>
                                 </button>
                                 <button type="button" class="btn btn-danger delete-trip-btn" data-trip-id="${trip.id}">
@@ -48,6 +48,70 @@
                             </div>
                         </td>
                     </tr>
+                    
+                    <!-- Edit Trip Modal for each trip -->
+                    <div class="modal fade" id="editTripModal${trip.id}" tabindex="-1" aria-labelledby="editTripModalLabel${trip.id}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editTripModalLabel${trip.id}">Edit Trip</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <form action="/admin/tours" method="post">
+                                    <div class="modal-body">
+                                        <input type="hidden" name="action" value="update-trip">
+                                        <input type="hidden" name="tripId" value="${trip.id}">
+                                        <input type="hidden" name="tourId" value="${tour.id}">
+                                        
+                                        <div class="mb-3">
+                                            <label for="departureDate${trip.id}" class="form-label">Departure Date</label>
+                                            <input type="date" class="form-control" id="departureDate${trip.id}" name="departureDate" 
+                                                   value="<fmt:formatDate value="${trip.departureDate}" pattern="yyyy-MM-dd" />" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="returnDate${trip.id}" class="form-label">Return Date</label>
+                                            <input type="date" class="form-control" id="returnDate${trip.id}" name="returnDate" 
+                                                   value="<fmt:formatDate value="${trip.returnDate}" pattern="yyyy-MM-dd" />" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="startTime${trip.id}" class="form-label">Start Time</label>
+                                            <input type="time" class="form-control" id="startTime${trip.id}" name="startTime" 
+                                                   value="${trip.startTime}" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="endTime${trip.id}" class="form-label">End Time</label>
+                                            <input type="time" class="form-control" id="endTime${trip.id}" name="endTime" 
+                                                   value="${trip.endTime}" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="availableSlots${trip.id}" class="form-label">Available Slots</label>
+                                            <input type="number" class="form-control" id="availableSlots${trip.id}" name="availableSlots" 
+                                                   value="${trip.availableSlot}" min="1" required>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="destinationCityId${trip.id}" class="form-label">Destination</label>
+                                            <select class="form-select" id="destinationCityId${trip.id}" name="destinationCityId" required>
+                                                <c:forEach var="city" items="${cities}">
+                                                    <option value="${city.id}" ${city.id == trip.destinationCityId ? 'selected' : ''}>
+                                                        ${city.name}
+                                                    </option>
+                                                </c:forEach>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </c:forEach>
             </tbody>
         </table>
@@ -129,6 +193,7 @@
                 .then(response => response.json())
                 .then(cities => {
                     const select = document.getElementById('destinationCityId${tour.id}');
+                    select.innerHTML = '<option value="">Select destination</option>';
                     cities.forEach(city => {
                         const option = document.createElement('option');
                         option.value = city.id;
@@ -244,29 +309,6 @@
             });
         });
         
-        // Edit trip buttons
-        document.querySelectorAll('.edit-trip-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                const tripId = this.getAttribute('data-trip-id');
-                
-                // First check if this trip has bookings
-                fetch('${pageContext.request.contextPath}/admin/tours?action=check-trip-bookings&id=' + tripId)
-                    .then(response => response.text())
-                    .then(data => {
-                        if (data.includes('has-bookings')) {
-                            alert('This trip cannot be edited as it has associated bookings. Contact support if needed.');
-                        } else {
-                            // Implement edit functionality here
-                            alert('Edit trip: ' + tripId + ' - Functionality to be implemented');
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error checking bookings:', error);
-                        alert('Error checking bookings: ' + error.message);
-                    });
-            });
-        });
-        
         // Delete trip buttons
         document.querySelectorAll('.delete-trip-btn').forEach(button => {
             button.addEventListener('click', function() {
@@ -295,7 +337,7 @@
                     const tourIdInput = document.createElement('input');
                     tourIdInput.type = 'hidden';
                     tourIdInput.name = 'tourId';
-                    tourIdInput.value = ${tour.id};
+                    tourIdInput.value = "${tour.id}";
                     form.appendChild(tourIdInput);
                     
                     // Append form to body and submit
