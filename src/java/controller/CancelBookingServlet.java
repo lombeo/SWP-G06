@@ -6,6 +6,7 @@ import dao.TripDAO;
 import java.io.IOException;
 import java.util.Date;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -80,8 +81,18 @@ public class CancelBookingServlet extends HttpServlet {
                 return;
             }
             
+            // Load transactions and determine booking status before checking it
+            List<Transaction> transactions = transactionDAO.getTransactionsByBookingId(bookingId);
+            booking.setTransactions(transactions);
+            String bookingStatus = determineBookingStatus(transactions);
+            booking.setStatus(bookingStatus);
+            
+            // Log the status for debugging
+            System.out.println("Booking ID: " + bookingId + " has status: " + bookingStatus);
+            
             // Check if the booking can be cancelled (only Đã thanh toán or Đã duyệt statuses)
-            if (!booking.getStatus().equals("Đã thanh toán") && !booking.getStatus().equals("Đã duyệt")) {
+            String status = booking.getStatus();
+            if (status == null || (!status.equals("Đã thanh toán") && !status.equals("Đã duyệt"))) {
                 session.setAttribute("errorMessage", "This booking cannot be cancelled");
                 response.sendRedirect(request.getContextPath() + "/my-bookings");
                 return;
@@ -148,5 +159,55 @@ public class CancelBookingServlet extends HttpServlet {
             throws ServletException, IOException {
         // Redirect GET requests to the bookings page
         response.sendRedirect(request.getContextPath() + "/my-bookings");
+    }
+    
+    /**
+     * Determine booking status based on transactions
+     * @param transactions The list of transactions for the booking
+     * @return The determined status, never returns null
+     */
+    private String determineBookingStatus(List<Transaction> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return "Chờ thanh toán";
+        }
+        
+        // First, check for status update transactions as they override others
+        for (Transaction transaction : transactions) {
+            if (transaction.getTransactionType() != null && 
+                transaction.getTransactionType().equals("Status Update") && 
+                transaction.getStatus() != null &&
+                transaction.getStatus().equals("Completed")) {
+                
+                String description = transaction.getDescription();
+                if (description == null) {
+                    continue;
+                }
+                
+                if (description.contains("Đã duyệt")) {
+                    return "Đã duyệt";
+                } else if (description.contains("Đã hủy muộn")) {
+                    return "Đã hủy muộn";
+                } else if (description.contains("Đã hủy")) {
+                    return "Đã hủy";
+                } else if (description.contains("Hoàn thành")) {
+                    return "Hoàn thành";
+                }
+            }
+        }
+        
+        // Check if payment is completed
+        boolean hasCompletedPayment = false;
+        
+        for (Transaction transaction : transactions) {
+            if (transaction.getTransactionType() != null && 
+                transaction.getTransactionType().equals("Payment") && 
+                transaction.getStatus() != null &&
+                transaction.getStatus().equals("Completed")) {
+                hasCompletedPayment = true;
+                break;
+            }
+        }
+        
+        return hasCompletedPayment ? "Đã thanh toán" : "Chờ thanh toán";
     }
 } 

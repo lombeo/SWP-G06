@@ -146,7 +146,7 @@ public class Booking {
         
         double total = 0;
         for (Transaction transaction : transactions) {
-            if (transaction.getTransactionType().equals("Payment")) {
+            if (transaction != null && "Payment".equals(transaction.getTransactionType())) {
                 total += transaction.getAmount();
             }
         }
