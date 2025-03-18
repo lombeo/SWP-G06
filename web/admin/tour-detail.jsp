@@ -16,12 +16,15 @@
                 <button type="button" class="btn btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTourModal">
                     <i class="fas fa-edit me-1"></i> Edit Tour
                 </button>
+                <button type="button" class="btn btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteTourModal">
+                    <i class="fas fa-trash me-1"></i> Delete Tour
+                </button>
                 <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#manageScheduleModal">
                     <i class="fas fa-route me-1"></i> Manage Schedules
                 </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#manageTripModal">
+                <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="btn btn-primary">
                     <i class="fas fa-calendar-alt me-1"></i> Manage Trips
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -294,26 +297,21 @@
     </div>
 </div>
 
-<!-- Manage Trips Modal -->
-<div class="modal fade" id="manageTripModal" tabindex="-1" aria-labelledby="manageTripModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+<!-- Delete Tour Modal -->
+<div class="modal fade" id="deleteTourModal" tabindex="-1" aria-labelledby="deleteTourModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="manageTripModalLabel">Manage Trips: ${tour.name}</h5>
+                <h5 class="modal-title" id="deleteTourModalLabel">Confirm Delete</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="text-center p-4" id="tripsLoading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Loading trip information...</p>
-                </div>
-                <div id="tripsContent"></div>
+                <p>Are you sure you want to delete the tour <strong>${tour.name}</strong>?</p>
+                <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>This action cannot be undone. All tour schedules, trips, and images will be permanently deleted.</p>
             </div>
-            <div class="modal-footer" id="tripsFooter" style="display: none;">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" id="addNewTrip">Add New Trip</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="${pageContext.request.contextPath}/admin/tours/delete?id=${tour.id}" class="btn btn-danger">Delete Tour</a>
             </div>
         </div>
     </div>
@@ -484,76 +482,6 @@
                 // Show footer with just the close button
                 footerDiv.style.display = 'flex';
                 const addButton = document.getElementById('addNewSchedule');
-                if (addButton) {
-                    addButton.style.display = 'none';
-                }
-            });
-        });
-        
-        // Manage Trips Modal
-        const manageTripModal = document.getElementById('manageTripModal');
-        manageTripModal.addEventListener('show.bs.modal', function() {
-            const contentDiv = document.getElementById('tripsContent');
-            const loadingDiv = document.getElementById('tripsLoading');
-            const footerDiv = document.getElementById('tripsFooter');
-            
-            // Show loading indicator
-            loadingDiv.style.display = 'block';
-            contentDiv.innerHTML = '';
-            footerDiv.style.display = 'none';
-            
-            // Log URL for debugging
-            const tripsUrl = '${pageContext.request.contextPath}/admin/tours/trips-content?id=${tour.id}';
-            console.log('Fetching trips content from:', tripsUrl);
-            
-            // Fetch trips content
-            fetch(tripsUrl, {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Charset': 'UTF-8'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
-                }
-                console.log('Response headers:', response.headers);
-                return response.text();
-            })
-            .then(html => {
-                // Hide loading indicator and show content
-                loadingDiv.style.display = 'none';
-                
-                console.log('Received HTML content length:', html.length);
-                if (html.length > 100) {
-                    console.log('First 100 chars of response:', html.substring(0, 100));
-                } else {
-                    console.log('Full response:', html);
-                }
-                
-                // Check if the HTML contains error message or is empty
-                if (html.trim() === '') {
-                    throw new Error('Received empty content from server');
-                }
-                
-                // If HTML contains error or exception messages, but is still valid HTML, 
-                // we should still display it rather than throwing an error
-                contentDiv.innerHTML = html;
-                footerDiv.style.display = 'flex';
-            })
-            .catch(error => {
-                console.error('Error loading trips:', error);
-                loadingDiv.style.display = 'none';
-                contentDiv.innerHTML = '<div class="alert alert-danger">' +
-                    '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading trip information. Please try again.</p>' +
-                    '<p>Details: ' + error.message + '</p>' +
-                    '</div>';
-                
-                // Show footer with just the close button
-                footerDiv.style.display = 'flex';
-                const addButton = document.getElementById('addNewTrip');
                 if (addButton) {
                     addButton.style.display = 'none';
                 }

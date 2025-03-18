@@ -3,6 +3,7 @@
 <%@ page import="dao.BookingDAO" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="java.util.Date" %>
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="bookings"/>
 </jsp:include>
@@ -44,10 +45,9 @@
                                 <option value="Chờ thanh toán" ${param.status == 'Chờ thanh toán' ? 'selected' : ''}>Chờ thanh toán</option>
                                 <option value="Đã thanh toán" ${param.status == 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
                                 <option value="Đã duyệt" ${param.status == 'Đã duyệt' ? 'selected' : ''}>Đã duyệt</option>
-                                <option value="Đang hoàn tiền" ${param.status == 'Đang hoàn tiền' ? 'selected' : ''}>Đang hoàn tiền</option>
-                                <option value="Đã hoàn tiền" ${param.status == 'Đã hoàn tiền' ? 'selected' : ''}>Đã hoàn tiền</option>
-                                <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
                                 <option value="Đã hủy" ${param.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
+                                <option value="Đã hủy muộn" ${param.status == 'Đã hủy muộn' ? 'selected' : ''}>Đã hủy muộn</option>
+                                <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
@@ -81,6 +81,13 @@
                             </thead>
                             <tbody>
                                 <c:forEach var="booking" items="${bookings}">
+                                    <%-- Check if tour is completed but status not updated --%>
+                                    <c:set var="shouldUpdateToComplete" value="false" />
+                                    <c:if test="${booking.status == 'Đã duyệt' && booking.trip.returnDate < pageContext.session.getAttribute('currentDate')}">
+                                        <c:set var="shouldUpdateToComplete" value="true" />
+                                        <%-- Auto update completed tours logic would be in the controller/servlet --%>
+                                    </c:if>
+                                    
                                     <tr>
                                         <td>${booking.id}</td>
                                         <td>${booking.user.fullName}</td>
@@ -107,31 +114,67 @@
                                                 <c:when test="${booking.status == 'Đã duyệt'}">
                                                     <span class="badge bg-success">Đã duyệt</span>
                                                 </c:when>
-                                                <c:when test="${booking.status == 'Đang hoàn tiền'}">
-                                                    <span class="badge bg-info">Đang hoàn tiền</span>
+                                                <c:when test="${booking.status == 'Đã hủy'}">
+                                                    <span class="badge bg-danger">Đã hủy</span>
                                                 </c:when>
-                                                <c:when test="${booking.status == 'Đã hoàn tiền'}">
-                                                    <span class="badge bg-secondary">Đã hoàn tiền</span>
+                                                <c:when test="${booking.status == 'Đã hủy muộn'}">
+                                                    <span class="badge bg-danger">Đã hủy muộn</span>
                                                 </c:when>
                                                 <c:when test="${booking.status == 'Hoàn thành'}">
                                                     <span class="badge bg-dark">Hoàn thành</span>
-                                                </c:when>
-                                                <c:when test="${booking.status == 'Đã hủy'}">
-                                                    <span class="badge bg-danger">Đã hủy</span>
                                                 </c:when>
                                                 <c:otherwise>
                                                     <span class="badge bg-secondary">${booking.status}</span>
                                                 </c:otherwise>
                                             </c:choose>
+                                            
+                                            <c:if test="${shouldUpdateToComplete == true}">
+                                                <span class="badge bg-warning ms-1">
+                                                    <i class="fas fa-exclamation-triangle"></i> Nên cập nhật
+                                                </span>
+                                            </c:if>
                                         </td>
                                         <td>
                                             <div class="btn-group" role="group">
                                                 <a href="${pageContext.request.contextPath}/admin/bookings/view?id=${booking.id}" class="btn btn-info btn-sm" data-bs-toggle="tooltip" title="View Details">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
-                                                <button type="button" class="btn btn-success btn-sm update-status-btn" data-booking-id="${booking.id}" data-bs-toggle="modal" data-bs-target="#updateStatusModal" title="Update Status">
-                                                    <i class="fas fa-edit"></i>
-                                                </button>
+                                                
+                                                <c:choose>
+                                                    <c:when test="${booking.status == 'Đã thanh toán'}">
+                                                        <%-- For "Đã thanh toán" status, show approve/reject buttons --%>
+                                                        <button type="button" class="btn btn-success btn-sm approve-booking-btn" 
+                                                                data-booking-id="${booking.id}" 
+                                                                data-bs-toggle="tooltip" 
+                                                                title="Approve Booking">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                        <button type="button" class="btn btn-danger btn-sm reject-booking-btn" 
+                                                                data-booking-id="${booking.id}" 
+                                                                data-bs-toggle="modal" 
+                                                                data-bs-target="#rejectBookingModal" 
+                                                                title="Reject Booking">
+                                                            <i class="fas fa-times"></i>
+                                                        </button>
+                                                    </c:when>
+                                                    <c:when test="${booking.status == 'Đã duyệt' && shouldUpdateToComplete == true}">
+                                                        <%-- For completed tours that need status update --%>
+                                                        <form action="${pageContext.request.contextPath}/admin/bookings/mark-complete" method="post" style="display:inline;">
+                                                            <input type="hidden" name="bookingId" value="${booking.id}">
+                                                            <button type="submit" class="btn btn-primary btn-sm" data-bs-toggle="tooltip" title="Mark as Completed">
+                                                                <i class="fas fa-check-double"></i>
+                                                            </button>
+                                                        </form>
+                                                    </c:when>
+                                                    <c:otherwise>
+                                                        <%-- For other statuses, just a view button is enough --%>
+                                                        <button type="button" class="btn btn-secondary btn-sm" disabled>
+                                                            <i class="fas fa-lock"></i>
+                                                        </button>
+                                                    </c:otherwise>
+                                                </c:choose>
+                                                
+                                                <%-- Delete button remains for all bookings --%>
                                                 <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteBookingModal${booking.id}" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -161,37 +204,26 @@
                             </tbody>
                         </table>
                         
-                        <!-- Update Status Modal -->
-                        <div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+                        <!-- Reject Booking Modal -->
+                        <div class="modal fade" id="rejectBookingModal" tabindex="-1" aria-labelledby="rejectBookingModalLabel" aria-hidden="true">
                             <div class="modal-dialog">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title" id="updateStatusModalLabel">Update Booking Status</h5>
+                                        <h5 class="modal-title" id="rejectBookingModalLabel">Reject Booking</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                     </div>
-                                    <form action="${pageContext.request.contextPath}/admin/bookings/update-status" method="post">
+                                    <form action="${pageContext.request.contextPath}/admin/bookings/reject" method="post">
                                         <div class="modal-body">
-                                            <input type="hidden" id="bookingId" name="bookingId" value="">
+                                            <input type="hidden" id="rejectBookingId" name="bookingId" value="">
                                             <div class="mb-3">
-                                                <label for="bookingStatus" class="form-label">Trạng thái</label>
-                                                <select class="form-select" id="bookingStatus" name="status" required>
-                                                    <option value="Chờ thanh toán">Chờ thanh toán</option>
-                                                    <option value="Đã thanh toán">Đã thanh toán</option>
-                                                    <option value="Đã duyệt">Đã duyệt</option>
-                                                    <option value="Đang hoàn tiền">Đang hoàn tiền</option>
-                                                    <option value="Đã hoàn tiền">Đã hoàn tiền</option>
-                                                    <option value="Hoàn thành">Hoàn thành</option>
-                                                    <option value="Đã hủy">Đã hủy</option>
-                                                </select>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="statusNote" class="form-label">Note (Optional)</label>
-                                                <textarea class="form-control" id="statusNote" name="note" rows="3"></textarea>
+                                                <label for="rejectReason" class="form-label">Reason for Rejection</label>
+                                                <textarea class="form-control" id="rejectReason" name="reason" rows="3" required></textarea>
+                                                <div class="form-text">Please provide a clear reason for rejecting this booking.</div>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                            <button type="submit" class="btn btn-primary">Update Status</button>
+                                            <button type="submit" class="btn btn-danger">Reject Booking</button>
                                         </div>
                                     </form>
                                 </div>
@@ -269,12 +301,35 @@
             applyAllFilters();
         });
         
-        // Update status modal
-        const updateStatusBtns = document.querySelectorAll('.update-status-btn');
-        updateStatusBtns.forEach(btn => {
+        // Approve Booking Button
+        const approveBookingBtns = document.querySelectorAll('.approve-booking-btn');
+        approveBookingBtns.forEach(btn => {
             btn.addEventListener('click', function() {
                 const bookingId = this.getAttribute('data-booking-id');
-                document.getElementById('bookingId').value = bookingId;
+                if (confirm('Are you sure you want to approve this booking?')) {
+                    // Submit form to approve booking
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '${pageContext.request.contextPath}/admin/bookings/approve';
+                    
+                    const bookingIdInput = document.createElement('input');
+                    bookingIdInput.type = 'hidden';
+                    bookingIdInput.name = 'bookingId';
+                    bookingIdInput.value = bookingId;
+                    
+                    form.appendChild(bookingIdInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        });
+        
+        // Reject Booking Button
+        const rejectBookingBtns = document.querySelectorAll('.reject-booking-btn');
+        rejectBookingBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const bookingId = this.getAttribute('data-booking-id');
+                document.getElementById('rejectBookingId').value = bookingId;
             });
         });
         

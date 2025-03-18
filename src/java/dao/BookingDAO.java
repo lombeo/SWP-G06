@@ -147,6 +147,33 @@ public class BookingDAO {
     }
     
     /**
+     * Get all bookings for a specific trip
+     * @param tripId The trip ID
+     * @return List of bookings for the specified trip
+     */
+    public List<Booking> getBookingsByTripId(int tripId) {
+        List<Booking> bookings = new ArrayList<>();
+        String sql = "SELECT * FROM booking WHERE trip_id = ? AND is_delete = 0 ORDER BY created_date DESC";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tripId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    bookings.add(mapBooking(rs));
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error getting bookings by trip ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return bookings;
+    }
+    
+    /**
      * Update a booking
      * @param booking The booking to update
      * @return True if successful, false otherwise

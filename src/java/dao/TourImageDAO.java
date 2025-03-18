@@ -37,7 +37,7 @@ public class TourImageDAO extends DBContext {
      * @return true if successful, false otherwise
      */
     public boolean addTourImage(int tourId, String imageUrl) {
-        String sql = "INSERT INTO tour_images (tour_id, image_url, created_date, is_delete) VALUES (?, ?, GETDATE(), 0)";
+        String sql = "INSERT INTO tour_images (tour_id, image_url, created_date, is_delete) VALUES (?, ?, CURRENT_TIMESTAMP, 0)";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement st = conn.prepareStatement(sql)) {
             st.setInt(1, tourId);
@@ -57,7 +57,7 @@ public class TourImageDAO extends DBContext {
      * @return true if successful, false otherwise
      */
     public boolean deleteTourImage(int imageId) {
-        String sql = "UPDATE tour_images SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
+        String sql = "UPDATE tour_images SET is_delete = 1, deleted_date = CURRENT_TIMESTAMP WHERE id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement st = conn.prepareStatement(sql)) {
             st.setInt(1, imageId);

@@ -4,6 +4,7 @@ import dao.BookingDAO;
 import dao.TourDAO;
 import dao.TripDAO;
 import dao.CityDAO;
+import dao.TransactionDAO;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -21,6 +22,7 @@ import model.Tour;
 import model.Trip;
 import model.User;
 import model.City;
+import model.Transaction;
 
 /**
  * Servlet to handle requests for the My Bookings page
@@ -58,6 +60,7 @@ public class MyBookingsServlet extends HttpServlet {
         TripDAO tripDAO = new TripDAO();
         TourDAO tourDAO = new TourDAO();
         CityDAO cityDAO = new CityDAO();
+        TransactionDAO transactionDAO = new TransactionDAO();
         
         Map<Integer, Trip> tripsMap = new HashMap<>();
         Map<Integer, Tour> toursMap = new HashMap<>();
@@ -65,6 +68,11 @@ public class MyBookingsServlet extends HttpServlet {
         Map<Integer, City> destinationCitiesMap = new HashMap<>();
         
         for (Booking booking : bookings) {
+            // Set booking status based on transactions
+            List<Transaction> transactions = transactionDAO.getTransactionsByBookingId(booking.getId());
+            String bookingStatus = determineBookingStatus(transactions);
+            booking.setStatus(bookingStatus);
+            
             Trip trip = tripDAO.getTripById(booking.getTripId());
             if (trip != null) {
                 tripsMap.put(booking.getId(), trip);
@@ -100,5 +108,48 @@ public class MyBookingsServlet extends HttpServlet {
         
         // Forward to the my-bookings.jsp page
         request.getRequestDispatcher("my-bookings.jsp").forward(request, response);
+    }
+    
+    /**
+     * Determine booking status based on transaction history
+     * @param transactions List of transactions for a booking
+     * @return Status string
+     */
+    private String determineBookingStatus(List<Transaction> transactions) {
+        if (transactions == null || transactions.isEmpty()) {
+            return "Chờ thanh toán";
+        }
+        
+        // First, check for status update transactions as they override others
+        for (Transaction transaction : transactions) {
+            if (transaction.getTransactionType().equals("Status Update") && 
+                transaction.getStatus().equals("Completed")) {
+                
+                String description = transaction.getDescription();
+                
+                if (description.contains("Đã duyệt")) {
+                    return "Đã duyệt";
+                } else if (description.contains("Đã hủy muộn")) {
+                    return "Đã hủy muộn";
+                } else if (description.contains("Đã hủy")) {
+                    return "Đã hủy";
+                } else if (description.contains("Hoàn thành")) {
+                    return "Hoàn thành";
+                }
+            }
+        }
+        
+        // Check if payment is completed
+        boolean hasCompletedPayment = false;
+        
+        for (Transaction transaction : transactions) {
+            if (transaction.getTransactionType().equals("Payment") && 
+                transaction.getStatus().equals("Completed")) {
+                hasCompletedPayment = true;
+                break;
+            }
+        }
+        
+        return hasCompletedPayment ? "Đã thanh toán" : "Chờ thanh toán";
     }
 } 

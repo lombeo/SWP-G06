@@ -85,6 +85,22 @@ public class AdminController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        
+        // Check if user is logged in and is admin
+        if (user == null || user.getRoleId() != 2) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
+            return;
+        }
+        
+        String action = request.getParameter("action");
+        
+        if ("dashboardData".equals(action)) {
+            handleDashboardData(request, response);
+            return;
+        }
+        
         doGet(request, response);
     }
     
@@ -340,6 +356,9 @@ public class AdminController extends HttpServlet {
             request.setAttribute("itemsPerPage", itemsPerPage);
             request.setAttribute("totalPages", totalPages);
             
+            // Add current date to session for status checks in JSP
+            request.getSession().setAttribute("currentDate", new java.util.Date());
+            
             // Forward to the bookings JSP
             request.getRequestDispatcher("/admin/bookings.jsp").forward(request, response);
             
@@ -369,53 +388,28 @@ public class AdminController extends HttpServlet {
                 
                 if (description.contains("Đã duyệt")) {
                     return "Đã duyệt";
-                } else if (description.contains("Hoàn tiền")) {
-                    return "Đang hoàn tiền";
-                } else if (description.contains("Đã hoàn tiền")) {
-                    return "Đã hoàn tiền";
-                } else if (description.contains("Completed") || description.contains("Hoàn thành")) {
+                } else if (description.contains("Đã hủy muộn")) {
+                    return "Đã hủy muộn";
+                } else if (description.contains("Đã hủy")) {
+                    return "Đã hủy";
+                } else if (description.contains("Hoàn thành")) {
                     return "Hoàn thành";
                 }
             }
         }
         
-        // Check for cancellations
-        for (Transaction transaction : transactions) {
-            if (transaction.getTransactionType().equals("Cancellation") && 
-                transaction.getStatus().equals("Completed")) {
-                return "Đã hủy";
-            }
-        }
-        
-        // Check for refunds
-        for (Transaction transaction : transactions) {
-            if (transaction.getTransactionType().equals("Refund")) {
-                if (transaction.getStatus().equals("Completed")) {
-                    return "Đã hoàn tiền";
-                } else if (transaction.getStatus().equals("Pending")) {
-                    return "Đang hoàn tiền";
-                }
-            }
-        }
-        
-        // Check for payments
+        // Check if payment is completed
         boolean hasCompletedPayment = false;
+        
         for (Transaction transaction : transactions) {
-            if (transaction.getTransactionType().equals("Payment")) {
-                if (transaction.getStatus().equals("Completed")) {
-                    hasCompletedPayment = true;
-                } else if (transaction.getStatus().equals("Pending")) {
-                    return "Chờ thanh toán";
-                }
+            if (transaction.getTransactionType().equals("Payment") && 
+                transaction.getStatus().equals("Completed")) {
+                hasCompletedPayment = true;
+                break;
             }
         }
         
-        if (hasCompletedPayment) {
-            return "Đã thanh toán";
-        }
-        
-        // Default status
-        return "Chờ thanh toán";
+        return hasCompletedPayment ? "Đã thanh toán" : "Chờ thanh toán";
     }
     
     private void listCategories(HttpServletRequest request, HttpServletResponse response)
@@ -436,5 +430,296 @@ public class AdminController extends HttpServlet {
     private void showProfile(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         request.getRequestDispatcher("/admin/profile.jsp").forward(request, response);
+    }
+    
+    private void handleDashboardData(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            // First set the content type and character encoding to ensure proper response format
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            
+            // Disable caching to ensure fresh data
+            response.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            response.setHeader("Pragma", "no-cache");
+            response.setHeader("Expires", "0");
+            
+            String region = request.getParameter("region");
+            String yearStr = request.getParameter("year");
+            int year = java.time.Year.now().getValue();
+            
+            if (yearStr != null && !yearStr.isEmpty()) {
+                try {
+                    year = Integer.parseInt(yearStr);
+                } catch (NumberFormatException e) {
+                    // If parsing fails, use current year as default
+                    System.out.println("Invalid year format: " + yearStr);
+                }
+            }
+            
+            // Prepare the JSON response
+            Map<String, Object> jsonData = new HashMap<>();
+            
+            // 1. Get monthly bookings data
+            Map<String, Integer> monthlyBookings = getMonthlyBookings(year, region);
+            jsonData.put("monthlyBookings", monthlyBookings);
+            
+            // 2. Get region bookings distribution
+            Map<String, Integer> regionBookings = getRegionBookings(year, region);
+            jsonData.put("regionBookings", regionBookings);
+            
+            // 3. Get tour bookings by region
+            Map<String, Map<String, Integer>> tourBookingsByRegion = getTourBookingsByRegion(year, region);
+            jsonData.put("tourBookingsByRegion", tourBookingsByRegion);
+            
+            // Add debugging info
+            jsonData.put("debug", getDebugInfo(request, year, region));
+            
+            // Use a JSON library to convert the map to JSON
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            String jsonOutput = gson.toJson(jsonData);
+            
+            System.out.println("Sending JSON response: " + jsonOutput.substring(0, Math.min(200, jsonOutput.length())));
+            
+            // Write the JSON to the response
+            response.getWriter().write(jsonOutput);
+            
+        } catch (Exception e) {
+            // Log the error
+            System.out.println("Error processing dashboard data: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Send error response
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
+            
+            // Create proper error JSON
+            Map<String, String> errorData = new HashMap<>();
+            errorData.put("error", e.getMessage());
+            errorData.put("timestamp", new java.util.Date().toString());
+            
+            // Use Gson to create proper JSON error response
+            com.google.gson.Gson gson = new com.google.gson.Gson();
+            response.getWriter().write(gson.toJson(errorData));
+        }
+    }
+    
+    /**
+     * Creates a map of debug information to help diagnose issues
+     */
+    private Map<String, Object> getDebugInfo(HttpServletRequest request, int year, String region) {
+        Map<String, Object> debug = new HashMap<>();
+        debug.put("timestamp", new java.util.Date().toString());
+        debug.put("queryYear", year);
+        debug.put("queryRegion", region);
+        debug.put("requestMethod", request.getMethod());
+        debug.put("contentType", request.getContentType());
+        
+        // Get session info if available
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            debug.put("sessionId", session.getId());
+            debug.put("sessionCreationTime", new java.util.Date(session.getCreationTime()).toString());
+            
+            // Add user info if available
+            User user = (User) session.getAttribute("user");
+            if (user != null) {
+                debug.put("loggedInUser", user.getFullName());
+                debug.put("userRole", user.getRoleId());
+            }
+        }
+        
+        return debug;
+    }
+    
+    private Map<String, Integer> getMonthlyBookings(int year, String region) throws SQLException, ClassNotFoundException {
+        Map<String, Integer> monthlyData = new HashMap<>();
+        
+        // Initialize all months with zero values
+        String[] months = {"January", "February", "March", "April", "May", "June", 
+                           "July", "August", "September", "October", "November", "December"};
+        for (String month : months) {
+            monthlyData.put(month, 0);
+        }
+        
+        // Build the query with dynamic region filtering if needed
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT MONTH(b.created_date) as month, COUNT(*) as booking_count ")
+           .append("FROM booking b ")
+           .append("JOIN trip tr ON b.trip_id = tr.id ")
+           .append("JOIN tours t ON tr.tour_id = t.id ");
+        
+        if (region != null && !region.equals("All")) {
+            sql.append("WHERE t.region = ? AND YEAR(b.created_date) = ? ");
+        } else {
+            sql.append("WHERE YEAR(b.created_date) = ? ");
+        }
+        
+        sql.append("GROUP BY MONTH(b.created_date) ");
+        sql.append("ORDER BY month");
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            
+            if (region != null && !region.equals("All")) {
+                ps.setString(1, region);
+                ps.setInt(2, year);
+            } else {
+                ps.setInt(1, year);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    int monthNumber = rs.getInt("month");
+                    int count = rs.getInt("booking_count");
+                    monthlyData.put(months[monthNumber - 1], count);
+                }
+            }
+        }
+        
+        return monthlyData;
+    }
+    
+    private Map<String, Integer> getRegionBookings(int year, String selectedRegion) throws SQLException, ClassNotFoundException {
+        Map<String, Integer> regionData = new HashMap<>();
+        
+        // Initialize all regions with zero values
+        String[] regions = {"Bắc", "Trung", "Nam"};
+        for (String region : regions) {
+            regionData.put(region, 0);
+        }
+        
+        // Build the query
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT t.region, COUNT(*) as booking_count ")
+           .append("FROM booking b ")
+           .append("JOIN trip tr ON b.trip_id = tr.id ")
+           .append("JOIN tours t ON tr.tour_id = t.id ")
+           .append("WHERE YEAR(b.created_date) = ? ");
+        
+        if (selectedRegion != null && !selectedRegion.equals("All")) {
+            sql.append("AND t.region = ? ");
+        }
+        
+        sql.append("GROUP BY t.region");
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+            
+            ps.setInt(1, year);
+            
+            if (selectedRegion != null && !selectedRegion.equals("All")) {
+                ps.setString(2, selectedRegion);
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String region = rs.getString("region");
+                    int count = rs.getInt("booking_count");
+                    regionData.put(region, count);
+                }
+            }
+        }
+        
+        return regionData;
+    }
+    
+    private Map<String, Map<String, Integer>> getTourBookingsByRegion(int year, String selectedRegion) throws SQLException, ClassNotFoundException {
+        Map<String, Map<String, Integer>> result = new HashMap<>();
+        
+        // Initialize the structure with empty maps for each region
+        String[] regions = {"Bắc", "Trung", "Nam"};
+        for (String region : regions) {
+            result.put(region, new HashMap<>());
+        }
+        
+        try {
+            // Build the query
+            StringBuilder sql = new StringBuilder();
+            sql.append("SELECT t.region, t.name, COUNT(*) as booking_count ")
+               .append("FROM booking b ")
+               .append("JOIN trip tr ON b.trip_id = tr.id ")
+               .append("JOIN tours t ON tr.tour_id = t.id ")
+               .append("WHERE YEAR(b.created_date) = ? ");
+            
+            if (selectedRegion != null && !selectedRegion.equals("All")) {
+                sql.append("AND t.region = ? ");
+            }
+            
+            sql.append("GROUP BY t.region, t.name ")
+               .append("ORDER BY t.region, booking_count DESC");
+            
+            System.out.println("Executing tour bookings query: " + sql.toString());
+            System.out.println("Year: " + year + ", Region: " + selectedRegion);
+            
+            try (Connection conn = DBContext.getConnection();
+                 PreparedStatement ps = conn.prepareStatement(sql.toString())) {
+                
+                ps.setInt(1, year);
+                
+                if (selectedRegion != null && !selectedRegion.equals("All")) {
+                    ps.setString(2, selectedRegion);
+                }
+                
+                try (ResultSet rs = ps.executeQuery()) {
+                    // Process results by region to limit to top 5 tours per region
+                    Map<String, Integer> regionCounters = new HashMap<>();
+                    
+                    while (rs.next()) {
+                        String region = rs.getString("region");
+                        String tourName = rs.getString("name");
+                        int count = rs.getInt("booking_count");
+                        
+                        System.out.println("Found tour data: " + region + " - " + tourName + " - " + count);
+                        
+                        // Skip regions that don't match our known regions
+                        if (!result.containsKey(region)) {
+                            continue;
+                        }
+                        
+                        // Initialize counter if needed
+                        if (!regionCounters.containsKey(region)) {
+                            regionCounters.put(region, 0);
+                        }
+                        
+                        // Only add up to 5 tours per region
+                        int currentCount = regionCounters.get(region);
+                        if (currentCount < 5) {
+                            result.get(region).put(tourName, count);
+                            regionCounters.put(region, currentCount + 1);
+                        }
+                    }
+                }
+            }
+            
+            // If there's no data at all, add dummy data to ensure chart displays
+            boolean hasData = false;
+            for (String region : regions) {
+                if (!result.get(region).isEmpty()) {
+                    hasData = true;
+                    break;
+                }
+            }
+            
+            if (!hasData) {
+                System.out.println("No tour booking data found for year " + year + ", adding placeholder data");
+                // Add at least one dummy tour to each region with count 0
+                for (String region : regions) {
+                    result.get(region).put("No tours booked", 0);
+                }
+            }
+            
+        } catch (Exception e) {
+            System.out.println("Error retrieving tour bookings by region: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Add at least some data to prevent chart errors
+            for (String region : regions) {
+                result.get(region).put("Error loading data", 0);
+            }
+        }
+        
+        return result;
     }
 }

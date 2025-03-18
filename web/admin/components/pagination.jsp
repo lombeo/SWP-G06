@@ -29,7 +29,7 @@
                 </c:choose>
             </li>
             
-            <c:if test="${currentPage > 3}">
+            <c:if test="${currentPage > 2}">
                 <li class="page-item">
                     <c:choose>
                         <c:when test="${empty queryString}">
@@ -40,22 +40,24 @@
                         </c:otherwise>
                     </c:choose>
                 </li>
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
+                <c:if test="${currentPage > 3}">
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                </c:if>
             </c:if>
             
-            <c:set var="beginPage" value="${currentPage - 2}" />
-            <c:if test="${beginPage < 1}">
-                <c:set var="beginPage" value="1" />
+            <c:set var="startPage" value="${currentPage - 1}" />
+            <c:if test="${startPage < 1}">
+                <c:set var="startPage" value="1" />
             </c:if>
             
-            <c:set var="endPage" value="${currentPage + 2}" />
+            <c:set var="endPage" value="${currentPage + 1}" />
             <c:if test="${endPage > totalPages}">
                 <c:set var="endPage" value="${totalPages}" />
             </c:if>
             
-            <c:forEach begin="${beginPage}" end="${endPage}" var="i">
+            <c:forEach begin="${startPage}" end="${endPage}" var="i">
                 <li class="page-item ${i == currentPage ? 'active' : ''}">
                     <c:choose>
                         <c:when test="${empty queryString}">
@@ -68,10 +70,12 @@
                 </li>
             </c:forEach>
             
-            <c:if test="${currentPage < totalPages - 2}">
-                <li class="page-item disabled">
-                    <span class="page-link">...</span>
-                </li>
+            <c:if test="${currentPage < totalPages - 1}">
+                <c:if test="${currentPage < totalPages - 2}">
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                </c:if>
                 <li class="page-item">
                     <c:choose>
                         <c:when test="${empty queryString}">

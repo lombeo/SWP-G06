@@ -1,6 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="java.util.Date" %>
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="bookings"/>
 </jsp:include>
@@ -29,9 +30,44 @@
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">Booking #${booking.id}</h6>
                     <div>
-                        <button type="button" class="btn btn-success btn-sm update-status-btn" data-booking-id="${booking.id}" data-bs-toggle="modal" data-bs-target="#updateStatusModal">
-                            <i class="fas fa-edit me-1"></i> Update Status
-                        </button>
+                        <% 
+                           // Check if tour's return date has passed (for auto-complete)
+                           boolean shouldMarkComplete = false;
+                           // Get booking and trip objects from request attributes
+                           model.Booking bookingObj = (model.Booking) request.getAttribute("booking");
+                           model.Trip tripObj = (model.Trip) request.getAttribute("trip");
+                           
+                           if (bookingObj != null && tripObj != null && 
+                               bookingObj.getStatus() != null && bookingObj.getStatus().equals("Đã duyệt")) {
+                               java.util.Date currentDate = new java.util.Date();
+                               if (tripObj.getReturnDate() != null && 
+                                   tripObj.getReturnDate().before(currentDate)) {
+                                   shouldMarkComplete = true;
+                               }
+                           }
+                        %>
+                        
+                        <c:choose>
+                            <c:when test="${booking.status eq 'Đã thanh toán'}">
+                                <!-- For "Đã thanh toán" status, show approve/reject buttons -->
+                                <button type="button" class="btn btn-success btn-sm" id="approveBookingBtn">
+                                    <i class="fas fa-check me-1"></i> Approve
+                                </button>
+                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectBookingModal">
+                                    <i class="fas fa-times me-1"></i> Reject
+                                </button>
+                            </c:when>
+                            <c:when test="${booking.status eq 'Đã duyệt' && shouldMarkComplete}">
+                                <!-- For "Đã duyệt" status with passed return date, show mark as completed button -->
+                                <form action="${pageContext.request.contextPath}/admin/bookings/mark-complete" method="post" style="display:inline;">
+                                    <input type="hidden" name="bookingId" value="${booking.id}">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-check-double me-1"></i> Mark as Completed
+                                    </button>
+                                </form>
+                            </c:when>
+                        </c:choose>
+                        
                         <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteBookingModal">
                             <i class="fas fa-trash me-1"></i> Delete
                         </button>
@@ -54,22 +90,34 @@
                                             <th>Status</th>
                                             <td>
                                                 <c:choose>
-                                                    <c:when test="${booking.status == 'Pending'}">
-                                                        <span class="badge bg-warning">Pending</span>
+                                                    <c:when test="${booking.status eq 'Chờ thanh toán'}">
+                                                        <span class="badge bg-warning">Chờ thanh toán</span>
                                                     </c:when>
-                                                    <c:when test="${booking.status == 'Confirmed'}">
-                                                        <span class="badge bg-success">Confirmed</span>
+                                                    <c:when test="${booking.status eq 'Đã thanh toán'}">
+                                                        <span class="badge bg-primary">Đã thanh toán</span>
                                                     </c:when>
-                                                    <c:when test="${booking.status == 'Completed'}">
-                                                        <span class="badge bg-info">Completed</span>
+                                                    <c:when test="${booking.status eq 'Đã duyệt'}">
+                                                        <span class="badge bg-success">Đã duyệt</span>
                                                     </c:when>
-                                                    <c:when test="${booking.status == 'Cancelled'}">
-                                                        <span class="badge bg-danger">Cancelled</span>
+                                                    <c:when test="${booking.status eq 'Đã hủy'}">
+                                                        <span class="badge bg-danger">Đã hủy</span>
+                                                    </c:when>
+                                                    <c:when test="${booking.status eq 'Đã hủy muộn'}">
+                                                        <span class="badge bg-danger">Đã hủy muộn</span>
+                                                    </c:when>
+                                                    <c:when test="${booking.status eq 'Hoàn thành'}">
+                                                        <span class="badge bg-dark">Hoàn thành</span>
                                                     </c:when>
                                                     <c:otherwise>
-                                                        <span class="badge bg-secondary">${booking.status}</span>
+                                                        <span class="badge bg-secondary">${booking.status != null ? booking.status : 'Unknown'}</span>
                                                     </c:otherwise>
                                                 </c:choose>
+                                                
+                                                <c:if test="${shouldMarkComplete}">
+                                                    <span class="badge bg-warning ms-1" title="Tour has completed but status not updated">
+                                                        <i class="fas fa-exclamation-triangle"></i> Needs Update
+                                                    </span>
+                                                </c:if>
                                             </td>
                                         </tr>
                                         <tr>
@@ -241,34 +289,26 @@
     </div>
 </div>
 
-<!-- Update Status Modal -->
-<div class="modal fade" id="updateStatusModal" tabindex="-1" aria-labelledby="updateStatusModalLabel" aria-hidden="true">
+<!-- Reject Booking Modal -->
+<div class="modal fade" id="rejectBookingModal" tabindex="-1" aria-labelledby="rejectBookingModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="updateStatusModalLabel">Update Booking Status</h5>
+                <h5 class="modal-title" id="rejectBookingModalLabel">Reject Booking</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="${pageContext.request.contextPath}/admin/bookings/update-status" method="post">
+            <form action="${pageContext.request.contextPath}/admin/bookings/reject" method="post">
                 <div class="modal-body">
-                    <input type="hidden" id="bookingId" name="bookingId" value="${booking.id}">
+                    <input type="hidden" name="bookingId" value="${booking.id}">
                     <div class="mb-3">
-                        <label for="bookingStatus" class="form-label">Status</label>
-                        <select class="form-select" id="bookingStatus" name="status" required>
-                            <option value="Pending" ${booking.status == 'Pending' ? 'selected' : ''}>Pending</option>
-                            <option value="Confirmed" ${booking.status == 'Confirmed' ? 'selected' : ''}>Confirmed</option>
-                            <option value="Completed" ${booking.status == 'Completed' ? 'selected' : ''}>Completed</option>
-                            <option value="Cancelled" ${booking.status == 'Cancelled' ? 'selected' : ''}>Cancelled</option>
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="statusNote" class="form-label">Note (Optional)</label>
-                        <textarea class="form-control" id="statusNote" name="note" rows="3"></textarea>
+                        <label for="rejectReason" class="form-label">Reason for Rejection</label>
+                        <textarea class="form-control" id="rejectReason" name="reason" rows="3" required></textarea>
+                        <div class="form-text">Please provide a clear reason for rejecting this booking.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Update Status</button>
+                    <button type="submit" class="btn btn-danger">Reject Booking</button>
                 </div>
             </form>
         </div>
@@ -301,6 +341,30 @@
         tooltipTriggerList.forEach(tooltipTriggerEl => {
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
+        
+        // Approve Booking Button
+        const approveBookingBtn = document.getElementById('approveBookingBtn');
+        if (approveBookingBtn) {
+            approveBookingBtn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to approve this booking?')) {
+                    // Submit form to approve booking
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '${pageContext.request.contextPath}/admin/bookings/approve';
+                    
+                    const bookingIdInput = document.createElement('input');
+                    bookingIdInput.type = 'hidden';
+                    bookingIdInput.name = 'bookingId';
+                    bookingIdInput.value = '${booking.id}';
+                    
+                    console.log('Submitting approval for booking ID: ' + bookingIdInput.value);
+                    
+                    form.appendChild(bookingIdInput);
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
     });
 </script>
 

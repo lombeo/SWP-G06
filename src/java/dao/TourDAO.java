@@ -1231,7 +1231,7 @@ public class TourDAO {
             return false;
         }
         
-        String sql = "UPDATE tours SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
+        String sql = "DELETE tours WHERE id = ?";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement st = conn.prepareStatement(sql)) {

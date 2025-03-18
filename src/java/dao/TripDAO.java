@@ -383,7 +383,7 @@ public class TripDAO {
             return false;
         }
         
-        String sql = "UPDATE trip SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
+        String sql = "UPDATE trip SET is_delete = 1, deleted_date = CURRENT_TIMESTAMP WHERE id = ?";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

@@ -132,6 +132,10 @@ public class AdminTourController extends HttpServlet {
             addTourImage(request, response);
         } else if (pathInfo.equals("/deleteImage")) {
             deleteTourImage(request, response);
+        } else if (pathInfo.equals("/delete")) {
+            deleteTour(request, response);
+        } else if (pathInfo.equals("/trip-bookings")) {
+            getTripBookings(request, response);
         } else {
             // Default to listing all tours
             listTours(request, response);
@@ -1259,6 +1263,54 @@ public class AdminTourController extends HttpServlet {
         } catch (Exception e) {
             request.getSession().setAttribute("errorMessage", "Error deleting image: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/admin/tours");
+        }
+    }
+
+    private void getTripBookings(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            // Set response content type
+            response.setContentType("text/html;charset=UTF-8");
+            
+            int tripId = Integer.parseInt(request.getParameter("tripId"));
+            
+            // Get trip details
+            TripDAO tripDAO = new TripDAO();
+            Trip trip = tripDAO.getTripById(tripId);
+            
+            if (trip == null) {
+                response.getWriter().write("<div class='alert alert-danger'>Trip not found</div>");
+                return;
+            }
+            
+            // Get bookings for this trip
+            BookingDAO bookingDAO = new BookingDAO();
+            List<Booking> bookings = bookingDAO.getBookingsByTripId(tripId);
+            
+            // Get user info for each booking
+            UserDAO userDAO = new UserDAO();
+            Map<Integer, User> userMap = new HashMap<>();
+            
+            for (Booking booking : bookings) {
+                User user = userDAO.getUserById(booking.getAccountId());
+                if (user != null) {
+                    userMap.put(booking.getAccountId(), user);
+                }
+            }
+            
+            // Set attributes for the JSP
+            request.setAttribute("trip", trip);
+            request.setAttribute("bookings", bookings);
+            request.setAttribute("userMap", userMap);
+            
+            // Forward to the fragment JSP
+            request.getRequestDispatcher("/admin/fragments/trip-bookings.jsp").forward(request, response);
+            
+        } catch (NumberFormatException e) {
+            response.getWriter().write("<div class='alert alert-danger'>Invalid trip ID</div>");
+        } catch (Exception e) {
+            response.getWriter().write("<div class='alert alert-danger'>Error loading trip bookings: " + e.getMessage() + "</div>");
+            e.printStackTrace();
         }
     }
 }
