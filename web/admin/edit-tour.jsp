@@ -36,7 +36,7 @@
             
             <form action="${pageContext.request.contextPath}/admin/tours" method="post" class="needs-validation" novalidate>
                 <input type="hidden" name="action" value="update">
-                <input type="hidden" name="tourId" value="${tour.id}">
+                <input type="hidden" name="id" value="${tour.id}">
                 
                 <!-- Hidden fields for required parameters that aren't visible in the form -->
                 <input type="hidden" name="availableSlot" value="${tour.availableSlot != null ? tour.availableSlot : 0}">

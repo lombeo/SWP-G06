@@ -843,60 +843,125 @@ public class TourDAO {
     }
 
     public void updateTour(Tour tour) throws SQLException, ClassNotFoundException {
-        // First check if any trips for this tour have bookings
-        BookingDAO bookingDAO = new BookingDAO();
-        if (bookingDAO.tourHasBookings(tour.getId())) {
-            System.out.println("Warning: Tour #" + tour.getId() + " has associated bookings. Only updating non-critical fields.");
-            
-            // Update only non-critical fields that won't affect bookings
-            String safeSql = "UPDATE tours SET name = ?, img = ?, cuisine = ?, region = ?, "
-                    + "category_id = ?, sightseeing = ? "
-                    + "WHERE id = ?";
-                    
-            try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(safeSql)) {
-                ps.setString(1, tour.getName());
-                ps.setString(2, tour.getImg());
-                ps.setString(3, tour.getCuisine());
-                ps.setString(4, tour.getRegion());
-                ps.setInt(5, tour.getCategoryId());
-                ps.setString(6, tour.getSightseeing());
-                ps.setInt(7, tour.getId());
-                
-                System.out.println("Performing safe update of tour with ID: " + tour.getId());
-                ps.executeUpdate();
-            }
-            return;
+        // Validate tour object
+        if (tour == null) {
+            throw new IllegalArgumentException("Tour object cannot be null");
         }
         
-        // If no bookings, proceed with full update
-        String sql = "UPDATE tours SET name = ?, img = ?, price_adult = ?, price_children = ?, "
-                + "duration = ?, suitable_for = ?, best_time = ?, cuisine = ?, region = ?, "
-                + "max_capacity = ?, departure_location_id = ?, category_id = ?, sightseeing = ? "
-                + "WHERE id = ?";
+        if (tour.getId() <= 0) {
+            throw new IllegalArgumentException("Invalid tour ID: " + tour.getId());
+        }
+        
+        System.out.println("Starting tour update for ID: " + tour.getId());
+        
+        // First check if any trips for this tour have bookings
+        BookingDAO bookingDAO = new BookingDAO();
+        try {
+            boolean hasBookings = bookingDAO.tourHasBookings(tour.getId());
+            System.out.println("Tour #" + tour.getId() + " has bookings: " + hasBookings);
+            
+            if (hasBookings) {
+                System.out.println("Warning: Tour #" + tour.getId() + " has associated bookings. Only updating non-critical fields.");
                 
-        try (Connection conn = DBContext.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
-            ps.setString(1, tour.getName());
-            ps.setString(2, tour.getImg());
-            ps.setDouble(3, tour.getPriceAdult());
-            ps.setDouble(4, tour.getPriceChildren());
-            ps.setString(5, tour.getDuration());
-            ps.setString(6, tour.getSuitableFor());
-            ps.setString(7, tour.getBestTime());
-            ps.setString(8, tour.getCuisine());
-            ps.setString(9, tour.getRegion());
-            ps.setInt(10, tour.getMaxCapacity());
-            ps.setInt(11, tour.getDepartureLocationId());
-            ps.setInt(12, tour.getCategoryId());
-            ps.setString(13, tour.getSightseeing());
-            ps.setInt(14, tour.getId());
+                // Update only non-critical fields that won't affect bookings
+                String safeSql = "UPDATE tours SET name = ?, img = ?, cuisine = ?, region = ?, "
+                        + "category_id = ?, sightseeing = ?, best_time = ?, suitable_for = ? "
+                        + "WHERE id = ?";
+                        
+                Connection conn = null;
+                PreparedStatement ps = null;
+                try {
+                    conn = DBContext.getConnection();
+                    ps = conn.prepareStatement(safeSql);
+                    
+                    // Set parameters with validation
+                    ps.setString(1, tour.getName() != null ? tour.getName() : "");
+                    ps.setString(2, tour.getImg() != null ? tour.getImg() : "");
+                    ps.setString(3, tour.getCuisine() != null ? tour.getCuisine() : "");
+                    ps.setString(4, tour.getRegion() != null ? tour.getRegion() : "");
+                    ps.setInt(5, tour.getCategoryId() > 0 ? tour.getCategoryId() : 1);
+                    ps.setString(6, tour.getSightseeing() != null ? tour.getSightseeing() : "");
+                    ps.setString(7, tour.getBestTime() != null ? tour.getBestTime() : "");
+                    ps.setString(8, tour.getSuitableFor() != null ? tour.getSuitableFor() : "");
+                    ps.setInt(9, tour.getId());
+                    
+                    System.out.println("Executing safe SQL update for tour ID: " + tour.getId());
+                    int rowsAffected = ps.executeUpdate();
+                    System.out.println("Safe update complete. Rows affected: " + rowsAffected);
+                    
+                    if (rowsAffected == 0) {
+                        throw new SQLException("Update failed. No rows were affected. Tour ID: " + tour.getId());
+                    }
+                } finally {
+                    if (ps != null) try { ps.close(); } catch (SQLException e) { /* ignore */ }
+                    if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignore */ }
+                }
+                return;
+            }
             
-            System.out.println("Updating tour with ID: " + tour.getId());
-            System.out.println("Region: " + tour.getRegion());
-            System.out.println("Max Capacity: " + tour.getMaxCapacity());
-            System.out.println("Departure Location ID: " + tour.getDepartureLocationId());
-            System.out.println("Category ID: " + tour.getCategoryId());
-            
-            ps.executeUpdate();
+            // If no bookings, proceed with full update
+            String sql = "UPDATE tours SET name = ?, img = ?, price_adult = ?, price_children = ?, "
+                    + "duration = ?, suitable_for = ?, best_time = ?, cuisine = ?, region = ?, "
+                    + "max_capacity = ?, departure_location_id = ?, category_id = ?, sightseeing = ? "
+                    + "WHERE id = ?";
+                    
+            Connection conn = null;
+            PreparedStatement ps = null;
+            try {
+                conn = DBContext.getConnection();
+                ps = conn.prepareStatement(sql);
+                
+                // Set parameters with validation
+                ps.setString(1, tour.getName() != null ? tour.getName() : "");
+                ps.setString(2, tour.getImg() != null ? tour.getImg() : "");
+                ps.setDouble(3, tour.getPriceAdult());
+                ps.setDouble(4, tour.getPriceChildren());
+                ps.setString(5, tour.getDuration() != null ? tour.getDuration() : "");
+                ps.setString(6, tour.getSuitableFor() != null ? tour.getSuitableFor() : "");
+                ps.setString(7, tour.getBestTime() != null ? tour.getBestTime() : "");
+                ps.setString(8, tour.getCuisine() != null ? tour.getCuisine() : "");
+                ps.setString(9, tour.getRegion() != null ? tour.getRegion() : "");
+                ps.setInt(10, tour.getMaxCapacity());
+                ps.setInt(11, tour.getDepartureLocationId() > 0 ? tour.getDepartureLocationId() : 1);
+                ps.setInt(12, tour.getCategoryId() > 0 ? tour.getCategoryId() : 1);
+                ps.setString(13, tour.getSightseeing() != null ? tour.getSightseeing() : "");
+                ps.setInt(14, tour.getId());
+                
+                System.out.println("Executing full SQL update for tour ID: " + tour.getId());
+                System.out.println("Parameters:");
+                System.out.println("1. Name: " + tour.getName());
+                System.out.println("2. Image: " + tour.getImg());
+                System.out.println("3. Price Adult: " + tour.getPriceAdult());
+                System.out.println("4. Price Children: " + tour.getPriceChildren());
+                System.out.println("5. Duration: " + tour.getDuration());
+                System.out.println("6. Suitable For: " + tour.getSuitableFor());
+                System.out.println("7. Best Time: " + tour.getBestTime());
+                System.out.println("8. Cuisine: " + tour.getCuisine());
+                System.out.println("9. Region: " + tour.getRegion());
+                System.out.println("10. Max Capacity: " + tour.getMaxCapacity());
+                System.out.println("11. Departure Location ID: " + tour.getDepartureLocationId());
+                System.out.println("12. Category ID: " + tour.getCategoryId());
+                System.out.println("13. Sightseeing: " + tour.getSightseeing());
+                System.out.println("14. ID: " + tour.getId());
+                
+                int rowsAffected = ps.executeUpdate();
+                System.out.println("Full update complete. Rows affected: " + rowsAffected);
+                
+                if (rowsAffected == 0) {
+                    throw new SQLException("Update failed. No rows were affected. Tour ID: " + tour.getId());
+                }
+            } finally {
+                if (ps != null) try { ps.close(); } catch (SQLException e) { /* ignore */ }
+                if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignore */ }
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL Exception in updateTour: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } catch (Exception e) {
+            System.err.println("Exception in updateTour: " + e.getMessage());
+            e.printStackTrace();
+            throw new SQLException("Error updating tour: " + e.getMessage(), e);
         }
     }
 

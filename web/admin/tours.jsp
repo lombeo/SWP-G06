@@ -97,9 +97,6 @@
                                                 <button type="button" class="btn btn-warning btn-sm edit-tour-btn" data-bs-toggle="modal" data-bs-target="#editTourModal${tour.id}" title="Edit">
                                                     <i class="fas fa-edit"></i>
                                                 </button>
-                                                <button type="button" class="btn btn-primary btn-sm manage-trips-btn" data-bs-toggle="modal" data-bs-target="#tripsModal${tour.id}" title="Manage Trips">
-                                                    <i class="fas fa-calendar-alt"></i>
-                                                </button>
                                                 <button type="button" class="btn btn-danger btn-sm delete-tour-btn" data-bs-toggle="modal" data-bs-target="#deleteTourModal${tour.id}" title="Delete">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
@@ -358,62 +355,31 @@
                     saveButton.addEventListener('click', function() {
                         const form = contentDiv.querySelector('form');
                         if (form) {
-                            // Convert form to FormData
-                            const formData = new FormData(form);
-                            
                             // Show saving indicator
                             saveButton.disabled = true;
                             saveButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             
-                            // Submit form via AJAX
-                            fetch(form.action, {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
-                                }
-                                return response.text();
-                            })
-                            .then(data => {
-                                // Check if the response contains success message
-                                if (data.includes('success')) {
-                                    // Show success message
-                                    const alertDiv = document.createElement('div');
-                                    alertDiv.className = 'alert alert-success mt-3';
-                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tour updated successfully!';
-                                    contentDiv.prepend(alertDiv);
-                                    
-                                    // Reload the page after a delay to show updated data
-                                    setTimeout(() => {
-                                        window.location.reload();
-                                    }, 1500);
-                                } else {
-                                    // Show error message
-                                    const alertDiv = document.createElement('div');
-                                    alertDiv.className = 'alert alert-danger mt-3';
-                                    alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour. Please try again.';
-                                    contentDiv.prepend(alertDiv);
-                                    
-                                    // Reset button
-                                    saveButton.disabled = false;
-                                    saveButton.innerHTML = 'Save Changes';
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error updating tour:', error);
+                            try {
+                                // Add a hidden input to indicate this is from the list page
+                                const hiddenInput = document.createElement('input');
+                                hiddenInput.type = 'hidden';
+                                hiddenInput.name = 'redirectTo';
+                                hiddenInput.value = 'detail';
+                                form.appendChild(hiddenInput);
+                                
+                                // Use traditional form submission instead of AJAX
+                                form.submit();
+                            } catch (error) {
+                                console.error('Error submitting form:', error);
+                                saveButton.disabled = false;
+                                saveButton.innerHTML = 'Save Changes';
                                 
                                 // Show error message
                                 const alertDiv = document.createElement('div');
                                 alertDiv.className = 'alert alert-danger mt-3';
-                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour: ' + error.message;
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error submitting form: ' + error.message;
                                 contentDiv.prepend(alertDiv);
-                                
-                                // Reset button
-                                saveButton.disabled = false;
-                                saveButton.innerHTML = 'Save Changes';
-                            });
+                            }
                         }
                     });
                 })
@@ -682,66 +648,41 @@
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Start Time</label>
-                                        <input type="time" class="form-control" name="startTime" value="${startTime}" required>
+                                        <input type="time" class="form-control" name="startTime" value="` + startTime + `" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">End Time</label>
-                                        <input type="time" class="form-control" name="endTime" value="${endTime}" required>
+                                        <input type="time" class="form-control" name="endTime" value="` + endTime + `" required>
                                     </div>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         <label class="form-label">Available Slots</label>
-                                        <input type="number" class="form-control" name="availableSlots" value="${availableSlots}" min="1" required>
+                                        <input type="number" class="form-control" name="availableSlots" value="` + availableSlots + `" required>
                                     </div>
                                     <div class="col-md-6">
                                         <label class="form-label">Destination City</label>
-                                        <select class="form-select" name="destinationCityId" required>
-                                            <!-- Will be populated dynamically -->
-                                        </select>
+                                        <input type="text" class="form-control" name="destinationCity" value="` + destination + `" readonly>
                                     </div>
                                 </div>
                                 <div class="d-flex justify-content-end gap-2">
-                                    <button type="button" class="btn btn-secondary cancel-edit-btn">Cancel</button>
-                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                    <button type="button" class="btn btn-secondary" id="cancelEditTrip${tripId}">Cancel</button>
+                                    <button type="submit" class="btn btn-success">Save Changes</button>
                                 </div>
                             </form>
                         </td>
                     `;
                     
-                    // Insert edit form after the trip row
-                    tripRow.after(editForm);
-                    
-                    // Hide the original row
-                    tripRow.style.display = 'none';
-                    
-                    // Fetch cities for the select dropdown
-                    fetch('${pageContext.request.contextPath}/admin/tours/cities')
-                        .then(response => response.json())
-                        .then(cities => {
-                            const select = editForm.querySelector('select[name="destinationCityId"]');
-                            cities.forEach(city => {
-                                const option = document.createElement('option');
-                                option.value = city.id;
-                                option.textContent = city.name;
-                                if (city.name === destination) {
-                                    option.selected = true;
-                                }
-                                select.appendChild(option);
-                            });
-                        })
-                        .catch(error => console.error('Error loading cities:', error));
+                    // Add form to the top of the content
+                    container.prepend(editForm);
                     
                     // Handle cancel button
-                    editForm.querySelector('.cancel-edit-btn').addEventListener('click', function() {
-                        // Show the original row
-                        tripRow.style.display = '';
-                        // Remove the edit form
+                    document.getElementById(`cancelEditTrip${tripId}`).addEventListener('click', function() {
                         editForm.remove();
                     });
                     
                     // Handle form submission
-                    editForm.querySelector('form').addEventListener('submit', function(e) {
+                    document.getElementById(`editTripForm${tripId}`).addEventListener('submit', function(e) {
                         e.preventDefault();
                         
                         // Convert form to FormData
@@ -762,9 +703,11 @@
                                 alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Trip updated successfully!';
                                 container.prepend(alertDiv);
                                 
+                                // Remove the form
+                                editForm.remove();
+                                
                                 // Reload the trips content after a delay
                                 setTimeout(() => {
-                                    const modal = document.getElementById(`tripsModal${tourId}`);
                                     modal.querySelector('[data-bs-dismiss="modal"]').click();
                                     setTimeout(() => {
                                         document.querySelector(`[data-bs-target="#tripsModal${tourId}"]`).click();
@@ -775,7 +718,7 @@
                                 const alertDiv = document.createElement('div');
                                 alertDiv.className = 'alert alert-danger mt-3';
                                 alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating trip. Please try again.';
-                                editForm.querySelector('form').prepend(alertDiv);
+                                editForm.querySelector('.card-body').prepend(alertDiv);
                             }
                         })
                         .catch(error => {
@@ -785,7 +728,7 @@
                             const alertDiv = document.createElement('div');
                             alertDiv.className = 'alert alert-danger mt-3';
                             alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating trip. Please try again.';
-                            editForm.querySelector('form').prepend(alertDiv);
+                            editForm.querySelector('.card-body').prepend(alertDiv);
                         });
                     });
                 });
@@ -796,76 +739,15 @@
             deleteButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const tripId = this.getAttribute('data-trip-id');
+                    const tripRow = this.closest('tr');
                     
-                    // Confirm before deleting
-                    if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
-                        // Send delete request
-                        fetch(`${pageContext.request.contextPath}/admin/tours/delete-trip?id=${tripId}`)
-                            .then(response => response.text())
-                            .then(data => {
-                                // Check if the response contains success message
-                                if (data.includes('success')) {
-                                    // Show success message
-                                    const alertDiv = document.createElement('div');
-                                    alertDiv.className = 'alert alert-success mt-3';
-                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Trip deleted successfully!';
-                                    container.prepend(alertDiv);
-                                    
-                                    // Reload the trips content after a delay
-                                    setTimeout(() => {
-                                        const modal = document.getElementById(`tripsModal${tourId}`);
-                                        modal.querySelector('[data-bs-dismiss="modal"]').click();
-                                        setTimeout(() => {
-                                            document.querySelector(`[data-bs-target="#tripsModal${tourId}"]`).click();
-                                        }, 500);
-                                    }, 1500);
-                                } else {
-                                    // Show error message
-                                    const alertDiv = document.createElement('div');
-                                    alertDiv.className = 'alert alert-danger mt-3';
-                                    alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error deleting trip. Please try again.';
-                                    container.prepend(alertDiv);
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error deleting trip:', error);
-                                
-                                // Show error message
-                                const alertDiv = document.createElement('div');
-                                alertDiv.className = 'alert alert-danger mt-3';
-                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error deleting trip. Please try again.';
-                                container.prepend(alertDiv);
-                            });
-                    }
+                    // Show confirmation modal
+                    const confirmModal = new bootstrap.Modal(document.getElementById('confirmDeleteTripModal' + tripId), {
+                        keyboard: false
+                    });
+                    confirmModal.show();
                 });
             });
-        }
-        
-        // Helper function to format date for input fields
-        function formatDateForInput(dateStr) {
-            // Extract date parts (assuming format: DD/MM/YYYY)
-            const parts = dateStr.split('/');
-            if (parts.length === 3) {
-                // Format as YYYY-MM-DD for input[type="date"]
-                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-            }
-            return dateStr;
-        }
-        
-        // Helper function to initialize form elements in dynamically loaded content
-        function initializeFormElements(container) {
-            // Initialize any datepickers
-            const datepickers = container.querySelectorAll('input[type="date"]');
-            datepickers.forEach(datepicker => {
-                // Any datepicker initialization if needed
-            });
-            
-            // Initialize select2 if used
-            if (typeof $.fn.select2 !== 'undefined') {
-                $(container).find('select.select2').select2();
-            }
-            
-            // Initialize any other plugins or form elements
         }
         
         // Function to check if a tour has bookings and disable edit/delete buttons if it does
@@ -927,9 +809,28 @@
             });
         }
         
+        // Helper function to initialize form elements in dynamically loaded content
+        function initializeFormElements(container) {
+            // Initialize any datepickers
+            const datepickers = container.querySelectorAll('input[type="date"]');
+            datepickers.forEach(datepicker => {
+                // Any datepicker initialization if needed
+            });
+            
+            // Initialize select2 if used
+            if (typeof $.fn !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+                $(container).find('select.select2').select2();
+            }
+            
+            // Initialize any other plugins or form elements
+            console.log('Form elements initialized successfully');
+        }
+        
         // Run the check when the page loads
         checkTourBookings();
     });
 </script>
 
 <jsp:include page="layout/footer.jsp" />
+</body>
+</html>

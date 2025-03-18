@@ -176,6 +176,9 @@
         <a href="${pageContext.request.contextPath}/admin?action=tours" class="sidebar-link ${param.active == 'tours' ? 'active' : ''}">
             <i class="fas fa-map-marked-alt me-2"></i> Tours
         </a>
+        <a href="${pageContext.request.contextPath}/admin/promotions" class="sidebar-link ${param.active == 'promotions' ? 'active' : ''}">
+            <i class="fas fa-percentage me-2"></i> Promotions
+        </a>
         <a href="${pageContext.request.contextPath}/admin?action=bookings" class="sidebar-link ${param.active == 'bookings' ? 'active' : ''}">
             <i class="fas fa-calendar-check me-2"></i> Bookings
         </a>

@@ -1,6 +1,9 @@
 package model;
 
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Trip model class that represents the trip table in the database
@@ -35,8 +38,8 @@ public class Trip {
         this.tourId = tourId;
         this.departureDate = departureDate;
         this.returnDate = returnDate;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        setStartTime(startTime); // Use setter for validation
+        setEndTime(endTime);     // Use setter for validation
         this.availableSlot = availableSlot;
         this.createdDate = createdDate;
         this.deletedDate = deletedDate;
@@ -97,7 +100,7 @@ public class Trip {
     }
 
     public void setStartTime(String startTime) {
-        this.startTime = startTime;
+        this.startTime = formatTimeForSqlServer(startTime);
     }
 
     public String getEndTime() {
@@ -105,7 +108,7 @@ public class Trip {
     }
 
     public void setEndTime(String endTime) {
-        this.endTime = endTime;
+        this.endTime = formatTimeForSqlServer(endTime);
     }
 
     public int getAvailableSlot() {
@@ -146,6 +149,90 @@ public class Trip {
     
     public void setTour(Tour tour) {
         this.tour = tour;
+    }
+    
+    /**
+     * Format a date as SQL Server datetime string (YYYY-MM-DD HH:MM:SS)
+     * @return Formatted datetime string
+     */
+    public String getFormattedDepartureDate() {
+        if (departureDate == null) return null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(departureDate);
+    }
+    
+    /**
+     * Format a date as SQL Server datetime string (YYYY-MM-DD HH:MM:SS)
+     * @return Formatted datetime string
+     */
+    public String getFormattedReturnDate() {
+        if (returnDate == null) return null;
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return sdf.format(returnDate);
+    }
+    
+    /**
+     * Format time string for SQL Server time(7) type
+     * @param timeStr Input time string
+     * @return Formatted time string in SQL Server format
+     */
+    private String formatTimeForSqlServer(String timeStr) {
+        if (timeStr == null || timeStr.isEmpty()) {
+            return "00:00:00"; // Default if not provided
+        }
+        
+        // Try to extract HH:MM pattern
+        Pattern pattern = Pattern.compile("(\\d{1,2}):(\\d{2})(?::(\\d{2})?)?");
+        Matcher matcher = pattern.matcher(timeStr);
+        
+        if (matcher.find()) {
+            // Extract hours and minutes
+            String hours = matcher.group(1);
+            String minutes = matcher.group(2);
+            String seconds = matcher.groupCount() >= 3 && matcher.group(3) != null ? matcher.group(3) : "00";
+            
+            // Ensure leading zeros
+            if (hours.length() == 1) {
+                hours = "0" + hours;
+            }
+            
+            // Return in HH:MM:SS format
+            return hours + ":" + minutes + ":" + seconds;
+        } else {
+            // If not matching the pattern, return default
+            return timeStr.length() <= 8 ? timeStr : timeStr.substring(0, 8);
+        }
+    }
+    
+    /**
+     * Get a SQL Server compatible time string (HH:MM:SS)
+     * @param timeStr The time string to format
+     * @return Formatted time string
+     */
+    public static String cleanTimeForSQL(String timeStr) {
+        if (timeStr == null || timeStr.isEmpty()) {
+            return "00:00:00";
+        }
+        
+        // Extract HH:MM pattern if present
+        Pattern pattern = Pattern.compile("(\\d{1,2}):(\\d{2})");
+        Matcher matcher = pattern.matcher(timeStr);
+        
+        if (matcher.find()) {
+            String hours = matcher.group(1);
+            String minutes = matcher.group(2);
+            
+            // Ensure hours has leading zero if needed
+            if (hours.length() == 1) {
+                hours = "0" + hours;
+            }
+            
+            // Return formatted time with seconds
+            return hours + ":" + minutes + ":00";
+        }
+        
+        // If no match, return original or default
+        return timeStr.length() <= 8 ? timeStr : "00:00:00";
     }
     
     @Override

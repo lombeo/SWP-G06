@@ -1,7 +1,7 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<form action="${pageContext.request.contextPath}/admin/tours/update" method="post" id="editTourForm${tour.id}">
+<form action="${pageContext.request.contextPath}/admin/tours" method="post" id="editTourForm${tour.id}" accept-charset="UTF-8">
     <input type="hidden" name="action" value="update">
     <input type="hidden" name="id" value="${tour.id}">
     
@@ -35,11 +35,11 @@
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="priceAdult" class="form-label">Adult Price (VNĐ)</label>
-            <input type="number" class="form-control" id="priceAdult" name="priceAdult" value="${tour.priceAdult}" required>
+            <input type="number" class="form-control" id="priceAdult" name="priceAdult" value="${tour.priceAdult}" step="0.01" min="0" required>
         </div>
         <div class="col-md-6">
             <label for="priceChildren" class="form-label">Children Price (VNĐ)</label>
-            <input type="number" class="form-control" id="priceChildren" name="priceChildren" value="${tour.priceChildren}" required>
+            <input type="number" class="form-control" id="priceChildren" name="priceChildren" value="${tour.priceChildren}" step="0.01" min="0" required>
         </div>
     </div>
     
@@ -61,24 +61,24 @@
     </div>
     
     <div class="mb-3">
-        <label for="description" class="form-label">Description</label>
-        <textarea class="form-control" id="description" name="description" rows="4"></textarea>
+        <label for="cuisine" class="form-label">Cuisine</label>
+        <input type="text" class="form-control" id="cuisine" name="cuisine" value="${tour.cuisine}">
     </div>
     
     <div class="mb-3">
-        <label class="form-label">Tour Categories</label>
-        <div class="row">
-            <c:forEach var="category" items="${categories}">
-                <div class="col-md-4 mb-2">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="categoryIds" value="${category.id}" id="category${category.id}"
-                            <c:if test="${tourCategoryIds.contains(category.id)}">checked</c:if>>
-                        <label class="form-check-label" for="category${category.id}">
-                            ${category.name}
-                        </label>
-                    </div>
-                </div>
-            </c:forEach>
-        </div>
+        <label for="sightseeing" class="form-label">Sightseeing</label>
+        <textarea class="form-control" id="sightseeing" name="sightseeing" rows="3">${tour.sightseeing}</textarea>
     </div>
+    
+    <div class="mb-3">
+        <label for="maxCapacity" class="form-label">Max Capacity</label>
+        <input type="number" class="form-control" id="maxCapacity" name="maxCapacity" value="${tour.maxCapacity != null ? tour.maxCapacity : 0}" min="0">
+    </div>
+    
+    <input type="hidden" name="availableSlot" value="${tour.availableSlot != null ? tour.availableSlot : 0}">
+    <input type="hidden" name="discountPercentage" value="${tour.discountPercentage != null ? tour.discountPercentage : 0}">
+    <input type="hidden" name="destinationCity" value="${tour.destinationCity != null ? tour.destinationCity : ''}">
+    <input type="hidden" name="departureCity" value="${tour.departureCity != null ? tour.departureCity : ''}">
+    <input type="hidden" name="description" value="${tour.description != null ? tour.description : ''}">
+    <input type="hidden" name="categoryId" value="${tour.categoryId != null ? tour.categoryId : 1}">
 </form> 

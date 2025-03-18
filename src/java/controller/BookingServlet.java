@@ -16,6 +16,7 @@ import model.User;
 import dao.PromotionDAO;
 import model.Promotion;
 import dao.TripDAO;
+import java.sql.SQLException;
 import model.Trip;
 import java.util.Date;
 
@@ -130,6 +131,8 @@ public class BookingServlet extends HttpServlet {
             // Redirect to tours page if tour ID is invalid
             response.sendRedirect("tour");
         } catch (ClassNotFoundException ex) {
+            Logger.getLogger(BookingServlet.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
             Logger.getLogger(BookingServlet.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

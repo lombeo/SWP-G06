@@ -272,26 +272,21 @@
     </div>
 </div>
 
-<!-- Manage Schedules Modal -->
+<!-- Manage Schedule Modal -->
 <div class="modal fade" id="manageScheduleModal" tabindex="-1" aria-labelledby="manageScheduleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="manageScheduleModalLabel">Manage Itinerary: ${tour.name}</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div class="text-center p-4" id="schedulesLoading">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Loading itinerary information...</p>
+                <div id="scheduleContent">
+                    <jsp:include page="fragments/tour-schedules.jsp" />
                 </div>
-                <div id="schedulesContent"></div>
             </div>
-            <div class="modal-footer" id="schedulesFooter" style="display: none;">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success" id="addNewSchedule">Add New Day</button>
             </div>
         </div>
     </div>
@@ -350,57 +345,39 @@
                     contentDiv.innerHTML = html;
                     footerDiv.style.display = 'flex';
                     
+                    // Initialize any form elements in the loaded content
+                    initializeFormElements(contentDiv);
+                    
                     // Handle form submission
                     document.getElementById('saveEditTour').addEventListener('click', function() {
                         const form = contentDiv.querySelector('form');
                         if (form) {
-                            // Convert form to FormData
-                            const formData = new FormData(form);
-                            
                             // Show saving indicator
                             this.disabled = true;
                             this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
                             
-                            // Submit form via AJAX
-                            fetch(form.action, {
-                                method: 'POST',
-                                body: formData
-                            })
-                            .then(response => {
-                                if (!response.ok) {
-                                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
-                                }
-                                return response.text();
-                            })
-                            .then(data => {
-                                if (data.includes('success')) {
-                                    // Show success message
-                                    const alertDiv = document.createElement('div');
-                                    alertDiv.className = 'alert alert-success mt-3';
-                                    alertDiv.innerHTML = '<i class="fas fa-check-circle me-2"></i>Tour updated successfully!';
-                                    contentDiv.prepend(alertDiv);
-                                    
-                                    // Reload the page after a delay to show updated data
-                                    setTimeout(() => {
-                                        location.reload();
-                                    }, 1500);
-                                } else {
-                                    throw new Error('Failed to update tour');
-                                }
-                            })
-                            .catch(error => {
-                                console.error('Error updating tour:', error);
+                            try {
+                                // Add a hidden input to specify redirecting back to detail page
+                                const hiddenInput = document.createElement('input');
+                                hiddenInput.type = 'hidden';
+                                hiddenInput.name = 'redirectTo';
+                                hiddenInput.value = 'detail';
+                                form.appendChild(hiddenInput);
                                 
+                                // Use traditional form submission instead of AJAX
+                                form.submit();
+                            } catch(error) {
+                                console.error('Error submitting form:', error);
                                 // Show error message
                                 const alertDiv = document.createElement('div');
                                 alertDiv.className = 'alert alert-danger mt-3';
-                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error updating tour: ' + error.message;
+                                alertDiv.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Error submitting form: ' + error.message;
                                 contentDiv.prepend(alertDiv);
                                 
                                 // Reset button
                                 this.disabled = false;
                                 this.innerHTML = 'Save Changes';
-                            });
+                            }
                         }
                     });
                 })
@@ -418,75 +395,48 @@
                 });
         });
         
-        // Manage Schedules Modal
-        const manageScheduleModal = document.getElementById('manageScheduleModal');
-        manageScheduleModal.addEventListener('show.bs.modal', function() {
-            const contentDiv = document.getElementById('schedulesContent');
-            const loadingDiv = document.getElementById('schedulesLoading');
-            const footerDiv = document.getElementById('schedulesFooter');
+        // Handle form submissions for schedule forms to reload the page after success
+        $(document).on('submit', '#addScheduleForm, #editScheduleForm', function() {
+            // Let the form submit normally but add event handling for after submission
+            localStorage.setItem('scheduleActionPerformed', 'true');
             
-            // Show loading indicator
-            loadingDiv.style.display = 'block';
-            contentDiv.innerHTML = '';
-            footerDiv.style.display = 'none';
-            
-            // Log URL for debugging
-            const schedulesUrl = '${pageContext.request.contextPath}/admin/tours/schedules-content?id=${tour.id}';
-            console.log('Fetching schedules content from:', schedulesUrl);
-            
-            // Fetch schedules content
-            fetch(schedulesUrl, {
-                method: 'GET',
-                headers: {
-                    'Cache-Control': 'no-cache',
-                    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                    'Accept-Charset': 'UTF-8'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
-                }
-                console.log('Response headers:', response.headers);
-                return response.text();
-            })
-            .then(html => {
-                // Hide loading indicator and show content
-                loadingDiv.style.display = 'none';
-                
-                console.log('Received HTML content length:', html.length);
-                if (html.length > 100) {
-                    console.log('First 100 chars of response:', html.substring(0, 100));
-                } else {
-                    console.log('Full response:', html);
-                }
-                
-                // Check if the HTML contains error message or is empty
-                if (html.trim() === '') {
-                    throw new Error('Received empty content from server');
-                }
-                
-                // If HTML contains error or exception messages, but is still valid HTML, 
-                // we should still display it rather than throwing an error
-                contentDiv.innerHTML = html;
-                footerDiv.style.display = 'flex';
-            })
-            .catch(error => {
-                console.error('Error loading schedules:', error);
-                loadingDiv.style.display = 'none';
-                contentDiv.innerHTML = '<div class="alert alert-danger">' +
-                    '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading itinerary information. Please try again.</p>' +
-                    '<p>Details: ' + error.message + '</p>' +
-                    '</div>';
-                
-                // Show footer with just the close button
-                footerDiv.style.display = 'flex';
-                const addButton = document.getElementById('addNewSchedule');
-                if (addButton) {
-                    addButton.style.display = 'none';
-                }
-            });
+            // Add loading state to submit button
+            const submitBtn = $(this).find('button[type="submit"]');
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...');
         });
+        
+        // Check if we're returning after a schedule action
+        if (localStorage.getItem('scheduleActionPerformed') === 'true') {
+            // Clear the flag
+            localStorage.removeItem('scheduleActionPerformed');
+            
+            // Open the manage schedule modal
+            setTimeout(function() {
+                const manageScheduleModal = new bootstrap.Modal(document.getElementById('manageScheduleModal'));
+                manageScheduleModal.show();
+            }, 500);
+        }
+        
+        // Helper function to initialize form elements in dynamically loaded content
+        function initializeFormElements(container) {
+            // Initialize any datepickers
+            const datepickers = container.querySelectorAll('input[type="date"]');
+            datepickers.forEach(datepicker => {
+                // Any datepicker initialization if needed
+            });
+            
+            // Initialize select2 if used
+            if (typeof $.fn !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
+                $(container).find('select.select2').select2();
+            }
+            
+            // Initialize any other plugins or form elements
+            console.log('Form elements initialized successfully');
+        }
+        
+        // Ensure Bootstrap is properly loaded for modals
+        console.log("Bootstrap version:", typeof bootstrap !== 'undefined' ? 'Loaded' : 'Not loaded');
     });
 </script>
 

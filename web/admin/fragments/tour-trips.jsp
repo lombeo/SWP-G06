@@ -65,7 +65,7 @@
 <div id="newTripFormContainer${tour.id}" style="display:none;">
     <hr>
     <h6 class="mb-3">Add New Trip</h6>
-    <form id="newTripForm${tour.id}" action="${pageContext.request.contextPath}/admin/tours/trips" method="post">
+    <form id="newTripForm${tour.id}" action="${pageContext.request.contextPath}/admin/tours" method="post">
         <input type="hidden" name="action" value="create-trip">
         <input type="hidden" name="tourId" value="${tour.id}">
         
@@ -125,7 +125,7 @@
             this.style.display = 'none';
             
             // Load cities for the destination dropdown
-            fetch('${pageContext.request.contextPath}/admin/tours/cities')
+            fetch('${pageContext.request.contextPath}/admin/tours?action=getCities')
                 .then(response => response.json())
                 .then(cities => {
                     const select = document.getElementById('destinationCityId${tour.id}');
@@ -149,16 +149,67 @@
         document.getElementById('newTripForm${tour.id}').addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Convert form to FormData
-            const formData = new FormData(this);
+            // Log raw form values first
+            console.log("------- RAW FORM VALUES -------");
+            const rawDepartureDateVal = this.elements['departureDate'].value;
+            const rawReturnDateVal = this.elements['returnDate'].value;
+            const rawStartTimeVal = this.elements['startTime'].value;
+            const rawEndTimeVal = this.elements['endTime'].value;
+            const rawAvailableSlotsVal = this.elements['availableSlots'].value;
+            const rawActionVal = this.elements['action'].value;
+            const rawTourIdVal = this.elements['tourId'].value;
             
-            // Submit form via AJAX
-            fetch(this.action, {
+            console.log("Raw departureDate: " + rawDepartureDateVal);
+            console.log("Raw returnDate: " + rawReturnDateVal);
+            console.log("Raw startTime: " + rawStartTimeVal);
+            console.log("Raw endTime: " + rawEndTimeVal);
+            console.log("Raw availableSlot: " + rawAvailableSlotsVal);
+            console.log("Raw action: " + rawActionVal);
+            console.log("Raw tourId: " + rawTourIdVal);
+            console.log("------------------------------");
+            
+            // Convert form to FormData - creating a NEW FormData object to avoid potential
+            // issues with the existing form action
+            const formData = new FormData();
+            
+            // Add all form fields manually to ensure correct values
+            formData.append('action', 'create-trip');
+            formData.append('tourId', rawTourIdVal);
+            formData.append('departureDate', rawDepartureDateVal);
+            formData.append('returnDate', rawReturnDateVal);
+            formData.append('startTime', rawStartTimeVal);
+            formData.append('endTime', rawEndTimeVal);
+            formData.append('availableSlots', rawAvailableSlotsVal);
+            
+            // Add destination city if available
+            const destCityEl = this.elements['destinationCityId'];
+            if (destCityEl && destCityEl.value) {
+                formData.append('destinationCityId', destCityEl.value);
+            } else {
+                formData.append('destinationCityId', '1'); // Default value
+            }
+            
+            // Fixed URL - hardcoded to ensure correctness
+            const submitUrl = '${pageContext.request.contextPath}/admin/tours';
+            console.log("Submitting form to URL:", submitUrl);
+            
+            // Log the final data being submitted
+            console.log("Submitting form data:");
+            formData.forEach((value, key) => {
+                console.log(key + ": " + value);
+            });
+            
+            // Submit form via AJAX with correct URL
+            fetch(submitUrl, {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.text())
+            .then(response => {
+                console.log("Server response status:", response.status);
+                return response.text();
+            })
             .then(data => {
+                console.log("Server response for add trip:", data);
                 if (data.includes('success')) {
                     // Show success message and reload content
                     alert('Trip added successfully!');
@@ -188,8 +239,8 @@
                 }
             })
             .catch(error => {
-                console.error('Error adding trip:', error);
-                alert('Error adding trip: ' + error.message);
+                console.error("Error submitting form:", error);
+                alert('Error submitting form: ' + error.message);
             });
         });
         
@@ -199,7 +250,7 @@
                 const tripId = this.getAttribute('data-trip-id');
                 
                 // First check if this trip has bookings
-                fetch('${pageContext.request.contextPath}/admin/tours/trips?action=check-trip-bookings&id=' + tripId)
+                fetch('${pageContext.request.contextPath}/admin/tours?action=check-trip-bookings&id=' + tripId)
                     .then(response => response.text())
                     .then(data => {
                         if (data.includes('has-bookings')) {
@@ -222,26 +273,34 @@
                 const tripId = this.getAttribute('data-trip-id');
                 
                 if (confirm('Are you sure you want to delete this trip? This action cannot be undone.')) {
-                    fetch('${pageContext.request.contextPath}/admin/tours/trips?action=delete-trip&id=' + tripId, {
-                        method: 'POST'
-                    })
-                    .then(response => response.text())
-                    .then(data => {
-                        if (data.includes('success')) {
-                            // Remove the row from the table
-                            document.getElementById('trip-row-' + tripId).remove();
-                            alert('Trip deleted successfully!');
-                        } else if (data.includes('error:')) {
-                            // Show the error message from the server
-                            alert(data);
-                        } else {
-                            alert('Failed to delete trip: ' + data);
-                        }
-                    })
-                    .catch(error => {
-                        console.error('Error deleting trip:', error);
-                        alert('Error deleting trip: ' + error.message);
-                    });
+                    // Create a form element to submit
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '${pageContext.request.contextPath}/admin/tours';
+                    form.style.display = 'none';
+                    
+                    // Add necessary input fields
+                    const actionInput = document.createElement('input');
+                    actionInput.type = 'hidden';
+                    actionInput.name = 'action';
+                    actionInput.value = 'delete-trip';
+                    form.appendChild(actionInput);
+                    
+                    const tripIdInput = document.createElement('input');
+                    tripIdInput.type = 'hidden';
+                    tripIdInput.name = 'tripId';
+                    tripIdInput.value = tripId;
+                    form.appendChild(tripIdInput);
+                    
+                    const tourIdInput = document.createElement('input');
+                    tourIdInput.type = 'hidden';
+                    tourIdInput.name = 'tourId';
+                    tourIdInput.value = ${tour.id};
+                    form.appendChild(tourIdInput);
+                    
+                    // Append form to body and submit
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         });

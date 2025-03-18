@@ -8,6 +8,7 @@ import dao.TripDAO;
 import dao.BookingDAO;
 import dao.UserDAO;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ import model.TourSchedule;
 import model.Trip;
 import model.User;
 import model.Booking;
+import utils.DBContext;
 
 @WebServlet(name = "AdminTourController", urlPatterns = {"/admin/tours/*"})
 public class AdminTourController extends HttpServlet {
@@ -103,6 +105,9 @@ public class AdminTourController extends HttpServlet {
                 case "deleteImage":
                     deleteTourImage(request, response);
                     return;
+                case "getCities":
+                    getCities(request, response);
+                    return;
             }
         }
         
@@ -177,6 +182,9 @@ public class AdminTourController extends HttpServlet {
             // Get total count of tours for pagination
             int totalTours = tourDAO.getTotalTours();
             
+            // Calculate total pages
+            int totalPages = (int) Math.ceil((double) totalTours / itemsPerPage);
+            
             // Get paginated list of tours
             List<Tour> tours = tourDAO.getToursByPage(page, itemsPerPage);
             
@@ -184,6 +192,7 @@ public class AdminTourController extends HttpServlet {
             request.setAttribute("totalTours", totalTours);
             request.setAttribute("currentPage", page);
             request.setAttribute("itemsPerPage", itemsPerPage);
+            request.setAttribute("totalPages", totalPages);
             
             request.getRequestDispatcher("/admin/tours.jsp").forward(request, response);
         } catch (SQLException | ClassNotFoundException e) {
@@ -369,36 +378,103 @@ public class AdminTourController extends HttpServlet {
             // Set content type for potential AJAX response
             response.setContentType("text/plain;charset=UTF-8");
             
+            // Ensure request is using UTF-8 encoding
+            request.setCharacterEncoding("UTF-8");
+            
+            // Debug: Print all parameters for debugging
+            System.out.println("\n===== Update Tour Parameters =====");
+            java.util.Enumeration<String> paramNames = request.getParameterNames();
+            while (paramNames.hasMoreElements()) {
+                String paramName = paramNames.nextElement();
+                String paramValue = request.getParameter(paramName);
+                System.out.println(paramName + ": " + paramValue);
+            }
+            System.out.println("=================================\n");
+            
             // Get form parameters
-            int tourId = Integer.parseInt(request.getParameter("id"));
+            String idParam = request.getParameter("id");
+            if (idParam == null || idParam.trim().isEmpty()) {
+                throw new Exception("Missing required parameter: id");
+            }
+            
+            int tourId = 0;
+            try {
+                tourId = Integer.parseInt(idParam);
+            } catch (NumberFormatException e) {
+                throw new Exception("Invalid tour ID format: " + idParam);
+            }
+            
             String name = request.getParameter("name");
+            if (name == null || name.trim().isEmpty()) {
+                throw new Exception("Tour name cannot be empty");
+            }
+            
             String img = request.getParameter("img");
             String region = request.getParameter("region");
             String duration = request.getParameter("duration");
             String suitableFor = request.getParameter("suitableFor");
             String bestTime = request.getParameter("bestTime");
-            String policyHighlight = request.getParameter("policyHighlight");
-            String policyGeneral = request.getParameter("policyGeneral");
+            String cuisine = request.getParameter("cuisine");
+            String sightseeing = request.getParameter("sightseeing");
+            
+            // Debug output
+            System.out.println("Updating tour #" + tourId);
+            System.out.println("Name: " + name);
+            System.out.println("Region: " + region);
             
             // Parse numeric values with default fallbacks
             double priceAdult = 0;
             try {
-                priceAdult = Double.parseDouble(request.getParameter("priceAdult"));
+                String priceAdultStr = request.getParameter("priceAdult");
+                if (priceAdultStr != null && !priceAdultStr.trim().isEmpty()) {
+                    priceAdult = Double.parseDouble(priceAdultStr);
+                }
             } catch (Exception e) {
+                System.out.println("Error parsing priceAdult: " + e.getMessage());
                 // Use default
             }
             
             double priceChildren = 0;
             try {
-                priceChildren = Double.parseDouble(request.getParameter("priceChildren"));
+                String priceChildrenStr = request.getParameter("priceChildren");
+                if (priceChildrenStr != null && !priceChildrenStr.trim().isEmpty()) {
+                    priceChildren = Double.parseDouble(priceChildrenStr);
+                }
             } catch (Exception e) {
+                System.out.println("Error parsing priceChildren: " + e.getMessage());
                 // Use default
             }
             
             int departureLocationId = 0;
             try {
-                departureLocationId = Integer.parseInt(request.getParameter("departureLocationId"));
+                String departureLocationIdStr = request.getParameter("departureLocationId");
+                if (departureLocationIdStr != null && !departureLocationIdStr.trim().isEmpty()) {
+                    departureLocationId = Integer.parseInt(departureLocationIdStr);
+                }
             } catch (Exception e) {
+                System.out.println("Error parsing departureLocationId: " + e.getMessage());
+                // Use default
+            }
+            
+            int maxCapacity = 0;
+            try {
+                String maxCapacityStr = request.getParameter("maxCapacity");
+                if (maxCapacityStr != null && !maxCapacityStr.trim().isEmpty()) {
+                    maxCapacity = Integer.parseInt(maxCapacityStr);
+                }
+            } catch (Exception e) {
+                System.out.println("Error parsing maxCapacity: " + e.getMessage());
+                // Use default
+            }
+            
+            int categoryId = 1; // Default category ID
+            try {
+                String categoryIdStr = request.getParameter("categoryId");
+                if (categoryIdStr != null && !categoryIdStr.trim().isEmpty()) {
+                    categoryId = Integer.parseInt(categoryIdStr);
+                }
+            } catch (Exception e) {
+                System.out.println("Error parsing categoryId: " + e.getMessage());
                 // Use default
             }
             
@@ -422,27 +498,40 @@ public class AdminTourController extends HttpServlet {
             tour.setBestTime(bestTime);
             tour.setDuration(duration);
             tour.setDepartureLocationId(departureLocationId);
+            tour.setCuisine(cuisine);
+            tour.setSightseeing(sightseeing);
+            tour.setMaxCapacity(maxCapacity);
+            tour.setCategoryId(categoryId);
             
-            // Copy values that aren't in the form from the existing tour
-            tour.setCuisine(existingTour.getCuisine());
-            tour.setSightseeing(existingTour.getSightseeing());
+            // Copy other values that aren't in the form from the existing tour
             tour.setAvailableSlot(existingTour.getAvailableSlot());
-            tour.setMaxCapacity(existingTour.getMaxCapacity());
-            tour.setCategoryId(existingTour.getCategoryId());
             tour.setDestinationCity(existingTour.getDestinationCity());
             tour.setDiscountPercentage(existingTour.getDiscountPercentage());
             tour.setDepartureCity(existingTour.getDepartureCity());
+                
+            // Debug: Print Tour object before update
+            System.out.println("\n===== Tour Object Before Update =====");
+            System.out.println("ID: " + tour.getId());
+            System.out.println("Name: " + tour.getName());
+            System.out.println("Price Adult: " + tour.getPriceAdult());
+            System.out.println("Price Children: " + tour.getPriceChildren());
+            System.out.println("Duration: " + tour.getDuration());
+            System.out.println("Departure Location ID: " + tour.getDepartureLocationId());
+            System.out.println("Category ID: " + tour.getCategoryId());
+            System.out.println("===================================\n");
             
             // Process category IDs if present
             String[] categoryIds = request.getParameterValues("categoryIds");
             if (categoryIds != null && categoryIds.length > 0) {
+                System.out.println("Category IDs: " + String.join(", ", categoryIds));
                 // Handle category IDs based on your Tour model implementation
-                // This might require additional code depending on how categories are stored
             }
 
             // Update tour in database - note that this method is void and does not return a value
             try {
+                System.out.println("Calling tourDAO.updateTour()...");
                 tourDAO.updateTour(tour);
+                System.out.println("Tour update successful.");
                 
                 // Assume success if no exception is thrown
                 // Response based on the request type (AJAX or regular form)
@@ -454,22 +543,62 @@ public class AdminTourController extends HttpServlet {
                     // Set success message
                     HttpSession session = request.getSession();
                     session.setAttribute("successMessage", "Tour updated successfully!");
-                    // Redirect to tour list
-                    response.sendRedirect(request.getContextPath() + "/admin/tours");
+                    
+                    // Get the redirectTo parameter to determine where to redirect
+                    String redirectTo = request.getParameter("redirectTo");
+                    if ("list".equals(redirectTo)) {
+                        // Redirect to tour list page if explicitly requested
+                        response.sendRedirect(request.getContextPath() + "/admin/tours");
+                    } else {
+                        // Default to redirecting to tour detail page
+                        response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
+                    }
+                }
+            } catch (SQLException e) {
+                System.err.println("SQL Error in updateTour: " + e.getMessage());
+                e.printStackTrace();
+                
+                // Check for specific SQL error codes
+                if (e.getErrorCode() == 1) {
+                    System.err.println("SQL Error Code 1: Possible primary key violation");
+                } else if (e.getErrorCode() == 1062) {
+                    System.err.println("SQL Error Code 1062: Duplicate entry");
+                }
+                
+                // Check if it's an AJAX request
+                if (request.getHeader("X-Requested-With") != null) {
+                    response.getWriter().write("SQL error: " + e.getMessage());
+                } else {
+                    request.setAttribute("errorMessage", "SQL Error updating tour: " + e.getMessage());
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 }
             } catch (Exception e) {
-                // Handle database error
+                System.err.println("Error in updateTour database operation: " + e.getMessage());
+                e.printStackTrace();
+                
+                Throwable rootCause = e;
+                while (rootCause.getCause() != null) {
+                    rootCause = rootCause.getCause();
+                }
+                System.err.println("Root cause: " + rootCause.getMessage());
+                
+                // Check if it's an AJAX request
                 if (request.getHeader("X-Requested-With") != null) {
-                    // AJAX request
-                    response.getWriter().write("failed: " + e.getMessage());
+                    response.getWriter().write("error: " + e.getMessage());
                 } else {
-                    // Regular form submission
-                    request.setAttribute("errorMessage", "Failed to update tour: " + e.getMessage());
+                    request.setAttribute("errorMessage", "Error updating tour: " + e.getMessage());
                     request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 }
             }
         } catch (Exception e) {
+            System.err.println("General error in updateTour: " + e.getMessage());
             e.printStackTrace();
+            
+            Throwable rootCause = e;
+            while (rootCause.getCause() != null) {
+                rootCause = rootCause.getCause();
+            }
+            System.err.println("Root cause: " + rootCause.getMessage());
             
             // Check if it's an AJAX request
             if (request.getHeader("X-Requested-With") != null) {
@@ -607,23 +736,228 @@ public class AdminTourController extends HttpServlet {
     
     private void createTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        Connection conn = null;
         try {
-            // Set content type for AJAX response
-            response.setContentType("text/plain;charset=UTF-8");
+            // DEBUG: Output all parameters - THIS IS CRITICAL FOR DEBUGGING
+            System.out.println("\n=== Create Trip - Parameters received ===");
+            Map<String, String[]> params = request.getParameterMap();
+            for (String key : params.keySet()) {
+                String value = params.get(key) != null && params.get(key).length > 0 ? params.get(key)[0] : "null";
+                System.out.println(key + ": [" + value + "]");
+            }
+            System.out.println("=======================================");
             
-            // Get form parameters
-            int tourId = Integer.parseInt(request.getParameter("tourId"));
-            // Convert Date to Timestamp
-            java.sql.Date dateObj = java.sql.Date.valueOf(request.getParameter("departureDate"));
-            java.sql.Timestamp departureDate = new java.sql.Timestamp(dateObj.getTime());
+            // Get form parameters with validation
+            int tourId;
+            try {
+                String tourIdStr = request.getParameter("tourId");
+                System.out.println("Raw tourId: [" + tourIdStr + "]");
+                tourId = Integer.parseInt(tourIdStr);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid tourId: " + request.getParameter("tourId"));
+                request.setAttribute("errorMessage", "ID tour không hợp lệ");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
             
-            dateObj = java.sql.Date.valueOf(request.getParameter("returnDate"));
-            java.sql.Timestamp returnDate = new java.sql.Timestamp(dateObj.getTime());
+            // Validate departure date
+            String departureDateStr = request.getParameter("departureDate");
+            System.out.println("Raw departureDate: [" + departureDateStr + "]");
+            if (departureDateStr == null || departureDateStr.trim().isEmpty()) {
+                System.out.println("Departure date is required but was empty");
+                request.setAttribute("errorMessage", "Ngày khởi hành là bắt buộc");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
             
+            // Validate return date
+            String returnDateStr = request.getParameter("returnDate");
+            System.out.println("Raw returnDate: [" + returnDateStr + "]");
+            if (returnDateStr == null || returnDateStr.trim().isEmpty()) {
+                System.out.println("Return date is required but was empty");
+                request.setAttribute("errorMessage", "Ngày trở về là bắt buộc");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Convert String dates to java.sql.Timestamp with more robust parsing
+            java.sql.Timestamp departureDate;
+            java.sql.Timestamp returnDate;
+            
+            try {
+                // Remove any non-standard characters and leading/trailing whitespace
+                departureDateStr = departureDateStr.trim().replaceAll("[^0-9\\-/]", "");
+                returnDateStr = returnDateStr.trim().replaceAll("[^0-9\\-/]", "");
+                
+                System.out.println("Cleaned departureDateStr: [" + departureDateStr + "]");
+                System.out.println("Cleaned returnDateStr: [" + returnDateStr + "]");
+                
+                // Check if date format is DD/MM/YYYY
+                if (departureDateStr.contains("/")) {
+                    String[] parts = departureDateStr.split("/");
+                    if (parts.length == 3) {
+                        // Ensure padding with leading zeros if needed
+                        String day = parts[0].length() == 1 ? "0" + parts[0] : parts[0];
+                        String month = parts[1].length() == 1 ? "0" + parts[1] : parts[1];
+                        departureDateStr = parts[2] + "-" + month + "-" + day; // Convert to YYYY-MM-DD
+                    }
+                }
+                
+                if (returnDateStr.contains("/")) {
+                    String[] parts = returnDateStr.split("/");
+                    if (parts.length == 3) {
+                        // Ensure padding with leading zeros if needed
+                        String day = parts[0].length() == 1 ? "0" + parts[0] : parts[0];
+                        String month = parts[1].length() == 1 ? "0" + parts[1] : parts[1];
+                        returnDateStr = parts[2] + "-" + month + "-" + day; // Convert to YYYY-MM-DD
+                    }
+                }
+                
+                System.out.println("Processed departure date: [" + departureDateStr + "]");
+                System.out.println("Processed return date: [" + returnDateStr + "]");
+                
+                try {
+                    // Make sure date strings have the correct format (YYYY-MM-DD)
+                    if (!departureDateStr.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                        System.out.println("Departure date does not match expected format: " + departureDateStr);
+                        request.setAttribute("errorMessage", "Định dạng ngày khởi hành không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD");
+                        request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                        return;
+                    }
+                    
+                    if (!returnDateStr.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                        System.out.println("Return date does not match expected format: " + returnDateStr);
+                        request.setAttribute("errorMessage", "Định dạng ngày trở về không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD");
+                        request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                        return;
+                    }
+                    
+                    // Add time component to make a valid timestamp
+                    String departureDateTimeStr = departureDateStr + " 00:00:00";
+                    String returnDateTimeStr = returnDateStr + " 00:00:00";
+                    
+                    System.out.println("Departure date time string: " + departureDateTimeStr);
+                    System.out.println("Return date time string: " + returnDateTimeStr);
+                    
+                    departureDate = java.sql.Timestamp.valueOf(departureDateTimeStr);
+                    returnDate = java.sql.Timestamp.valueOf(returnDateTimeStr);
+                    
+                    System.out.println("Parsed departure timestamp: " + departureDate);
+                    System.out.println("Parsed return timestamp: " + returnDate);
+                } catch (IllegalArgumentException e) {
+                    System.out.println("Error parsing dates: " + e.getMessage());
+                    e.printStackTrace();
+                    request.setAttribute("errorMessage", "Không thể chuyển đổi định dạng ngày tháng: " + e.getMessage());
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+            } catch (Exception e) {
+                System.out.println("Error processing dates: " + e.getMessage());
+                e.printStackTrace();
+                request.setAttribute("errorMessage", "Lỗi xử lý ngày tháng: " + e.getMessage());
+                response.getWriter().write("error: Lỗi xử lý ngày tháng: " + e.getMessage());
+                return;
+            }
+            
+            // Validate and get times - Clean and format for SQL Server time(7)
             String startTime = request.getParameter("startTime");
+            System.out.println("Raw startTime: [" + startTime + "]");
+            if (startTime == null || startTime.trim().isEmpty()) {
+                startTime = "08:00:00"; // Default to 8 AM with seconds
+                System.out.println("Using default start time: " + startTime);
+            } else {
+                // Use the static method from Trip to clean the time
+                startTime = model.Trip.cleanTimeForSQL(startTime.trim());
+                System.out.println("Cleaned startTime: [" + startTime + "]");
+            }
+            
             String endTime = request.getParameter("endTime");
-            int availableSlots = Integer.parseInt(request.getParameter("availableSlots"));
-            int destinationCityId = Integer.parseInt(request.getParameter("destinationCityId"));
+            System.out.println("Raw endTime: [" + endTime + "]");
+            if (endTime == null || endTime.trim().isEmpty()) {
+                endTime = "17:00:00"; // Default to 5 PM with seconds
+                System.out.println("Using default end time: " + endTime);
+            } else {
+                // Use the static method from Trip to clean the time
+                endTime = model.Trip.cleanTimeForSQL(endTime.trim());
+                System.out.println("Cleaned endTime: [" + endTime + "]");
+            }
+            
+            // Safely parse availableSlots - handle both parameter names
+            int availableSlots = 0;
+            String availableSlotsParam = request.getParameter("availableSlots");
+            System.out.println("Raw availableSlots: [" + availableSlotsParam + "]");
+            
+            if (availableSlotsParam == null || availableSlotsParam.isEmpty()) {
+                availableSlotsParam = request.getParameter("availableSlot"); // Try alternative parameter name
+                System.out.println("Raw availableSlot (alternative): [" + availableSlotsParam + "]");
+            }
+            
+            if (availableSlotsParam != null && !availableSlotsParam.isEmpty()) {
+                try {
+                    availableSlots = Integer.parseInt(availableSlotsParam);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error parsing availableSlots: " + e.getMessage());
+                    response.getWriter().write("error: Số chỗ trống không hợp lệ");
+                    return;
+                }
+            } else {
+                System.out.println("Available slots parameter is missing");
+                response.getWriter().write("error: Số chỗ trống là bắt buộc");
+                return;
+            }
+            
+            // Check if available slots is positive
+            if (availableSlots <= 0) {
+                System.out.println("Available slots must be greater than 0, received: " + availableSlots);
+                response.getWriter().write("error: Số chỗ trống phải lớn hơn 0");
+                return;
+            }
+            
+            // Safely parse destinationCityId with a default value if not present
+            int destinationCityId = 1; // Default value
+            String destinationCityIdParam = request.getParameter("destinationCityId");
+            System.out.println("Raw destinationCityId: [" + destinationCityIdParam + "]");
+            
+            if (destinationCityIdParam != null && !destinationCityIdParam.isEmpty()) {
+                try {
+                    destinationCityId = Integer.parseInt(destinationCityIdParam);
+                } catch (NumberFormatException e) {
+                    System.out.println("Error parsing destinationCityId: " + e.getMessage());
+                    // Use default value
+                }
+            }
+            
+            // Get tour information to determine departure city
+            TourDAO tourDAO = new TourDAO();
+            Tour tour = tourDAO.getTourById(tourId);
+            
+            if (tour == null) {
+                System.out.println("Tour not found with ID: " + tourId);
+                request.setAttribute("errorMessage", "Tour không tìm thấy với ID: " + tourId);
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Ensure departure city is set
+            int departureCityId = tour.getDepartureLocationId();
+            if (departureCityId <= 0) {
+                System.out.println("Invalid departure city ID: " + departureCityId + ", using default value 1");
+                departureCityId = 1; // Default to 1 if invalid
+            }
+            
+            // Check if departure date is before return date
+            if (departureDate.after(returnDate)) {
+                System.out.println("Departure date is after return date");
+                request.setAttribute("errorMessage", "Ngày khởi hành phải trước ngày trở về");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Set up transaction
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
+            
+            System.out.println("Creating trip object with validated parameters...");
             
             // Create and save trip object
             TripDAO tripDAO = new TripDAO();
@@ -631,50 +965,220 @@ public class AdminTourController extends HttpServlet {
             trip.setTourId(tourId);
             trip.setDepartureDate(departureDate);
             trip.setReturnDate(returnDate);
+            
+            // These setters now use the formatTimeForSqlServer method internally
             trip.setStartTime(startTime);
             trip.setEndTime(endTime);
+            
             trip.setAvailableSlot(availableSlots);
+            trip.setDepartureCityId(departureCityId);
             trip.setDestinationCityId(destinationCityId);
+            
+            // Output final trip object data for debugging
+            System.out.println("Final trip object values:");
+            System.out.println("tourId: " + trip.getTourId());
+            System.out.println("departureDate: " + trip.getDepartureDate());
+            System.out.println("returnDate: " + trip.getReturnDate());
+            System.out.println("startTime: " + trip.getStartTime());
+            System.out.println("endTime: " + trip.getEndTime());
+            System.out.println("availableSlot: " + trip.getAvailableSlot());
+            System.out.println("departureCityId: " + trip.getDepartureCityId());
+            System.out.println("destinationCityId: " + trip.getDestinationCityId());
             
             // Use the correct method from TripDAO
             int tripId = tripDAO.createTrip(trip);
             
             if (tripId > 0) {
-                // Return success message for AJAX response
-                response.getWriter().write("success");
+                conn.commit();
+                // Redirect to trips page with success message
+                request.getSession().setAttribute("successMessage", "Đã tạo chuyến đi thành công với ID: " + tripId);
+                response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + tourId);
             } else {
-                response.getWriter().write("failed");
+                if (conn != null) {
+                    conn.rollback();
+                }
+                System.out.println("Failed to create trip - createTrip returned -1");
+                request.setAttribute("errorMessage", "Không thể tạo chuyến đi. Kiểm tra logs server để biết chi tiết.");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
             }
         } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+            
             e.printStackTrace();
-            response.getWriter().write("error: " + e.getMessage());
+            System.out.println("Error in createTrip: " + e.getMessage());
+            request.setAttribute("errorMessage", "Lỗi khi tạo chuyến đi: " + e.getMessage());
+            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
         }
     }
     
     private void updateTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        Connection conn = null;
         try {
-            // Set content type for AJAX response
-            response.setContentType("text/plain;charset=UTF-8");
+            // Get form parameters with basic validation
+            String tripIdStr = request.getParameter("tripId");
+            String tourIdStr = request.getParameter("tourId");
             
-            // Get form parameters
-            int tripId = Integer.parseInt(request.getParameter("tripId"));
-            int tourId = Integer.parseInt(request.getParameter("tourId"));
+            if (tripIdStr == null || tripIdStr.isEmpty() || tourIdStr == null || tourIdStr.isEmpty()) {
+                request.setAttribute("errorMessage", "Missing trip ID or tour ID parameter");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
             
-            // Convert Date to Timestamp
-            java.sql.Date dateObj = java.sql.Date.valueOf(request.getParameter("departureDate"));
-            java.sql.Timestamp departureDate = new java.sql.Timestamp(dateObj.getTime());
+            int tripId = Integer.parseInt(tripIdStr);
+            int tourId = Integer.parseInt(tourIdStr);
             
-            dateObj = java.sql.Date.valueOf(request.getParameter("returnDate"));
-            java.sql.Timestamp returnDate = new java.sql.Timestamp(dateObj.getTime());
+            // Parse and validate departureDate
+            String departureDateStr = request.getParameter("departureDate");
+            if (departureDateStr == null || departureDateStr.trim().isEmpty()) {
+                request.setAttribute("errorMessage", "Departure date is required");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
             
+            // Parse and validate returnDate
+            String returnDateStr = request.getParameter("returnDate");
+            if (returnDateStr == null || returnDateStr.trim().isEmpty()) {
+                request.setAttribute("errorMessage", "Return date is required");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Convert date strings to timestamps
+            java.sql.Timestamp departureDate;
+            java.sql.Timestamp returnDate;
+            
+            try {
+                // Clean date strings
+                departureDateStr = departureDateStr.trim().replaceAll("[^0-9\\-/]", "");
+                returnDateStr = returnDateStr.trim().replaceAll("[^0-9\\-/]", "");
+                
+                // Convert DD/MM/YYYY to YYYY-MM-DD if needed
+                if (departureDateStr.contains("/")) {
+                    String[] parts = departureDateStr.split("/");
+                    if (parts.length == 3) {
+                        String day = parts[0].length() == 1 ? "0" + parts[0] : parts[0];
+                        String month = parts[1].length() == 1 ? "0" + parts[1] : parts[1];
+                        departureDateStr = parts[2] + "-" + month + "-" + day;
+                    }
+                }
+                
+                if (returnDateStr.contains("/")) {
+                    String[] parts = returnDateStr.split("/");
+                    if (parts.length == 3) {
+                        String day = parts[0].length() == 1 ? "0" + parts[0] : parts[0];
+                        String month = parts[1].length() == 1 ? "0" + parts[1] : parts[1];
+                        returnDateStr = parts[2] + "-" + month + "-" + day;
+                    }
+                }
+                
+                // Ensure dates are in YYYY-MM-DD format
+                if (!departureDateStr.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                    request.setAttribute("errorMessage", "Invalid departure date format. Use YYYY-MM-DD format.");
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+                
+                if (!returnDateStr.matches("^\\d{4}-\\d{2}-\\d{2}$")) {
+                    request.setAttribute("errorMessage", "Invalid return date format. Use YYYY-MM-DD format.");
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+                
+                // Add time component for timestamps
+                departureDate = java.sql.Timestamp.valueOf(departureDateStr + " 00:00:00");
+                returnDate = java.sql.Timestamp.valueOf(returnDateStr + " 00:00:00");
+                
+            } catch (Exception e) {
+                request.setAttribute("errorMessage", "Error processing dates: " + e.getMessage());
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Parse and validate times
             String startTime = request.getParameter("startTime");
+            if (startTime == null || startTime.trim().isEmpty()) {
+                startTime = "08:00:00"; // Default start time
+            } else {
+                startTime = model.Trip.cleanTimeForSQL(startTime.trim());
+            }
+            
             String endTime = request.getParameter("endTime");
-            int availableSlots = Integer.parseInt(request.getParameter("availableSlots"));
-            int destinationCityId = Integer.parseInt(request.getParameter("destinationCityId"));
+            if (endTime == null || endTime.trim().isEmpty()) {
+                endTime = "17:00:00"; // Default end time
+            } else {
+                endTime = model.Trip.cleanTimeForSQL(endTime.trim());
+            }
+            
+            // Parse and validate available slots
+            int availableSlots = 0;
+            String availableSlotsParam = request.getParameter("availableSlots");
+            
+            if (availableSlotsParam == null || availableSlotsParam.isEmpty()) {
+                availableSlotsParam = request.getParameter("availableSlot"); // Try alternative name
+            }
+            
+            if (availableSlotsParam != null && !availableSlotsParam.isEmpty()) {
+                try {
+                    availableSlots = Integer.parseInt(availableSlotsParam);
+                    if (availableSlots < 0) {
+                        request.setAttribute("errorMessage", "Available slots cannot be negative");
+                        request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                        return;
+                    }
+                } catch (NumberFormatException e) {
+                    request.setAttribute("errorMessage", "Invalid available slots value");
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+            } else {
+                request.setAttribute("errorMessage", "Available slots is required");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Parse and validate destination city ID
+            int destinationCityId = 1; // Default value
+            String destinationCityIdParam = request.getParameter("destinationCityId");
+            
+            if (destinationCityIdParam != null && !destinationCityIdParam.isEmpty()) {
+                try {
+                    destinationCityId = Integer.parseInt(destinationCityIdParam);
+                } catch (NumberFormatException e) {
+                    // Use default value
+                }
+            }
+            
+            // Get the trip using DAO to obtain its current properties
+            TripDAO tripDAO = new TripDAO();
+            Trip existingTrip = tripDAO.getTripById(tripId);
+            
+            if (existingTrip == null) {
+                request.setAttribute("errorMessage", "Trip not found with ID: " + tripId);
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            // Use the database connection with transaction for update
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false);
             
             // Create and update trip object
-            TripDAO tripDAO = new TripDAO();
             Trip trip = new Trip();
             trip.setId(tripId);
             trip.setTourId(tourId);
@@ -683,50 +1187,135 @@ public class AdminTourController extends HttpServlet {
             trip.setStartTime(startTime);
             trip.setEndTime(endTime);
             trip.setAvailableSlot(availableSlots);
+            
+            // Preserve existing values that might not be in the form
+            trip.setDepartureCityId(existingTrip.getDepartureCityId());
             trip.setDestinationCityId(destinationCityId);
+            trip.setIsDelete(existingTrip.isIsDelete());
+            trip.setCreatedDate(existingTrip.getCreatedDate());
             
             boolean success = tripDAO.updateTrip(trip);
             
             if (success) {
-                // Return success message for AJAX response
-                response.getWriter().write("success");
+                conn.commit();
+                // Redirect with success message
+                request.getSession().setAttribute("successMessage", "Trip updated successfully");
+                response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + tourId);
             } else {
-                response.getWriter().write("failed");
+                if (conn != null) {
+                    conn.rollback();
+                }
+                System.out.println("Failed to update trip ID: " + tripId);
+                request.setAttribute("errorMessage", "Unable to update trip");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
             }
         } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+            
             e.printStackTrace();
-            response.getWriter().write("error: " + e.getMessage());
+            request.setAttribute("errorMessage", "Error updating trip: " + e.getMessage());
+            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
         }
     }
     
     private void deleteTrip(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        Connection conn = null;
         try {
-            // Set content type for AJAX response
-            response.setContentType("text/plain;charset=UTF-8");
+            // Get tour ID for redirect after operation
+            String tourIdParam = request.getParameter("tourId");
+            int tourId = Integer.parseInt(tourIdParam);
             
-            int tripId = Integer.parseInt(request.getParameter("id"));
-            TripDAO tripDAO = new TripDAO();
+            // Use tripId parameter instead of id
+            String tripIdParam = request.getParameter("tripId");
+            if (tripIdParam == null || tripIdParam.isEmpty()) {
+                tripIdParam = request.getParameter("id"); // Fallback to id for backward compatibility
+            }
+            
+            if (tripIdParam == null || tripIdParam.isEmpty()) {
+                request.setAttribute("errorMessage", "Missing trip ID parameter");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            int tripId = Integer.parseInt(tripIdParam);
+            
+            // Log the deletion attempt
+            System.out.println("Attempting to delete trip ID: " + tripId);
+            
+            // Get explicit connection to enable transaction
+            conn = DBContext.getConnection();
+            conn.setAutoCommit(false); // Start transaction
             
             // Check if trip has bookings first
             BookingDAO bookingDAO = new BookingDAO();
             if (bookingDAO.tripHasBookings(tripId)) {
-                response.getWriter().write("error: Cannot delete trip as it has associated bookings. Contact support if needed.");
+                request.setAttribute("errorMessage", "Cannot delete trip as it has associated bookings. Contact support if needed.");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 return;
             }
+            
+            // Create TripDAO instance and pass connection
+            TripDAO tripDAO = new TripDAO();
             
             // Use the softDeleteTrip method from TripDAO
             boolean success = tripDAO.softDeleteTrip(tripId);
             
             if (success) {
-                // Return success message for AJAX response
-                response.getWriter().write("success");
+                // Commit transaction
+                conn.commit();
+                
+                // Redirect to the trips page with success message
+                request.getSession().setAttribute("successMessage", "Trip ID " + tripId + " deleted successfully");
+                response.sendRedirect(request.getContextPath() + "/admin/tours/trips?id=" + tourId);
             } else {
-                response.getWriter().write("failed: Unable to delete trip");
+                // Rollback on failure
+                if (conn != null) {
+                    conn.rollback();
+                }
+                
+                System.out.println("Failed to delete trip ID " + tripId);
+                request.setAttribute("errorMessage", "Failed to delete trip");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
             }
         } catch (Exception e) {
+            // Rollback on exception
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
+            
             e.printStackTrace();
-            response.getWriter().write("error: " + e.getMessage());
+            request.setAttribute("errorMessage", "Error deleting trip: " + e.getMessage());
+            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+        } finally {
+            // Close connection
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException se) {
+                se.printStackTrace();
+            }
         }
     }
     
@@ -755,9 +1344,6 @@ public class AdminTourController extends HttpServlet {
     private void createSchedule(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            // Set response content type
-            response.setContentType("text/plain;charset=UTF-8");
-            
             int tourId = Integer.parseInt(request.getParameter("tourId"));
             int dayNumber = Integer.parseInt(request.getParameter("dayNumber"));
             String itinerary = request.getParameter("itinerary");
@@ -773,24 +1359,22 @@ public class AdminTourController extends HttpServlet {
             boolean success = tourDAO.addTourSchedule(schedule);
             
             if (success) {
-                response.getWriter().write("success");
+                request.getSession().setAttribute("successMessage", "Schedule created successfully!");
             } else {
-                response.getWriter().write("Error: Failed to add schedule");
+                request.getSession().setAttribute("errorMessage", "Failed to create schedule.");
             }
-        } catch (NumberFormatException e) {
-            response.getWriter().write("Error: Invalid input data - " + e.getMessage());
+            
+            // Redirect back to tour detail page
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
         } catch (Exception e) {
-            response.getWriter().write("Error: " + e.getMessage());
-            e.printStackTrace();
+            request.getSession().setAttribute("errorMessage", "Error creating schedule: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + request.getParameter("tourId"));
         }
     }
     
     private void updateSchedule(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            // Set response content type
-            response.setContentType("text/plain;charset=UTF-8");
-            
             int scheduleId = Integer.parseInt(request.getParameter("scheduleId"));
             int tourId = Integer.parseInt(request.getParameter("tourId"));
             int dayNumber = Integer.parseInt(request.getParameter("dayNumber"));
@@ -808,39 +1392,39 @@ public class AdminTourController extends HttpServlet {
             boolean success = tourDAO.updateTourSchedule(schedule);
             
             if (success) {
-                response.getWriter().write("success");
+                request.getSession().setAttribute("successMessage", "Schedule updated successfully!");
             } else {
-                response.getWriter().write("Error: Failed to update schedule");
+                request.getSession().setAttribute("errorMessage", "Failed to update schedule.");
             }
-        } catch (NumberFormatException e) {
-            response.getWriter().write("Error: Invalid input data - " + e.getMessage());
+            
+            // Redirect back to tour detail page
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
         } catch (Exception e) {
-            response.getWriter().write("Error: " + e.getMessage());
-            e.printStackTrace();
+            request.getSession().setAttribute("errorMessage", "Error updating schedule: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + request.getParameter("tourId"));
         }
     }
     
     private void deleteSchedule(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            // Set response content type
-            response.setContentType("text/plain;charset=UTF-8");
-            
             int scheduleId = Integer.parseInt(request.getParameter("id"));
+            int tourId = Integer.parseInt(request.getParameter("tourId"));
             
             TourDAO tourDAO = new TourDAO();
             boolean success = tourDAO.deleteTourSchedule(scheduleId);
             
             if (success) {
-                response.getWriter().write("success");
+                request.getSession().setAttribute("successMessage", "Schedule deleted successfully!");
             } else {
-                response.getWriter().write("Error: Failed to delete schedule");
+                request.getSession().setAttribute("errorMessage", "Failed to delete schedule.");
             }
-        } catch (NumberFormatException e) {
-            response.getWriter().write("Error: Invalid schedule ID - " + e.getMessage());
+            
+            // Redirect back to tour detail page
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
         } catch (Exception e) {
-            response.getWriter().write("Error: " + e.getMessage());
-            e.printStackTrace();
+            request.getSession().setAttribute("errorMessage", "Error deleting schedule: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + request.getParameter("tourId"));
         }
     }
 
