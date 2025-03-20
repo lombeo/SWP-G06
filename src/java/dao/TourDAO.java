@@ -537,7 +537,9 @@ public class TourDAO {
     }
 
     public Tour getTourById(int id) {
-        String sql = "SELECT * FROM tours WHERE id = ?";
+        String sql = "SELECT t.*, c.name as departure_city_name FROM tours t " +
+                     "LEFT JOIN city c ON t.departure_location_id = c.id " +
+                     "WHERE t.id = ?";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement st = conn.prepareStatement(sql)) {
             st.setInt(1, id);
@@ -558,6 +560,8 @@ public class TourDAO {
                 tour.setRegion(rs.getString("region"));
                 tour.setMaxCapacity(rs.getInt("max_capacity"));
                 tour.setCategoryId(rs.getInt("category_id"));
+                // Set the departure city name
+                tour.setDepartureCity(rs.getString("departure_city_name"));
                 return tour;
             }
         } catch (SQLException | ClassNotFoundException e) {

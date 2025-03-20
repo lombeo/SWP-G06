@@ -54,101 +54,65 @@ public class AdminTourController extends HttpServlet {
     
     private void processRequest(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        String path = request.getPathInfo();
+        String pathInfo = request.getPathInfo();
         
-        if (path == null) {
-            path = "/";
+        if (pathInfo == null || pathInfo.equals("/")) {
+            // No specific path - show the tours list by default
+            listTours(request, response);
+            return;
         }
         
-        try {
-            switch (path) {
-                case "/":
-                    listTours(request, response);
-                    break;
-                case "/view":
-                    viewTour(request, response);
-                    break;
-                case "/create":
-                    if ("POST".equals(request.getMethod())) {
-                        createTour(request, response);
-                    } else {
-                        showCreateForm(request, response);
-                    }
-                    break;
-                case "/edit":
-                    if ("POST".equals(request.getMethod())) {
-                        updateTour(request, response);
-                    } else {
-                        showEditForm(request, response);
-                    }
-                    break;
-                case "/delete":
-                    deleteTour(request, response);
-                    break;
-                case "/edit-content":
-                    loadTourEditContent(request, response);
-                    break;
-                case "/trips":
-                    viewTourTrips(request, response);
-                    break;
-                case "/trips/create":
-                    createTrip(request, response);
-                    break;
-                case "/trips/edit":
-                    updateTrip(request, response);
-                    break;
-                case "/trips/delete":
-                    deleteTrip(request, response);
-                    break;
-                case "/schedule":
-                    viewTourSchedules(request, response);
-                    break;
-                case "/schedule/create":
-                    createSchedule(request, response);
-                    break;
-                case "/schedule/edit":
-                    updateSchedule(request, response);
-                    break;
-                case "/schedule/delete":
-                    deleteSchedule(request, response);
-                    break;
-                case "/schedule/get":
-                    getSchedule(request, response);
-                    break;
-                case "/check-trip-bookings":
-                    checkTripBookings(request, response);
-                    break;
-                case "/check-tour-bookings":
-                    checkTourBookings(request, response);
-                    break;
-                case "/trips/content":
-                    loadTripsContent(request, response);
-                    break;
-                case "/schedules/content":
-                    loadSchedulesContent(request, response);
-                    break;
-                case "/addImage":
-                    addTourImage(request, response);
-                    break;
-                case "/deleteImage":
-                    deleteTourImage(request, response);
-                    break;
-                case "/trips/bookings":
-                    getTripBookings(request, response);
-                    break;
-                case "/link-promotion":
-                    linkPromotionToTour(request, response);
-                    break;
-                case "/unlink-promotion":
-                    unlinkPromotionFromTour(request, response);
-                    break;
-                default:
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
-                    break;
-            }
-        } catch (Exception e) {
-            request.setAttribute("errorMessage", "Error processing request: " + e.getMessage());
-            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+        if (pathInfo.equals("/create")) {
+            showCreateForm(request, response);
+        } else if (pathInfo.equals("/cities/list")) {
+            // Add a new endpoint to handle city list requests for the tour-trips.jsp page
+            listCitiesAsJson(request, response);
+        } else if (pathInfo.equals("/edit")) {
+            showEditForm(request, response);
+        } else if (pathInfo.equals("/view")) {
+            viewTour(request, response);
+        } else if (pathInfo.equals("/delete")) {
+            deleteTour(request, response);
+        } else if (pathInfo.equals("/edit-content")) {
+            loadTourEditContent(request, response);
+        } else if (pathInfo.equals("/trips")) {
+            viewTourTrips(request, response);
+        } else if (pathInfo.equals("/trips/create")) {
+            createTrip(request, response);
+        } else if (pathInfo.equals("/trips/edit")) {
+            updateTrip(request, response);
+        } else if (pathInfo.equals("/trips/delete")) {
+            deleteTrip(request, response);
+        } else if (pathInfo.equals("/schedule")) {
+            viewTourSchedules(request, response);
+        } else if (pathInfo.equals("/schedule/create")) {
+            createSchedule(request, response);
+        } else if (pathInfo.equals("/schedule/edit")) {
+            updateSchedule(request, response);
+        } else if (pathInfo.equals("/schedule/delete")) {
+            deleteSchedule(request, response);
+        } else if (pathInfo.equals("/schedule/get")) {
+            getSchedule(request, response);
+        } else if (pathInfo.equals("/check-trip-bookings")) {
+            checkTripBookings(request, response);
+        } else if (pathInfo.equals("/check-tour-bookings")) {
+            checkTourBookings(request, response);
+        } else if (pathInfo.equals("/trips/content")) {
+            loadTripsContent(request, response);
+        } else if (pathInfo.equals("/schedules/content")) {
+            loadSchedulesContent(request, response);
+        } else if (pathInfo.equals("/addImage")) {
+            addTourImage(request, response);
+        } else if (pathInfo.equals("/deleteImage")) {
+            deleteTourImage(request, response);
+        } else if (pathInfo.equals("/trips/bookings")) {
+            getTripBookings(request, response);
+        } else if (pathInfo.equals("/link-promotion")) {
+            linkPromotionToTour(request, response);
+        } else if (pathInfo.equals("/unlink-promotion")) {
+            unlinkPromotionFromTour(request, response);
+        } else {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
         }
     }
     
@@ -216,12 +180,21 @@ public class AdminTourController extends HttpServlet {
             BookingDAO bookingDAO = new BookingDAO();
             ReviewDAO reviewDAO = new ReviewDAO();
             PromotionDAO promotionDAO = new PromotionDAO();
+            CityDAO cityDAO = new CityDAO();
             
             Tour tour = tourDAO.getTourById(tourId);
             if (tour == null) {
                 request.setAttribute("errorMessage", "Tour not found with ID: " + tourId);
                 request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
                 return;
+            }
+            
+            // If departure city is not set in the tour, fetch it directly
+            if (tour.getDepartureCity() == null || tour.getDepartureCity().isEmpty()) {
+                City departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
+                if (departureCity != null) {
+                    tour.setDepartureCity(departureCity.getName());
+                }
             }
             
             List<TourImage> images = tourImageDAO.getTourImagesById(tourId);
@@ -681,38 +654,53 @@ public class AdminTourController extends HttpServlet {
     private void viewTourTrips(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            // Get the tour id from the request parameter
             int tourId = Integer.parseInt(request.getParameter("id"));
             
-            // Get tour details
             TourDAO tourDAO = new TourDAO();
-            Tour tour = tourDAO.getTourById(tourId);
-            
-            // Get departure city
+            TripDAO tripDAO = new TripDAO();
+            BookingDAO bookingDAO = new BookingDAO();
+            UserDAO userDAO = new UserDAO();
             CityDAO cityDAO = new CityDAO();
+            
+            // Fetch the tour
+            Tour tour = tourDAO.getTourById(tourId);
+            if (tour == null) {
+                throw new Exception("Tour not found with ID: " + tourId);
+            }
+            
+            // Fetch the departure city
             City departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
             
-            // Get trips
-            TripDAO tripDAO = new TripDAO();
+            // If departure city name is not set in the tour, set it now
+            if (tour.getDepartureCity() == null || tour.getDepartureCity().isEmpty()) {
+                if (departureCity != null) {
+                    tour.setDepartureCity(departureCity.getName());
+                }
+            }
+            
+            // Fetch all cities for dropdowns
+            List<City> allCities = cityDAO.getAllCities();
+            
+            // Get all trips for this tour
             List<Trip> trips = tripDAO.getTripsByTourId(tourId);
             
-            // Get bookings for this tour
-            BookingDAO bookingDAO = new BookingDAO();
-            List<Booking> tourBookings = bookingDAO.getBookingsByTourId(tourId);
-            
-            // Create a map to track which trips have bookings
+            // Check which trips have bookings
             Map<Integer, Boolean> tripHasBookingsMap = new HashMap<>();
             for (Trip trip : trips) {
                 boolean hasBookings = bookingDAO.tripHasBookings(trip.getId());
                 tripHasBookingsMap.put(trip.getId(), hasBookings);
             }
             
-            // Load additional information for each booking
-            UserDAO userDAO = new UserDAO();
+            // Get all bookings for this tour
+            List<Booking> tourBookings = bookingDAO.getBookingsByTourId(tourId);
             
-            // Create maps for trips and users to avoid multiple database calls
-            Map<Integer, User> usersMap = new HashMap<>();
+            // Prepare maps to avoid duplicate lookups
             Map<Integer, Trip> tripsMap = new HashMap<>();
+            for (Trip trip : trips) {
+                tripsMap.put(trip.getId(), trip);
+            }
+            
+            Map<Integer, User> usersMap = new HashMap<>();
             
             for (Booking booking : tourBookings) {
                 // Load trip information
@@ -740,6 +728,7 @@ public class AdminTourController extends HttpServlet {
             request.setAttribute("trips", trips);
             request.setAttribute("tourBookings", tourBookings);
             request.setAttribute("tripHasBookingsMap", tripHasBookingsMap);
+            request.setAttribute("allCities", allCities);
             
             // Forward to the trips JSP
             request.getRequestDispatcher("/admin/tour-trips.jsp").forward(request, response);
@@ -1980,6 +1969,38 @@ public class AdminTourController extends HttpServlet {
         } catch (Exception e) {
             session.setAttribute("errorMessage", "Error unlinking promotion: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/admin/tours");
+        }
+    }
+
+    /**
+     * Returns a JSON array of all cities for the city dropdowns in the trip pages
+     */
+    private void listCitiesAsJson(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            // Set the response content type
+            response.setContentType("application/json;charset=UTF-8");
+            
+            CityDAO cityDAO = new CityDAO();
+            List<City> cities = cityDAO.getAllCities();
+            
+            // Build JSON array
+            StringBuilder json = new StringBuilder("[");
+            for (int i = 0; i < cities.size(); i++) {
+                City city = cities.get(i);
+                json.append("{\"id\":").append(city.getId())
+                    .append(",\"name\":\"").append(escapeJsonString(city.getName())).append("\"}");
+                if (i < cities.size() - 1) {
+                    json.append(",");
+                }
+            }
+            json.append("]");
+            
+            response.getWriter().write(json.toString());
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"error\":\"" + escapeJsonString(e.getMessage()) + "\"}");
+            e.printStackTrace();
         }
     }
 }

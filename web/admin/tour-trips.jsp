@@ -307,8 +307,8 @@
     <script>
         // Update the trip counts
         document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('activeTripsCount').innerText = <%= activeTripsCount %>;
-            document.getElementById('inactiveTripsCount').innerText = <%= inactiveTripsCount %>;
+            document.getElementById('activeTripsCount').innerText = '<%= activeTripsCount %>';
+            document.getElementById('inactiveTripsCount').innerText = '<%= inactiveTripsCount %>';
         });
     </script>
     
@@ -373,7 +373,7 @@
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="destinationCityId${trip.id}" class="form-label fw-bold">
-                                            <i class="fas fa-map-marker-alt me-1"></i> Destination City
+                                            <i class="fas fa-map-marker-alt me-1"></i> Departure City
                                         </label>
                                         <select class="form-select" id="destinationCityId${trip.id}" name="destinationCityId" required>
                                             <c:forEach var="city" items="${allCities}">
@@ -382,7 +382,7 @@
                                                 </option>
                                             </c:forEach>
                                         </select>
-                                        <div class="form-text">Select destination city</div>
+                                        <div class="form-text">Select departure city</div>
                                     </div>
                                 </div>
                             </div>
@@ -449,18 +449,6 @@
                                             value="${trip.availableSlot}" min="0" max="${tour.maxCapacity}" required>
                                         <div class="form-text">Maximum capacity: ${tour.maxCapacity}</div>
                                         <div class="invalid-feedback">Please provide a valid number of available slots.</div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="status${trip.id}" class="form-label fw-bold">
-                                            <i class="fas fa-toggle-on me-1"></i> Status
-                                        </label>
-                                        <select class="form-select" id="status${trip.id}" name="status">
-                                            <option value="active" ${!trip.isIsDelete() ? 'selected' : ''}>Active</option>
-                                            <option value="inactive" ${trip.isIsDelete() ? 'selected' : ''}>Inactive</option>
-                                        </select>
-                                        <div class="form-text">Current status of the trip</div>
                                     </div>
                                 </div>
                             </div>
@@ -774,7 +762,7 @@ try {
                 
                 try {
                     console.log('Fetching city data from server...');
-                    const response = await fetch('${pageContext.request.contextPath}/admin/cities/list');
+                    const response = await fetch('${pageContext.request.contextPath}/admin/tours/cities/list');
                     
                     if (!response.ok) {
                         console.warn('City API response not OK:', response.status, response.statusText);
@@ -795,38 +783,71 @@ try {
                 } catch (error) {
                     console.error('Error fetching city data:', error);
                     
+                    // Try alternative: use the cities already in the page
+                    console.log('Using fallback from allCities collection...');
+                    const allCitiesArray = [];
+
+                    try {
+                        // Get all cities from the select options in the "Add Trip" modal
+                        const cityOptions = document.querySelectorAll('#destinationCityId option');
+                        
+                        if (cityOptions && cityOptions.length > 0) {
+                            console.log('Found', cityOptions.length, 'cities in the select');
+                            
+                            cityOptions.forEach(option => {
+                                const id = parseInt(option.value);
+                                const name = option.textContent.trim();
+                                
+                                // Add only valid cities
+                                if (!isNaN(id) && name) {
+                                    allCitiesArray.push({ id: id, name: name });
+                                }
+                            });
+                            
+                            console.log('Created city array from select options, count:', allCitiesArray.length);
+                            
+                            if (allCitiesArray.length > 0) {
+                                // Cache the city data for future use
+                                cityData = allCitiesArray;
+                                return allCitiesArray;
+                            }
+                        }
+                    } catch (fallbackError) {
+                        console.error('Error creating city array from select options:', fallbackError);
+                    }
+                    
                     // Extract cities from current page as fallback
-                    console.log('Using fallback city data extraction...');
+                    console.log('Using second fallback - extracting from inputs...');
                     const fallbackCities = [];
                     
                     // Get all cities from the page
                     try {
                         // Get the departure city for each trip in the table
                         document.querySelectorAll('[id^="departureCityId"]').forEach(select => {
-                            const option = select.querySelector('option');
-                            if (option) {
-                                const id = option.value;
+                            const options = select.querySelectorAll('option');
+                            options.forEach(option => {
+                                const id = parseInt(option.value);
                                 const name = option.textContent.trim();
                                 
                                 // Check if we already have this city
-                                if (!fallbackCities.some(city => city.id == id)) {
+                                if (!isNaN(id) && name && !fallbackCities.some(city => city.id === id)) {
                                     fallbackCities.push({ id: id, name: name });
                                 }
-                            }
+                            });
                         });
                         
                         // Get the destination city for each trip in the table
                         document.querySelectorAll('[id^="destinationCityId"]').forEach(select => {
-                            const option = select.querySelector('option');
-                            if (option) {
-                                const id = option.value;
+                            const options = select.querySelectorAll('option');
+                            options.forEach(option => {
+                                const id = parseInt(option.value);
                                 const name = option.textContent.trim();
                                 
                                 // Check if we already have this city
-                                if (!fallbackCities.some(city => city.id == id)) {
+                                if (!isNaN(id) && name && !fallbackCities.some(city => city.id === id)) {
                                     fallbackCities.push({ id: id, name: name });
                                 }
-                            }
+                            });
                         });
                         
                         // Add common Vietnamese cities as additional fallback
@@ -845,7 +866,7 @@ try {
                         
                         // Add common cities that aren't already in the list
                         commonCities.forEach(city => {
-                            if (!fallbackCities.some(c => c.id == city.id)) {
+                            if (!fallbackCities.some(c => c.id === city.id)) {
                                 fallbackCities.push(city);
                             }
                         });
@@ -892,65 +913,42 @@ try {
                         return;
                     }
                     
-                    // Get the current selected city IDs
-                    const currentDepartureCityId = departureCitySelect.value;
-                    const currentDestinationCityId = destinationCitySelect.value;
+                    // Get the current selected values
+                    const currentDepartureCityId = parseInt(departureCitySelect.value) || 0;
+                    const currentDestinationCityId = parseInt(destinationCitySelect.value) || 0;
                     
                     console.log('Current departure city ID:', currentDepartureCityId);
                     console.log('Current destination city ID:', currentDestinationCityId);
                     
-                    // Clear existing options but remember the current ones
-                    const departureFirstOption = departureCitySelect.options[0] ? departureCitySelect.options[0].cloneNode(true) : null;
-                    const destinationFirstOption = destinationCitySelect.options[0] ? destinationCitySelect.options[0].cloneNode(true) : null;
+                    // Don't clear departure city select if it's readonly (since it's usually a hidden input with a readonly text field)
                     
-                    departureCitySelect.innerHTML = '';
+                    // Clear destination city select but save the current selection
+                    const currentSelection = destinationCitySelect.value;
                     destinationCitySelect.innerHTML = '';
                     
-                    // Make sure we preserve the first option if it exists
-                    if (departureFirstOption) {
-                        departureCitySelect.appendChild(departureFirstOption);
-                    }
+                    // Add placeholder option for destination
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = 'Chọn thành phố khởi hành';
+                    placeholderOption.disabled = true;
+                    placeholderOption.selected = !currentSelection;
+                    destinationCitySelect.appendChild(placeholderOption);
                     
-                    if (destinationFirstOption) {
-                        destinationCitySelect.appendChild(destinationFirstOption);
-                    }
-                    
-                    // Add all cities as options
+                    // Add city options to destination city dropdown
                     cities.forEach(city => {
-                        // Skip if this is the same as the first option
-                        if (departureFirstOption && city.id == departureFirstOption.value) {
-                            return;
+                        const option = document.createElement('option');
+                        option.value = city.id;
+                        option.textContent = city.name;
+                        
+                        // If this city matches the current selection, select it
+                        if (city.id == currentDestinationCityId) {
+                            option.selected = true;
                         }
                         
-                        // Add to departure city dropdown
-                        const departureOption = document.createElement('option');
-                        departureOption.value = city.id;
-                        departureOption.textContent = city.name;
-                        if (city.id == currentDepartureCityId && !departureFirstOption) {
-                            departureOption.selected = true;
-                        }
-                        departureCitySelect.appendChild(departureOption);
+                        destinationCitySelect.appendChild(option);
                     });
                     
-                    // Now do the same for destination cities
-                    cities.forEach(city => {
-                        // Skip if this is the same as the first option
-                        if (destinationFirstOption && city.id == destinationFirstOption.value) {
-                            return;
-                        }
-                        
-                        // Add to destination city dropdown
-                        const destinationOption = document.createElement('option');
-                        destinationOption.value = city.id;
-                        destinationOption.textContent = city.name;
-                        if (city.id == currentDestinationCityId && !destinationFirstOption) {
-                            destinationOption.selected = true;
-                        }
-                        destinationCitySelect.appendChild(destinationOption);
-                    });
-                    
-                    console.log('City dropdowns populated. Departure options:', departureCitySelect.options.length, 
-                               'Destination options:', destinationCitySelect.options.length);
+                    console.log('City dropdown populated with', cities.length, 'cities');
                 } catch (error) {
                     console.error('Error populating city dropdowns:', error);
                 }
@@ -1447,28 +1445,13 @@ try {
             // Add edit trip modal display event handler
             document.querySelectorAll('[data-bs-target^="#editTripModal"]').forEach(button => {
                 button.addEventListener('click', function() {
-                    // Get the modal ID from the button's data-bs-target attribute
+                    // Get the trip ID from the modal target
                     const modalId = this.getAttribute('data-bs-target');
-                    const modal = document.querySelector(modalId);
-                    if (!modal) return;
-                    
-                    // Get the tripId from the modal's hidden input
-                    const tripId = modal.querySelector('input[name="tripId"]').value;
+                    const tripId = modalId.replace('#editTripModal', '');
                     console.log('Opening edit modal for trip ID:', tripId);
                     
-                    // Debug: Log all available trip data attributes
-                    console.log('---------- TRIP DATA DEBUG ----------');
-                    const form = document.getElementById('editTripForm' + tripId);
-                    if (form) {
-                        const departureCity = form.querySelector('select[name="departureCityId"] option');
-                        const destinationCity = form.querySelector('select[name="destinationCityId"] option');
-                        
-                        console.log('Departure City ID:', departureCity ? departureCity.value : 'unknown');
-                        console.log('Departure City Name:', departureCity ? departureCity.textContent.trim() : 'unknown');
-                        console.log('Destination City ID:', destinationCity ? destinationCity.value : 'unknown');
-                        console.log('Destination City Name:', destinationCity ? destinationCity.textContent.trim() : 'unknown');
-                    }
-                    console.log('------------------------------------');
+                    // Populate cities for this trip modal
+                    populateCityDropdowns(tripId);
                     
                     // Set min dates for date inputs
                     const today = new Date().toISOString().split('T')[0];
@@ -1477,43 +1460,11 @@ try {
                     
                     if (departureDateInput) {
                         departureDateInput.setAttribute('min', today);
-                        console.log('Set departure date value:', departureDateInput.value);
                     }
                     
                     if (returnDateInput) {
                         returnDateInput.setAttribute('min', today);
-                        console.log('Set return date value:', returnDateInput.value);
                     }
-                    
-                    // Log values for debugging
-                    const startTimeInput = document.getElementById('startTime' + tripId);
-                    const endTimeInput = document.getElementById('endTime' + tripId);
-                    const departureCityInput = document.getElementById('departureCityId' + tripId);
-                    const destinationCityInput = document.getElementById('destinationCityId' + tripId);
-                    const statusInput = document.getElementById('status' + tripId);
-                    
-                    if (startTimeInput) {
-                        console.log('Start time value:', startTimeInput.value);
-                    }
-                    
-                    if (endTimeInput) {
-                        console.log('End time value:', endTimeInput.value);
-                    }
-                    
-                    if (departureCityInput) {
-                        console.log('Departure city value:', departureCityInput.value);
-                    }
-                    
-                    if (destinationCityInput) {
-                        console.log('Destination city value:', destinationCityInput.value);
-                    }
-                    
-                    if (statusInput) {
-                        console.log('Status value:', statusInput.value);
-                    }
-                    
-                    // Populate city dropdowns with all available cities
-                    populateCityDropdowns(tripId);
                 });
             });
             
@@ -1643,39 +1594,70 @@ try {
     });
 
     // Initialize add trip modal to populate cities
-    document.querySelector('[data-bs-target="#addTripModal"]').addEventListener('click', function() {
-        console.log('Opening add trip modal');
-        populateCityDropdowns(''); // Empty string for tripId to indicate it's the add modal
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add event listener to all buttons that open the Add Trip modal
+        document.querySelectorAll('[data-bs-target="#addTripModal"]').forEach(button => {
+            button.addEventListener('click', function() {
+                console.log('Opening add trip modal');
+                populateCityDropdowns(''); // Empty string for tripId to indicate it's the add modal
+                
+                // Set minimum dates
+                const today = new Date().toISOString().split('T')[0];
+                const departureDateInput = document.getElementById('departureDate');
+                const returnDateInput = document.getElementById('returnDate');
+                
+                if (departureDateInput) {
+                    departureDateInput.value = today;
+                    departureDateInput.setAttribute('min', today);
+                }
+                
+                if (returnDateInput) {
+                    // Set default return date to today + 3 days
+                    const defaultReturn = new Date();
+                    defaultReturn.setDate(defaultReturn.getDate() + 3);
+                    returnDateInput.value = defaultReturn.toISOString().split('T')[0];
+                    returnDateInput.setAttribute('min', today);
+                }
+                
+                // Set default times
+                const startTimeInput = document.getElementById('startTime');
+                const endTimeInput = document.getElementById('endTime');
+                
+                if (startTimeInput) {
+                    startTimeInput.value = '08:00';
+                }
+                
+                if (endTimeInput) {
+                    endTimeInput.value = '17:00';
+                }
+            });
+        });
         
-        // Set minimum dates
-        const today = new Date().toISOString().split('T')[0];
-        const departureDateInput = document.getElementById('departureDate');
-        const returnDateInput = document.getElementById('returnDate');
-        
-        if (departureDateInput) {
-            departureDateInput.value = today;
-            departureDateInput.setAttribute('min', today);
-        }
-        
-        if (returnDateInput) {
-            // Set default return date to today + 3 days
-            const defaultReturn = new Date();
-            defaultReturn.setDate(defaultReturn.getDate() + 3);
-            returnDateInput.value = defaultReturn.toISOString().split('T')[0];
-            returnDateInput.setAttribute('min', today);
-        }
-        
-        // Set default times
-        const startTimeInput = document.getElementById('startTime');
-        const endTimeInput = document.getElementById('endTime');
-        
-        if (startTimeInput) {
-            startTimeInput.value = '08:00';
-        }
-        
-        if (endTimeInput) {
-            endTimeInput.value = '17:00';
-        }
+        // Add event listener to all buttons that open Edit Trip modals
+        document.querySelectorAll('[data-bs-target^="#editTripModal"]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Get the trip ID from the modal target
+                const modalId = this.getAttribute('data-bs-target');
+                const tripId = modalId.replace('#editTripModal', '');
+                console.log('Opening edit modal for trip ID:', tripId);
+                
+                // Populate cities for this trip modal
+                populateCityDropdowns(tripId);
+                
+                // Set min dates for date inputs
+                const today = new Date().toISOString().split('T')[0];
+                const departureDateInput = document.getElementById('departureDate' + tripId);
+                const returnDateInput = document.getElementById('returnDate' + tripId);
+                
+                if (departureDateInput) {
+                    departureDateInput.setAttribute('min', today);
+                }
+                
+                if (returnDateInput) {
+                    returnDateInput.setAttribute('min', today);
+                }
+            });
+        });
     });
 } catch (mainErr) {
     console.error("Fatal error in trip script:", mainErr);

@@ -91,7 +91,7 @@
                                 <span>${tour.duration}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span><strong>Departure From:</strong></span>
+                                <span><strong>Destination:</strong></span>
                                 <span>${tour.departureCity}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
