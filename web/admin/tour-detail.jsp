@@ -245,6 +245,114 @@
             
             <!-- Tour Bookings Card -->
             <jsp:include page="fragments/tour-bookings.jsp" />
+            
+            <!-- Tour Promotions Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Active Promotions</h6>
+                    <button class="btn btn-sm btn-success" data-bs-toggle="modal" data-bs-target="#linkPromotionModal">
+                        <i class="fas fa-link me-1"></i> Link Promotion
+                    </button>
+                </div>
+                <div class="card-body">
+                    <c:if test="${empty tourPromotions}">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>No promotions linked to this tour.
+                        </div>
+                    </c:if>
+                    
+                    <c:if test="${not empty tourPromotions}">
+                        <div class="list-group">
+                            <c:forEach var="promotion" items="${tourPromotions}">
+                                <div class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between align-items-center">
+                                        <h6 class="mb-1">${promotion.title}</h6>
+                                        <button class="btn btn-sm btn-danger unlink-promotion" 
+                                               data-id="${promotion.id}" 
+                                               data-title="${promotion.title}"
+                                               data-bs-toggle="modal" 
+                                               data-bs-target="#unlinkPromotionModal">
+                                            <i class="fas fa-unlink"></i>
+                                        </button>
+                                    </div>
+                                    <p class="mb-1 text-success fw-bold">
+                                        <i class="fas fa-percentage me-1"></i> 
+                                        <fmt:formatNumber value="${promotion.discountPercentage}" type="number" maxFractionDigits="2" />% Discount
+                                    </p>
+                                    <small class="text-muted">
+                                        Valid: <fmt:formatDate value="${promotion.startDate}" pattern="dd/MM/yyyy" /> 
+                                        to <fmt:formatDate value="${promotion.endDate}" pattern="dd/MM/yyyy" />
+                                    </small>
+                                    <span class="badge ${promotion.status eq 'Active' ? 'bg-success' : promotion.status eq 'Upcoming' ? 'bg-primary' : 'bg-secondary'} ms-2">
+                                        ${promotion.status}
+                                    </span>
+                                </div>
+                            </c:forEach>
+                        </div>
+                    </c:if>
+                </div>
+            </div>
+            
+            <!-- Tour Reviews Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">Customer Reviews</h6>
+                    <a href="${pageContext.request.contextPath}/admin?action=reviews&tourId=${tour.id}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-star me-1"></i> Manage Reviews
+                    </a>
+                </div>
+                <div class="card-body">
+                    <c:if test="${empty tourReviews}">
+                        <div class="alert alert-info mb-0">
+                            <i class="fas fa-info-circle me-2"></i>No reviews for this tour yet.
+                        </div>
+                    </c:if>
+                    
+                    <c:if test="${not empty tourReviews}">
+                        <div class="mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <h5 class="me-2 mb-0">Average Rating:</h5>
+                                <div class="rating-stars">
+                                    <c:forEach begin="1" end="5" var="i">
+                                        <i class="fas fa-star ${i <= avgRating ? 'text-warning' : 'text-muted'}"></i>
+                                    </c:forEach>
+                                </div>
+                                <span class="ms-2 fw-bold">${avgRating}/5</span>
+                                <span class="ms-2 text-muted">(${tourReviews.size()} reviews)</span>
+                            </div>
+                        </div>
+                        
+                        <div class="list-group review-list" style="max-height: 300px; overflow-y: auto;">
+                            <c:forEach var="review" items="${tourReviews}" varStatus="status" end="4">
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">${review.userName}</h6>
+                                        <small class="text-muted"><fmt:formatDate value="${review.createdDate}" pattern="dd/MM/yyyy" /></small>
+                                    </div>
+                                    <div class="rating-stars mb-2">
+                                        <c:forEach begin="1" end="5" var="i">
+                                            <i class="fas fa-star ${i <= review.rating ? 'text-warning' : 'text-muted'}"></i>
+                                        </c:forEach>
+                                    </div>
+                                    <p class="mb-1">${review.comment}</p>
+                                    <c:if test="${not empty review.feedback}">
+                                        <div class="mt-2 p-2 bg-light rounded">
+                                            <small class="fw-bold text-primary"><i class="fas fa-reply me-1"></i>Admin Response:</small>
+                                            <p class="mb-0 small">${review.feedback}</p>
+                                        </div>
+                                    </c:if>
+                                </div>
+                            </c:forEach>
+                            
+                            <c:if test="${tourReviews.size() > 5}">
+                                <a href="${pageContext.request.contextPath}/admin?action=reviews&tourId=${tour.id}" class="list-group-item list-group-item-action text-center">
+                                    <i class="fas fa-eye me-1"></i> View All ${tourReviews.size()} Reviews
+                                </a>
+                            </c:if>
+                        </div>
+                    </c:if>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -340,8 +448,108 @@
     </div>
 </div>
 
+<!-- Link Promotion Modal -->
+<div class="modal fade" id="linkPromotionModal" tabindex="-1" aria-labelledby="linkPromotionModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="linkPromotionModalLabel">
+                    <i class="fas fa-link me-2"></i>Link Promotion to Tour
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="${pageContext.request.contextPath}/admin/tours/link-promotion" method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="tourId" value="${tour.id}">
+                    
+                    <div class="mb-3">
+                        <label for="promotionId" class="form-label">Select Promotion</label>
+                        <select class="form-select" id="promotionId" name="promotionId" required>
+                            <option value="">-- Select a Promotion --</option>
+                            <c:forEach var="promo" items="${availablePromotions}">
+                                <option value="${promo.id}">
+                                    ${promo.title} - ${promo.discountPercentage}% 
+                                    (<fmt:formatDate value="${promo.startDate}" pattern="dd/MM/yyyy" /> 
+                                    to <fmt:formatDate value="${promo.endDate}" pattern="dd/MM/yyyy" />)
+                                </option>
+                            </c:forEach>
+                        </select>
+                        <div class="form-text">Only active or upcoming promotions are available for linking.</div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading">Promotion Information</h5>
+                                <p class="mb-0">
+                                    Linking a promotion to this tour will apply the discount to all bookings made within the promotion period.
+                                    Multiple promotions can be applied to a single tour.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-link me-1"></i> Link Promotion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Unlink Promotion Modal -->
+<div class="modal fade" id="unlinkPromotionModal" tabindex="-1" aria-labelledby="unlinkPromotionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="unlinkPromotionModalLabel">
+                    <i class="fas fa-unlink me-2"></i>Remove Promotion Link
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="${pageContext.request.contextPath}/admin/tours/unlink-promotion" method="post">
+                <div class="modal-body">
+                    <input type="hidden" id="tourIdToUnlink" name="tourId" value="${tour.id}">
+                    <input type="hidden" id="promotionIdToUnlink" name="promotionId" value="">
+                    
+                    <p>Are you sure you want to unlink the promotion <span id="promotionTitleToUnlink" class="fw-bold"></span> from this tour?</p>
+                    
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        This will remove the discount for all future bookings. Any bookings already made with this promotion will keep their discount.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-unlink me-1"></i> Unlink Promotion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle promotion unlinking
+        const unlinkButtons = document.querySelectorAll('.unlink-promotion');
+        unlinkButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const promotionId = this.getAttribute('data-id');
+                const promotionTitle = this.getAttribute('data-title');
+                
+                document.getElementById('promotionIdToUnlink').value = promotionId;
+                document.getElementById('promotionTitleToUnlink').textContent = promotionTitle;
+            });
+        });
+        
         // Edit Tour Modal
         $('#editTourModal').on('show.bs.modal', function() {
             const contentDiv = document.getElementById('editTourContent');

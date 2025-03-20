@@ -433,6 +433,9 @@ public class BookingDAO {
                      "JOIN trip t ON b.trip_id = t.id " +
                      "WHERE t.tour_id = ?";
         
+        System.out.println("DEBUG - BookingDAO.tourHasBookings - Checking bookings for tour ID: " + tourId);
+        System.out.println("DEBUG - BookingDAO.tourHasBookings - SQL: " + sql);
+        
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
@@ -440,7 +443,9 @@ public class BookingDAO {
             
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getInt(1) > 0;
+                    int count = rs.getInt(1);
+                    System.out.println("DEBUG - BookingDAO.tourHasBookings - Found " + count + " bookings for tour ID: " + tourId);
+                    return count > 0;
                 }
             }
         } catch (SQLException | ClassNotFoundException e) {
@@ -448,6 +453,7 @@ public class BookingDAO {
             e.printStackTrace();
         }
         
+        System.out.println("DEBUG - BookingDAO.tourHasBookings - Defaulting to false for tour ID: " + tourId);
         return false; // Default to false in case of errors
     }
 } 

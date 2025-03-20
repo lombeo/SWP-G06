@@ -509,6 +509,55 @@
                         <% if (currentUser != null && userCanReview && !userHasReviewed) { %>
                         <div class="mb-8 border p-4 rounded-lg bg-blue-50">
                             <h3 class="font-bold text-lg mb-4">Đánh giá tour</h3>
+                            
+                            <%-- Display error messages --%>
+                            <% 
+                                String errorParam = request.getParameter("error");
+                                String successParam = request.getParameter("success");
+                                
+                                if (errorParam != null) {
+                                    String errorMessage = "";
+                                    switch(errorParam) {
+                                        case "login_required":
+                                            errorMessage = "Bạn cần đăng nhập để đánh giá tour.";
+                                            break;
+                                        case "invalid_data":
+                                            errorMessage = "Thông tin đánh giá không hợp lệ.";
+                                            break;
+                                        case "invalid_rating":
+                                            errorMessage = "Đánh giá phải từ 1 đến 5 sao.";
+                                            break;
+                                        case "already_reviewed":
+                                            errorMessage = "Bạn đã đánh giá tour này rồi.";
+                                            break;
+                                        case "not_eligible":
+                                            errorMessage = "Bạn chỉ có thể đánh giá sau khi đã đặt tour và chuyến đi đã kết thúc.";
+                                            break;
+                                        case "save_failed":
+                                            errorMessage = "Có lỗi xảy ra khi lưu đánh giá. Vui lòng thử lại sau.";
+                                            break;
+                                        case "unexpected":
+                                            errorMessage = "Có lỗi không mong muốn xảy ra. Vui lòng thử lại sau.";
+                                            break;
+                                        default:
+                                            errorMessage = "Đã xảy ra lỗi.";
+                                    }
+                            %>
+                                <div class="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md">
+                                    <div class="flex items-center">
+                                        <span class="material-symbols-outlined mr-2">error</span>
+                                        <p><%= errorMessage %></p>
+                                    </div>
+                                </div>
+                            <% } else if (successParam != null && successParam.equals("true")) { %>
+                                <div class="mb-4 p-3 bg-green-100 border border-green-200 text-green-700 rounded-md">
+                                    <div class="flex items-center">
+                                        <span class="material-symbols-outlined mr-2">check_circle</span>
+                                        <p>Cảm ơn bạn đã đánh giá tour!</p>
+                                    </div>
+                                </div>
+                            <% } %>
+                            
                             <form action="review" method="post" id="reviewForm">
                                 <input type="hidden" name="tourId" value="${tour.id}">
                                 
@@ -554,6 +603,19 @@
                                 <span class="material-symbols-outlined mr-2">info</span>
                                 <p>Bạn chỉ có thể đánh giá sau khi đã đặt và hoàn thành chuyến đi.</p>
                             </div>
+                            
+                            <%-- Display error messages --%>
+                            <% 
+                                String errorParam = request.getParameter("error");
+                                if (errorParam != null && errorParam.equals("not_eligible")) {
+                            %>
+                                <div class="mt-3 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md">
+                                    <div class="flex items-center">
+                                        <span class="material-symbols-outlined mr-2">error</span>
+                                        <p>Bạn chỉ có thể đánh giá sau khi đã đặt tour và chuyến đi đã kết thúc.</p>
+                                    </div>
+                                </div>
+                            <% } %>
                         </div>
                         <% } else { %>
                         <div class="mb-8 p-4 rounded-lg bg-blue-50 border border-blue-200">
@@ -561,6 +623,19 @@
                                 <span class="material-symbols-outlined mr-2">login</span>
                                 <p>Vui lòng <a href="login" class="underline font-medium">đăng nhập</a> để đánh giá tour này.</p>
                             </div>
+                            
+                            <%-- Display error messages --%>
+                            <% 
+                                String errorParam = request.getParameter("error");
+                                if (errorParam != null && errorParam.equals("login_required")) {
+                            %>
+                                <div class="mt-3 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md">
+                                    <div class="flex items-center">
+                                        <span class="material-symbols-outlined mr-2">error</span>
+                                        <p>Bạn cần đăng nhập để đánh giá tour.</p>
+                                    </div>
+                                </div>
+                            <% } %>
                         </div>
                         <% } %>
                         

@@ -213,19 +213,36 @@ public class TripDAO {
      */
     public Trip getTripById(int tripId) {
         String sql = "SELECT * FROM trip WHERE id = ? AND is_delete = 0";
+        System.out.println("Fetching trip with ID: " + tripId);
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, tripId);
+            System.out.println("Executing SQL: " + sql.replace("?", String.valueOf(tripId)));
             
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapTrip(rs);
+                    Trip trip = mapTrip(rs);
+                    System.out.println("Successfully found trip: " + trip.getId() + 
+                                       ", Tour ID: " + trip.getTourId() + 
+                                       ", Departure Date: " + trip.getDepartureDate() +
+                                       ", Departure City: " + trip.getDepartureCityId() +
+                                       ", Destination City: " + trip.getDestinationCityId());
+                    return trip;
+                } else {
+                    System.out.println("No trip found with ID: " + tripId + " or trip is marked as deleted");
                 }
             }
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println("Error getting trip by ID: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("SQL Error getting trip by ID " + tripId + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            System.out.println("Database driver class not found when getting trip by ID " + tripId + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.out.println("Unexpected error getting trip by ID " + tripId + ": " + e.getMessage());
+            e.printStackTrace();
         }
         
         return null;

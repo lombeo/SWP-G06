@@ -1,4 +1,5 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
 <div class="pagination-container d-flex justify-content-between align-items-center mt-3">
     <div class="pagination-info">
@@ -12,12 +13,23 @@
         <span>${totalItems}</span> entries
     </div>
     
+    <!-- Extract action parameter from queryString if available -->
+    <c:set var="actionParam" value="" />
+    <c:if test="${not empty queryString}">
+        <c:set var="queryParts" value="${fn:split(queryString, '&')}" />
+        <c:forEach var="part" items="${queryParts}">
+            <c:if test="${fn:startsWith(part, 'action=')}">
+                <c:set var="actionParam" value="${part}" />
+            </c:if>
+        </c:forEach>
+    </c:if>
+    
     <nav aria-label="Page navigation">
         <ul class="pagination">
             <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
                 <c:choose>
                     <c:when test="${empty queryString}">
-                        <a class="page-link" href="?page=${currentPage - 1}&action=tours" aria-label="Previous" ${currentPage == 1 ? 'tabindex="-1"' : ''}>
+                        <a class="page-link" href="?page=${currentPage - 1}&action=${param.action}" aria-label="Previous" ${currentPage == 1 ? 'tabindex="-1"' : ''}>
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </c:when>
@@ -33,7 +45,7 @@
                 <li class="page-item">
                     <c:choose>
                         <c:when test="${empty queryString}">
-                            <a class="page-link" href="?page=1&action=tours">1</a>
+                            <a class="page-link" href="?page=1&action=${param.action}">1</a>
                         </c:when>
                         <c:otherwise>
                             <a class="page-link" href="?page=1&${queryString}">1</a>
@@ -61,7 +73,7 @@
                 <li class="page-item ${i == currentPage ? 'active' : ''}">
                     <c:choose>
                         <c:when test="${empty queryString}">
-                            <a class="page-link" href="?page=${i}&action=tours">${i}</a>
+                            <a class="page-link" href="?page=${i}&action=${param.action}">${i}</a>
                         </c:when>
                         <c:otherwise>
                             <a class="page-link" href="?page=${i}&${queryString}">${i}</a>
@@ -79,7 +91,7 @@
                 <li class="page-item">
                     <c:choose>
                         <c:when test="${empty queryString}">
-                            <a class="page-link" href="?page=${totalPages}&action=tours">${totalPages}</a>
+                            <a class="page-link" href="?page=${totalPages}&action=${param.action}">${totalPages}</a>
                         </c:when>
                         <c:otherwise>
                             <a class="page-link" href="?page=${totalPages}&${queryString}">${totalPages}</a>
@@ -91,7 +103,7 @@
             <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
                 <c:choose>
                     <c:when test="${empty queryString}">
-                        <a class="page-link" href="?page=${currentPage + 1}&action=tours" aria-label="Next" ${currentPage == totalPages ? 'tabindex="-1"' : ''}>
+                        <a class="page-link" href="?page=${currentPage + 1}&action=${param.action}" aria-label="Next" ${currentPage == totalPages ? 'tabindex="-1"' : ''}>
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </c:when>
@@ -112,9 +124,10 @@
         urlParams.set('itemsPerPage', this.value);
         urlParams.set('page', '1'); // Reset to page 1 when changing items per page
         
-        // Make sure we keep the action parameter
+        // Keep existing action parameter instead of hardcoding
         if (!urlParams.has('action') && window.location.pathname.includes('/admin')) {
-            urlParams.set('action', 'tours');
+            const currentAction = document.querySelector('input[name="current-action"]')?.value || 'tours';
+            urlParams.set('action', currentAction);
         }
         
         window.location.search = urlParams.toString();

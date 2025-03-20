@@ -7,13 +7,17 @@ import dao.TourImageDAO;
 import dao.TripDAO;
 import dao.BookingDAO;
 import dao.UserDAO;
+import dao.ReviewDAO;
+import dao.PromotionDAO;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.HashMap;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -29,6 +33,8 @@ import model.TourSchedule;
 import model.Trip;
 import model.User;
 import model.Booking;
+import model.Review;
+import model.Promotion;
 import utils.DBContext;
 
 @WebServlet(name = "AdminTourController", urlPatterns = {"/admin/tours/*"})
@@ -48,103 +54,101 @@ public class AdminTourController extends HttpServlet {
     
     private void processRequest(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
+        String path = request.getPathInfo();
         
-        HttpSession session = request.getSession();
-        User user = (User) session.getAttribute("user");
-        
-        // Check if user is logged in and is admin (roleId = 2)
-        if (user == null || user.getRoleId() != 2) {
-            response.sendRedirect(request.getContextPath() + "/login.jsp");
-            return;
+        if (path == null) {
+            path = "/";
         }
         
-        String pathInfo = request.getPathInfo();
-        String action = request.getParameter("action");
-        
-        // Handle form submissions with action parameter
-        if (action != null && !action.isEmpty()) {
-            switch (action) {
-                case "create":
-                    createTour(request, response);
-                    return;
-                case "update":
-                    updateTour(request, response);
-                    return;
-                case "delete":
+        try {
+            switch (path) {
+                case "/":
+                    listTours(request, response);
+                    break;
+                case "/view":
+                    viewTour(request, response);
+                    break;
+                case "/create":
+                    if ("POST".equals(request.getMethod())) {
+                        createTour(request, response);
+                    } else {
+                        showCreateForm(request, response);
+                    }
+                    break;
+                case "/edit":
+                    if ("POST".equals(request.getMethod())) {
+                        updateTour(request, response);
+                    } else {
+                        showEditForm(request, response);
+                    }
+                    break;
+                case "/delete":
                     deleteTour(request, response);
-                    return;
-                case "create-schedule":
-                    createSchedule(request, response);
-                    return;
-                case "update-schedule":
-                    updateSchedule(request, response);
-                    return;
-                case "delete-schedule":
-                    deleteSchedule(request, response);
-                    return;
-                case "get-schedule":
-                    getSchedule(request, response);
-                    return;
-                case "create-trip":
+                    break;
+                case "/edit-content":
+                    loadTourEditContent(request, response);
+                    break;
+                case "/trips":
+                    viewTourTrips(request, response);
+                    break;
+                case "/trips/create":
                     createTrip(request, response);
-                    return;
-                case "update-trip":
+                    break;
+                case "/trips/edit":
                     updateTrip(request, response);
-                    return;
-                case "delete-trip":
+                    break;
+                case "/trips/delete":
                     deleteTrip(request, response);
-                    return;
-                case "check-trip-bookings":
+                    break;
+                case "/schedule":
+                    viewTourSchedules(request, response);
+                    break;
+                case "/schedule/create":
+                    createSchedule(request, response);
+                    break;
+                case "/schedule/edit":
+                    updateSchedule(request, response);
+                    break;
+                case "/schedule/delete":
+                    deleteSchedule(request, response);
+                    break;
+                case "/schedule/get":
+                    getSchedule(request, response);
+                    break;
+                case "/check-trip-bookings":
                     checkTripBookings(request, response);
-                    return;
-                case "check-tour-bookings":
+                    break;
+                case "/check-tour-bookings":
                     checkTourBookings(request, response);
-                    return;
-                case "addImage":
+                    break;
+                case "/trips/content":
+                    loadTripsContent(request, response);
+                    break;
+                case "/schedules/content":
+                    loadSchedulesContent(request, response);
+                    break;
+                case "/addImage":
                     addTourImage(request, response);
-                    return;
-                case "deleteImage":
+                    break;
+                case "/deleteImage":
                     deleteTourImage(request, response);
-                    return;
-                case "getCities":
-                    getCities(request, response);
-                    return;
+                    break;
+                case "/trips/bookings":
+                    getTripBookings(request, response);
+                    break;
+                case "/link-promotion":
+                    linkPromotionToTour(request, response);
+                    break;
+                case "/unlink-promotion":
+                    unlinkPromotionFromTour(request, response);
+                    break;
+                default:
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    break;
             }
-        }
-        
-        // Handle URL path-based navigation
-        if (pathInfo == null || pathInfo.equals("/")) {
-            // Main tour listing
-            listTours(request, response);
-        } else if (pathInfo.equals("/create")) {
-            showCreateForm(request, response);
-        } else if (pathInfo.equals("/edit")) {
-            showEditForm(request, response);
-        } else if (pathInfo.equals("/view")) {
-            viewTour(request, response);
-        } else if (pathInfo.equals("/trips")) {
-            viewTourTrips(request, response);
-        } else if (pathInfo.equals("/schedules")) {
-            viewTourSchedules(request, response);
-        } else if (pathInfo.equals("/edit-content")) {
-            loadTourEditContent(request, response);
-        } else if (pathInfo.equals("/trips-content")) {
-            loadTripsContent(request, response);
-        } else if (pathInfo.equals("/schedules-content")) {
-            loadSchedulesContent(request, response);
-        } else if (pathInfo.equals("/cities")) {
-            getCities(request, response);
-        } else if (pathInfo.equals("/addImage")) {
-            addTourImage(request, response);
-        } else if (pathInfo.equals("/deleteImage")) {
-            deleteTourImage(request, response);
-        } else if (pathInfo.equals("/delete")) {
-            deleteTour(request, response);
-        } else if (pathInfo.equals("/trip-bookings")) {
-            getTripBookings(request, response);
-        } else {
-            // Default to listing all tours
-            listTours(request, response);
+        } catch (Exception e) {
+            request.setAttribute("errorMessage", "Error processing request: " + e.getMessage());
+            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
         }
     }
     
@@ -210,6 +214,8 @@ public class AdminTourController extends HttpServlet {
             TourImageDAO tourImageDAO = new TourImageDAO();
             TripDAO tripDAO = new TripDAO();
             BookingDAO bookingDAO = new BookingDAO();
+            ReviewDAO reviewDAO = new ReviewDAO();
+            PromotionDAO promotionDAO = new PromotionDAO();
             
             Tour tour = tourDAO.getTourById(tourId);
             if (tour == null) {
@@ -254,11 +260,40 @@ public class AdminTourController extends HttpServlet {
                 booking.setUser(usersMap.get(booking.getAccountId()));
             }
             
+            // Get reviews for this tour
+            List<Review> tourReviews = reviewDAO.getReviewsByTour(tourId);
+            
+            // Get the average rating
+            double avgRating = reviewDAO.getAverageRatingForTour(tourId);
+            
+            // Get promotions linked to this tour
+            List<Promotion> tourPromotions = promotionDAO.getPromotionsForTour(tourId);
+            
+            // Get available promotions (all active ones that are not already linked)
+            List<Promotion> allActivePromotions = promotionDAO.getActivePromotions();
+            List<Promotion> availablePromotions = new ArrayList<>();
+            
+            // Filter out promotions that are already linked to this tour
+            Set<Integer> linkedPromotionIds = new HashSet<>();
+            for (Promotion p : tourPromotions) {
+                linkedPromotionIds.add(p.getId());
+            }
+            
+            for (Promotion p : allActivePromotions) {
+                if (!linkedPromotionIds.contains(p.getId())) {
+                    availablePromotions.add(p);
+                }
+            }
+            
             request.setAttribute("tour", tour);
             request.setAttribute("tourImages", images);
             request.setAttribute("tourSchedules", schedules);
             request.setAttribute("upcomingTrips", upcomingTrips);
             request.setAttribute("tourBookings", tourBookings);
+            request.setAttribute("tourReviews", tourReviews);
+            request.setAttribute("avgRating", avgRating);
+            request.setAttribute("tourPromotions", tourPromotions);
+            request.setAttribute("availablePromotions", availablePromotions);
             
             request.getRequestDispatcher("/admin/tour-detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -1753,6 +1788,8 @@ public class AdminTourController extends HttpServlet {
             
             boolean hasBookings = bookingDAO.tourHasBookings(tourId);
             
+            System.out.println("DEBUG - Checking tour ID: " + tourId + ", hasBookings: " + hasBookings);
+            
             if (hasBookings) {
                 response.getWriter().write("has-bookings");
             } else {
@@ -1844,19 +1881,24 @@ public class AdminTourController extends HttpServlet {
             response.setContentType("text/html;charset=UTF-8");
             
             int tripId = Integer.parseInt(request.getParameter("tripId"));
+            System.out.println("Loading bookings for trip ID: " + tripId);
             
             // Get trip details
             TripDAO tripDAO = new TripDAO();
             Trip trip = tripDAO.getTripById(tripId);
             
             if (trip == null) {
-                response.getWriter().write("<div class='alert alert-danger'>Trip not found</div>");
+                System.out.println("Error: Trip not found with ID: " + tripId);
+                response.getWriter().write("<div class='alert alert-danger'><i class='fas fa-exclamation-circle me-2'></i>Trip not found. The trip may have been deleted or does not exist.</div>");
                 return;
             }
+            
+            System.out.println("Trip found: " + trip.getId() + ", Tour ID: " + trip.getTourId() + ", Departure Date: " + trip.getDepartureDate());
             
             // Get bookings for this trip
             BookingDAO bookingDAO = new BookingDAO();
             List<Booking> bookings = bookingDAO.getBookingsByTripId(tripId);
+            System.out.println("Found " + bookings.size() + " bookings for trip ID: " + tripId);
             
             // Get user info for each booking
             UserDAO userDAO = new UserDAO();
@@ -1878,10 +1920,66 @@ public class AdminTourController extends HttpServlet {
             request.getRequestDispatcher("/admin/fragments/trip-bookings.jsp").forward(request, response);
             
         } catch (NumberFormatException e) {
-            response.getWriter().write("<div class='alert alert-danger'>Invalid trip ID</div>");
+            System.out.println("Error: Invalid trip ID format: " + e.getMessage());
+            response.getWriter().write("<div class='alert alert-danger'><i class='fas fa-exclamation-circle me-2'></i>Invalid trip ID format. Please provide a valid numeric ID.</div>");
         } catch (Exception e) {
-            response.getWriter().write("<div class='alert alert-danger'>Error loading trip bookings: " + e.getMessage() + "</div>");
+            System.out.println("Error loading trip bookings: " + e.getMessage());
             e.printStackTrace();
+            response.getWriter().write("<div class='alert alert-danger'><i class='fas fa-exclamation-circle me-2'></i>Error loading trip bookings: " + e.getMessage() + "</div>");
+        }
+    }
+
+    private void linkPromotionToTour(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        
+        try {
+            int tourId = Integer.parseInt(request.getParameter("tourId"));
+            int promotionId = Integer.parseInt(request.getParameter("promotionId"));
+            
+            PromotionDAO promotionDAO = new PromotionDAO();
+            boolean success = promotionDAO.linkPromotionToTour(tourId, promotionId);
+            
+            if (success) {
+                session.setAttribute("successMessage", "Promotion successfully linked to tour.");
+            } else {
+                session.setAttribute("errorMessage", "Failed to link promotion to tour.");
+            }
+            
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
+        } catch (NumberFormatException e) {
+            session.setAttribute("errorMessage", "Invalid tour or promotion ID");
+            response.sendRedirect(request.getContextPath() + "/admin/tours");
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Error linking promotion: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/admin/tours");
+        }
+    }
+    
+    private void unlinkPromotionFromTour(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        
+        try {
+            int tourId = Integer.parseInt(request.getParameter("tourId"));
+            int promotionId = Integer.parseInt(request.getParameter("promotionId"));
+            
+            PromotionDAO promotionDAO = new PromotionDAO();
+            boolean success = promotionDAO.unlinkPromotionFromTour(tourId, promotionId);
+            
+            if (success) {
+                session.setAttribute("successMessage", "Promotion successfully unlinked from tour.");
+            } else {
+                session.setAttribute("errorMessage", "Failed to unlink promotion from tour.");
+            }
+            
+            response.sendRedirect(request.getContextPath() + "/admin/tours/view?id=" + tourId);
+        } catch (NumberFormatException e) {
+            session.setAttribute("errorMessage", "Invalid tour or promotion ID");
+            response.sendRedirect(request.getContextPath() + "/admin/tours");
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Error unlinking promotion: " + e.getMessage());
+            response.sendRedirect(request.getContextPath() + "/admin/tours");
         }
     }
 }

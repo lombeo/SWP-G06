@@ -155,9 +155,18 @@
                                     </td>
                                     <td>
                                         <div class="d-flex">
-                                            <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
-                                                <i class="fas fa-receipt"></i>
-                                            </button>
+                                            <c:choose>
+                                                <c:when test="${tripHasBookingsMap[trip.id]}">
+                                                    <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button class="btn btn-sm btn-secondary me-2" disabled title="No bookings available for this trip">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                             <c:choose>
                                                 <c:when test="${tripHasBookingsMap[trip.id]}">
                                                     <button class="btn btn-sm btn-secondary me-2" disabled title="Cannot edit: Trip has active bookings">
@@ -249,9 +258,18 @@
                                     </td>
                                     <td>
                                         <div class="d-flex">
-                                            <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
-                                                <i class="fas fa-receipt"></i>
-                                            </button>
+                                            <c:choose>
+                                                <c:when test="${tripHasBookingsMap[trip.id]}">
+                                                    <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button class="btn btn-sm btn-secondary me-2" disabled title="No bookings available for this trip">
+                                                        <i class="fas fa-receipt"></i>
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                             <c:choose>
                                                 <c:when test="${tripHasBookingsMap[trip.id]}">
                                                     <button class="btn btn-sm btn-secondary me-2" disabled title="Cannot edit: Trip has active bookings">
@@ -296,29 +314,31 @@
     
     <!-- Trip Modals (for both active and inactive trips) -->
     <c:forEach var="trip" items="${trips}">
-        <!-- View Bookings Modal -->
-        <div class="modal fade" id="viewBookingsModal${trip.id}" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Bookings for Trip #${trip.id}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="text-center p-4 bookingsLoading${trip.id}">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Loading booking information...</p>
+        <c:if test="${tripHasBookingsMap[trip.id]}">
+            <!-- View Bookings Modal -->
+            <div class="modal fade" id="viewBookingsModal${trip.id}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Bookings for Trip #${trip.id}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div id="bookingsContent${trip.id}"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <div class="modal-body">
+                            <div class="text-center p-4 bookingsLoading${trip.id}">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">Loading booking information...</p>
+                            </div>
+                            <div id="bookingsContent${trip.id}"></div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </c:if>
         
         <!-- Edit Trip Modal -->
         <div class="modal fade" id="editTripModal${trip.id}" tabindex="-1" aria-hidden="true">
@@ -954,45 +974,48 @@ try {
             document.querySelectorAll('[data-bs-target^="#viewBookingsModal"]').forEach(button => {
                 const tripId = button.getAttribute('data-bs-target').replace('#viewBookingsModal', '');
                 
-                button.addEventListener('click', function() {
-                    const contentDiv = document.getElementById('bookingsContent' + tripId);
-                    const loadingDiv = document.querySelector('.bookingsLoading' + tripId);
-                    
-                    // Show loading indicator
-                    if (loadingDiv) loadingDiv.style.display = 'block';
-                    if (contentDiv) contentDiv.innerHTML = '';
-                    
-                    // Fetch trip bookings
-                    fetch('${pageContext.request.contextPath}/admin/tours/trip-bookings?tripId=' + tripId)
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Server returned ' + response.status + ' ' + response.statusText);
-                            }
-                            return response.text();
-                        })
-                        .then(html => {
-                            // Hide loading indicator
-                            if (loadingDiv) loadingDiv.style.display = 'none';
-                            
-                            // Check if content is empty
-                            if (html.trim() === '') {
-                                if (contentDiv) contentDiv.innerHTML = '<div class="alert alert-info">No bookings found for this trip.</div>';
-                                return;
-                            }
-                            
-                            // Display content
-                            if (contentDiv) contentDiv.innerHTML = html;
-                        })
-                        .catch(error => {
-                            console.error('Error loading trip bookings:', error);
-                            if (loadingDiv) loadingDiv.style.display = 'none';
-                            if (contentDiv) contentDiv.innerHTML = 
-                                '<div class="alert alert-danger">' +
-                                '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading booking information. Please try again.</p>' +
-                                '<p>Details: ' + error.message + '</p>' +
-                                '</div>';
-                        });
-                });
+                // Only add the event listener if the button is not disabled
+                if (!button.hasAttribute('disabled')) {
+                    button.addEventListener('click', function() {
+                        const contentDiv = document.getElementById('bookingsContent' + tripId);
+                        const loadingDiv = document.querySelector('.bookingsLoading' + tripId);
+                        
+                        // Show loading indicator
+                        if (loadingDiv) loadingDiv.style.display = 'block';
+                        if (contentDiv) contentDiv.innerHTML = '';
+                        
+                        // Fetch trip bookings
+                        fetch('${pageContext.request.contextPath}/admin/tours/trips/bookings?tripId=' + tripId)
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error('Server returned ' + response.status + ' ' + response.statusText);
+                                }
+                                return response.text();
+                            })
+                            .then(html => {
+                                // Hide loading indicator
+                                if (loadingDiv) loadingDiv.style.display = 'none';
+                                
+                                // Check if content is empty
+                                if (html.trim() === '') {
+                                    if (contentDiv) contentDiv.innerHTML = '<div class="alert alert-info">No bookings found for this trip.</div>';
+                                    return;
+                                }
+                                
+                                // Display content
+                                if (contentDiv) contentDiv.innerHTML = html;
+                            })
+                            .catch(error => {
+                                console.error('Error loading trip bookings:', error);
+                                if (loadingDiv) loadingDiv.style.display = 'none';
+                                if (contentDiv) contentDiv.innerHTML = 
+                                    '<div class="alert alert-danger">' +
+                                    '<p><i class="fas fa-exclamation-circle me-2"></i>Error loading booking information. Please try again.</p>' +
+                                    '<p>Details: ' + error.message + '</p>' +
+                                    '</div>';
+                            });
+                    });
+                }
             });
 
             // Validate trip form data

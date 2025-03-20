@@ -20,6 +20,59 @@ import model.User;
 @WebServlet(name = "ReviewServlet", urlPatterns = {"/review"})
 public class ReviewServlet extends HttpServlet {
 
+    private static final Logger LOGGER = Logger.getLogger(ReviewServlet.class.getName());
+
+    /**
+     * Utility method to create a safe redirect URL
+     * @param baseUrl base URL to redirect to
+     * @param paramName parameter name to add
+     * @param paramValue parameter value to add
+     * @return properly formatted URL with fragment
+     */
+    private String buildRedirectUrl(String baseUrl, String paramName, String paramValue) {
+        if (baseUrl == null || baseUrl.isEmpty()) {
+            return "home";
+        }
+        
+        // Extract the base part of the URL (without query parameters)
+        String basePart = baseUrl;
+        String queryPart = "";
+        String fragmentPart = "";
+        
+        // Handle URL fragment (#)
+        int fragmentIndex = baseUrl.indexOf('#');
+        if (fragmentIndex > 0) {
+            basePart = baseUrl.substring(0, fragmentIndex);
+            fragmentPart = baseUrl.substring(fragmentIndex);
+        }
+        
+        // Handle existing query parameters
+        int queryIndex = basePart.indexOf('?');
+        if (queryIndex > 0) {
+            queryPart = basePart.substring(queryIndex);
+            basePart = basePart.substring(0, queryIndex);
+        }
+        
+        // Build the new URL
+        StringBuilder newUrl = new StringBuilder(basePart);
+        
+        // Add the parameter
+        if (queryPart.isEmpty()) {
+            newUrl.append("?").append(paramName).append("=").append(paramValue);
+        } else {
+            newUrl.append(queryPart).append("&").append(paramName).append("=").append(paramValue);
+        }
+        
+        // Add the fragment back
+        if (fragmentPart.isEmpty()) {
+            newUrl.append("#reviews");
+        } else {
+            newUrl.append(fragmentPart);
+        }
+        
+        return newUrl.toString();
+    }
+
     /**
      * Handles the HTTP <code>POST</code> method for submitting reviews.
      * Validates user eligibility before allowing review submission.
@@ -32,15 +85,18 @@ public class ReviewServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        String referer = request.getHeader("Referer");
+        if (referer == null || referer.isEmpty()) {
+            referer = request.getContextPath() + "/home";
+        }
+        
         try {
             HttpSession session = request.getSession();
-            User user = (User) session.getAttribute("account");
+            User user = (User) session.getAttribute("user");
             
             // Check if user is logged in
             if (user == null) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Bạn cần đăng nhập để đánh giá tour.\"}");
+                response.sendRedirect(buildRedirectUrl(referer, "error", "login_required"));
                 return;
             }
             
@@ -52,9 +108,8 @@ public class ReviewServlet extends HttpServlet {
                 tourId = Integer.parseInt(request.getParameter("tourId"));
                 rating = Integer.parseInt(request.getParameter("rating"));
             } catch (NumberFormatException e) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Thông tin đánh giá không hợp lệ.\"}");
+                LOGGER.log(Level.WARNING, "Invalid tour ID or rating: {0}", e.getMessage());
+                response.sendRedirect(buildRedirectUrl(referer, "error", "invalid_data"));
                 return;
             }
             
@@ -65,9 +120,7 @@ public class ReviewServlet extends HttpServlet {
             
             // Validate rating (1-5)
             if (rating < 1 || rating > 5) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Đánh giá phải từ 1 đến 5 sao.\"}");
+                response.sendRedirect(buildRedirectUrl(referer, "error", "invalid_rating"));
                 return;
             }
             
@@ -75,17 +128,13 @@ public class ReviewServlet extends HttpServlet {
             
             // Check if user has already reviewed this tour
             if (reviewDAO.hasUserReviewedTour(tourId, user.getId())) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Bạn đã đánh giá tour này rồi.\"}");
+                response.sendRedirect(buildRedirectUrl(referer, "error", "already_reviewed"));
                 return;
             }
             
             // Check if user is eligible to review (has booked the tour and return date has passed)
             if (!reviewDAO.isUserEligibleToReview(tourId, user.getId())) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Bạn chỉ có thể đánh giá sau khi đã đặt tour và chuyến đi đã kết thúc.\"}");
+                response.sendRedirect(buildRedirectUrl(referer, "error", "not_eligible"));
                 return;
             }
             
@@ -101,24 +150,25 @@ public class ReviewServlet extends HttpServlet {
             int reviewId = reviewDAO.addReview(review);
             
             if (reviewId > 0) {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": true, \"message\": \"Cảm ơn bạn đã đánh giá tour!\"}");
+                // Successful review submission - redirect back to the tour detail
+                LOGGER.log(Level.INFO, "Review successfully added with ID: {0}", reviewId);
                 
-                // Redirect back to tour detail page with success message
-                String referer = request.getHeader("Referer");
-                if (referer != null && !referer.isEmpty()) {
-                    response.sendRedirect(referer + "#reviews");
-                } else {
-                    response.sendRedirect("tour-detail?id=" + tourId + "#reviews");
-                }
+                // Create a direct URL to the tour detail page instead of using referer
+                String successUrl = request.getContextPath() + "/tour-detail?id=" + tourId + "&success=true#reviews";
+                response.sendRedirect(successUrl);
             } else {
-                response.setContentType("application/json");
-                response.setCharacterEncoding("UTF-8");
-                response.getWriter().write("{\"success\": false, \"message\": \"Có lỗi xảy ra khi lưu đánh giá. Vui lòng thử lại sau.\"}");
+                LOGGER.log(Level.WARNING, "Failed to add review for tour: {0}", tourId);
+                response.sendRedirect(buildRedirectUrl(referer, "error", "save_failed"));
             }
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ReviewServlet.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            // Log the exception for troubleshooting
+            LOGGER.log(Level.SEVERE, "Error processing review: {0}", ex.getMessage());
+            ex.printStackTrace();
+            
+            // Use a direct URL to the error page with a better message
+            String errorUrl = request.getContextPath() + "/tour-detail?id=" + 
+                request.getParameter("tourId") + "&error=unexpected#reviews";
+            response.sendRedirect(errorUrl);
         }
     }
 

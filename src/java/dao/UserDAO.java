@@ -134,10 +134,47 @@ public class UserDAO {
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             String hashedPassword = PasswordHashing.hashPassword(newPassword);
+            System.out.println("Updating password for user " + userId + " with new hash: " + hashedPassword);
             ps.setString(1, hashedPassword);
             ps.setInt(2, userId);
-            ps.executeUpdate();
+            int rowsAffected = ps.executeUpdate();
+            System.out.println("Password update affected " + rowsAffected + " rows");
+            
+            // Verify the update was successful
+            if (rowsAffected > 0) {
+                System.out.println("Password updated successfully");
+            } else {
+                System.out.println("Password update failed - no rows affected");
+            }
         }
+    }
+
+    /**
+     * Get the hashed password for a user by their ID
+     * @param userId The user ID
+     * @return The hashed password or null if user not found
+     */
+    public String getUserPasswordHash(int userId) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT password FROM Account WHERE id = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    String password = rs.getString("password");
+                    if (password != null) {
+                        password = password.trim();
+                        System.out.println("Retrieved password hash for user " + userId + ": " + password);
+                    } else {
+                        System.out.println("Retrieved NULL password for user " + userId);
+                    }
+                    return password;
+                } else {
+                    System.out.println("No password found for user " + userId);
+                }
+            }
+        }
+        return null;
     }
 
     public User findByEmail(String email) throws SQLException, ClassNotFoundException {

@@ -15,7 +15,19 @@ public class PasswordHashing {
     }
     
     public static boolean verifyPassword(String inputPassword, String storedHash) throws NoSuchAlgorithmException {
+        if (storedHash == null || inputPassword == null) {
+            return false;
+        }
+        
+        // Trim any possible whitespace
+        storedHash = storedHash.trim();
         String hashedInput = hashPassword(inputPassword);
+        
+        // For debugging
+        System.out.println("Input password hash: " + hashedInput);
+        System.out.println("Stored password hash: " + storedHash);
+        System.out.println("Hashes match: " + hashedInput.equals(storedHash));
+        
         return hashedInput.equals(storedHash);
     }
 } 

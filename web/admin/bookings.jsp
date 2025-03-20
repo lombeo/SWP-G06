@@ -1,5 +1,6 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="dao.BookingDAO" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.text.SimpleDateFormat" %>
@@ -99,7 +100,7 @@
                                         <td>
                                             <c:forEach var="transaction" items="${booking.transactions}">
                                                 <c:if test="${transaction.transactionType == 'Payment'}">
-                                                    ${transaction.amount} VNĐ
+                                                    <fmt:formatNumber type="number" pattern="#,##0" value="${transaction.amount}" /> VNĐ
                                                 </c:if>
                                             </c:forEach>
                                         </td>
@@ -252,12 +253,16 @@
                                 <c:set var="queryString" value="${queryString}&sort=${param.sort}" />
                             </c:if>
                             
+                            <!-- Hidden field to store current action for JS -->
+                            <input type="hidden" name="current-action" value="bookings">
+                            
                             <jsp:include page="components/pagination.jsp">
                                 <jsp:param name="currentPage" value="${currentPage}" />
                                 <jsp:param name="itemsPerPage" value="${itemsPerPage}" />
                                 <jsp:param name="totalItems" value="${totalItems}" />
                                 <jsp:param name="totalPages" value="${totalPages}" />
                                 <jsp:param name="queryString" value="${queryString}" />
+                                <jsp:param name="action" value="bookings" />
                             </jsp:include>
                         </c:if>
                     </div>

@@ -127,7 +127,7 @@
             </select>
         </div>
         <div class="col-md-6 text-end">
-            <button id="applyFilters" class="btn btn-primary">Apply Filters</button>
+            <a id="applyFilters"></a>
         </div>
     </div>
     
@@ -318,16 +318,6 @@ document.addEventListener('DOMContentLoaded', function() {
         (Object.keys(serverData.tourBookingsByRegion).length > 0);
     
     console.log('Server data status:', hasServerData ? 'Data available' : 'No data available');
-    
-    // If no data available at all, we need to fetch it
-    if (!hasServerData) {
-        console.log('No data available from initial page load, fetching from server...');
-        
-        // Fetch real data from server after page loads
-        setTimeout(() => {
-            fetchDashboardData(selectedRegion, selectedYear);
-        }, 500); // Short delay to allow the page to render first
-    }
     
     // Function to sanitize chart data
     function sanitizeChartData(data) {

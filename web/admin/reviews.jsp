@@ -64,8 +64,8 @@
                             <label for="visibilityFilter" class="form-label">Review Visibility</label>
                             <select id="visibilityFilter" class="form-select">
                                 <option value="all" ${param.visibility == 'all' ? 'selected' : ''}>All Reviews</option>
-                                <option value="visible" ${param.visibility == 'visible' || empty param.visibility ? 'selected' : ''}>Visible Reviews</option>
-                                <option value="hidden" ${param.visibility == 'hidden' ? 'selected' : ''}>Hidden Reviews</option>
+                                <option value="visible" ${param.visibility == 'visible' || empty param.visibility ? 'selected' : ''}>Visible to Users</option>
+                                <option value="hidden" ${param.visibility == 'hidden' ? 'selected' : ''}>Hidden from Users</option>
                                 <option value="low_rated" ${param.visibility == 'low_rated' ? 'selected' : ''}>Low Rated (< 4 Stars)</option>
                             </select>
                         </div>
@@ -137,14 +137,30 @@
                                         for (Review review : reviews) {
                                             boolean isLowRated = review.getRating() < 4;
                                             boolean isHidden = review.isIsDelete();
+                                            boolean isVisibleToUsers = false;
                                             
-                                            if ("visible".equals(visibilityParam) && !isHidden) {
+                                            if (!isHidden) {
+                                                // High-rated reviews are visible by default
+                                                if (!isLowRated) {
+                                                    isVisibleToUsers = true;
+                                                } 
+                                                // Low-rated reviews are only visible if admin explicitly made them visible
+                                                else if (review.getDeletedDate() == null) {
+                                                    isVisibleToUsers = true;
+                                                }
+                                            }
+                                            
+                                            if ("visible".equals(visibilityParam) && isVisibleToUsers) {
+                                                // Only truly visible reviews (visible to end users)
                                                 filteredReviews.add(review);
-                                            } else if ("hidden".equals(visibilityParam) && isHidden) {
+                                            } else if ("hidden".equals(visibilityParam) && (!isVisibleToUsers || isHidden)) {
+                                                // All hidden reviews (both is_delete=1 and low-rated auto-hidden)
                                                 filteredReviews.add(review);
                                             } else if ("low_rated".equals(visibilityParam) && isLowRated) {
+                                                // All low-rated reviews
                                                 filteredReviews.add(review);
                                             } else if ("all".equals(visibilityParam)) {
+                                                // All reviews
                                                 filteredReviews.add(review);
                                             }
                                         }
@@ -160,6 +176,20 @@
                                         boolean isLowRated = review.getRating() < 4;
                                         boolean isHidden = review.isIsDelete();
                                         String rowClass = isHidden ? "table-secondary" : (isLowRated ? "table-warning" : "");
+                                        
+                                        // For low-rated reviews, they're automatically hidden from user view
+                                        // But admin might have manually made them visible
+                                        boolean isVisibleToUsers = false;
+                                        if (!isHidden) {
+                                            // High-rated reviews are visible by default
+                                            if (!isLowRated) {
+                                                isVisibleToUsers = true;
+                                            } 
+                                            // Low-rated reviews are only visible if admin explicitly made them visible
+                                            else if (review.getDeletedDate() == null) {
+                                                isVisibleToUsers = true;
+                                            }
+                                        }
                                         
                                         if (tour != null && user != null) {
                                 %>
@@ -189,8 +219,10 @@
                                     <td>
                                         <% if (isHidden) { %>
                                             <span class="badge bg-danger">Hidden</span>
-                                        <% } else if (isLowRated) { %>
+                                        <% } else if (isLowRated && !isVisibleToUsers) { %>
                                             <span class="badge bg-warning text-dark">Auto-Hidden</span>
+                                        <% } else if (isLowRated && isVisibleToUsers) { %>
+                                            <span class="badge bg-success">Visible (Admin Override)</span>
                                         <% } else { %>
                                             <span class="badge bg-success">Visible</span>
                                         <% } %>
@@ -205,7 +237,7 @@
                                                 <i class="fas fa-reply"></i>
                                             </button>
                                             
-                                            <% if (isHidden || isLowRated) { %>
+                                            <% if (!isVisibleToUsers) { %>
                                                 <button class="btn btn-sm btn-success toggle-visibility" 
                                                        data-id="<%= review.getId() %>" 
                                                        data-visibility="visible"
@@ -402,9 +434,22 @@
                     : 'Are you sure you want to hide this review from users?';
                 document.getElementById('toggleVisibilityMessage').textContent = message;
                 
-                const warning = visibility === 'visible' 
-                    ? 'Making a low-rated review visible may affect the overall tour rating and user perception.'
-                    : 'Hiding this review will prevent users from seeing it on the tour page.';
+                // Get the rating from the closest row
+                const row = this.closest('tr');
+                const ratingStars = row.querySelector('.rating-stars');
+                const isLowRated = ratingStars && ratingStars.querySelector('.badge.bg-warning') !== null;
+                
+                let warning = '';
+                if (visibility === 'visible') {
+                    if (isLowRated) {
+                        warning = 'This is a low-rated review (less than 4 stars). Making it visible will override the auto-hiding feature and display it to all users on the tour page.';
+                    } else {
+                        warning = 'Making this review visible will display it to all users on the tour page.';
+                    }
+                } else {
+                    warning = 'Hiding this review will prevent users from seeing it on the tour page.';
+                }
+                
                 document.getElementById('toggleVisibilityWarning').textContent = warning;
             });
         });

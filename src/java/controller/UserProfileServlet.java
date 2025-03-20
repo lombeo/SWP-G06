@@ -12,6 +12,7 @@ import jakarta.servlet.http.Part;
 import java.io.File;
 import java.io.IOException;
 import model.User;
+import utils.PasswordHashing;
 
 @WebServlet(name = "UserProfileServlet", urlPatterns = {"/user-profile"})
 @MultipartConfig(
@@ -97,11 +98,29 @@ public class UserProfileServlet extends HttpServlet {
                 String newPassword = request.getParameter("newPassword");
                 String confirmPassword = request.getParameter("confirmPassword");
                 
+                System.out.println("Password change attempt for user: " + sessionUser.getId());
+                
                 if (!newPassword.equals(confirmPassword)) {
                     request.setAttribute("error", "Mật khẩu xác nhận không khớp");
                 } else {
-                    userDAO.updatePassword(sessionUser.getId(), newPassword);
-                    request.setAttribute("success", "Đổi mật khẩu thành công");
+                    try {
+                        // Verify the current password is correct
+                        String storedHash = userDAO.getUserPasswordHash(sessionUser.getId());
+                        System.out.println("Retrieved stored hash: " + (storedHash != null ? "Not null" : "NULL"));
+                        
+                        if (storedHash != null && PasswordHashing.verifyPassword(currentPassword, storedHash)) {
+                            System.out.println("Password verification successful");
+                            userDAO.updatePassword(sessionUser.getId(), newPassword);
+                            request.setAttribute("success", "Đổi mật khẩu thành công");
+                        } else {
+                            System.out.println("Password verification failed");
+                            request.setAttribute("error", "Mật khẩu hiện tại không chính xác");
+                        }
+                    } catch (Exception e) {
+                        System.out.println("Error during password verification: " + e.getMessage());
+                        e.printStackTrace();
+                        request.setAttribute("error", "Lỗi xác nhận mật khẩu: " + e.getMessage());
+                    }
                 }
             }
             

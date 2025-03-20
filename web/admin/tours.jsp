@@ -761,9 +761,11 @@
                 const deleteBtn = actionGroup.querySelector('.delete-tour-btn');
                 
                 // Call the server to check if the tour has bookings
-                fetch('${pageContext.request.contextPath}/admin/tours?action=check-tour-bookings&id=' + tourId)
+                fetch('${pageContext.request.contextPath}/admin/tours/check-tour-bookings?id=' + tourId)
                     .then(response => response.text())
                     .then(data => {
+                        console.log('Tour #' + tourId + ' booking check response:', data);
+                        
                         if (data.includes('has-bookings')) {
                             console.log('Tour #' + tourId + ' has bookings, disabling edit/delete');
                             
