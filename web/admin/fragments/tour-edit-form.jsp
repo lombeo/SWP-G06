@@ -18,9 +18,9 @@
     
     <div class="row mb-3">
         <div class="col-md-6">
-            <label for="departureLocationId" class="form-label">Departure Location</label>
+            <label for="departureLocationId" class="form-label">Destination Location</label>
             <select class="form-select" id="departureLocationId" name="departureLocationId" required>
-                <option value="">Select departure city</option>
+                <option value="">Select destination city</option>
                 <c:forEach var="city" items="${cities}">
                     <option value="${city.id}" ${city.id == tour.departureLocationId ? 'selected' : ''}>${city.name}</option>
                 </c:forEach>

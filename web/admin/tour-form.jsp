@@ -42,9 +42,9 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="departureLocationId" class="form-label">Departure Location</label>
+                            <label for="departureLocationId" class="form-label">Destination Location</label>
                             <select class="form-select" id="departureLocationId" name="departureLocationId" required>
-                                <option value="" selected disabled>Select a departure city</option>
+                                <option value="" selected disabled>Select a destination city</option>
                                 <c:forEach var="city" items="${cities}">
                                     <option value="${city.id}">${city.name}</option>
                                 </c:forEach>

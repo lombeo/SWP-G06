@@ -94,7 +94,7 @@
                                         </div>
                                         
                                         <div class="mb-3">
-                                            <label for="destinationCityId${trip.id}" class="form-label">Destination</label>
+                                            <label for="destinationCityId${trip.id}" class="form-label">Departure City</label>
                                             <select class="form-select" id="destinationCityId${trip.id}" name="destinationCityId" required>
                                                 <c:forEach var="city" items="${cities}">
                                                     <option value="${city.id}" ${city.id == trip.destinationCityId ? 'selected' : ''}>

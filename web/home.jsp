@@ -158,7 +158,7 @@
                             </div>
                             <div class="flex gap-4">
                                 <select name="departure" class="w-full pl-10 pr-4 py-2 border rounded hover:border-blue-500 focus:border-blue-500 focus:outline-none transition">
-                                    <option value="">Khởi hành từ</option>
+                                    <option value="">Điểm đến</option>
                                     <% 
                                     if (cities != null) {
                                         for(City city : cities) { 
@@ -273,7 +273,7 @@
                                     </div>
                                     <div class="flex items-center gap-2 text-sm text-gray-600 mb-4"> 
                                         <span class="material-symbols-outlined">location_on</span> 
-                                        <span>Khởi hành từ: <%= tour.getDepartureCity() %></span> 
+                                        <span>Điểm đến: <%= tour.getDepartureCity() %></span> 
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <div>
@@ -333,7 +333,7 @@
                                     </div>
                                     <div class="flex items-center gap-2 text-sm text-gray-600 mb-4"> 
                                         <span class="material-symbols-outlined">location_on</span> 
-                                        <span>Khởi hành từ: <%= tour.getDepartureCity() %></span> 
+                                        <span>Điểm đến: <%= tour.getDepartureCity() %></span> 
                                     </div>
                                     <div class="flex items-center justify-between">
                                         <div>

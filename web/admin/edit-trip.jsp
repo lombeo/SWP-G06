@@ -93,7 +93,7 @@
                                                value="${trip.availableSlot}" min="1" required>
                                     </div>
                                     <div class="col-md-6">
-                                        <label for="destinationCityId" class="form-label">Destination</label>
+                                        <label for="destinationCityId" class="form-label">Departure City</label>
                                         <select class="form-select" id="destinationCityId" name="destinationCityId" required>
                                             <c:forEach var="city" items="${cities}">
                                                 <option value="${city.id}" ${city.id == trip.destinationCityId ? 'selected' : ''}>

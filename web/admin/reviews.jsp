@@ -35,7 +35,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row mb-3">
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <label for="tourFilter" class="form-label">Select Tour</label>
                             <select id="tourFilter" class="form-select">
                                 <option value="">All Tours</option>
@@ -49,7 +49,7 @@
                                 <% } %>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2">
+                        <div class="col-md-3 mb-2">
                             <label for="ratingFilter" class="form-label">Filter by Rating</label>
                             <select id="ratingFilter" class="form-select">
                                 <option value="">All Ratings</option>
@@ -60,10 +60,34 @@
                                 <option value="1" ${param.rating == '1' ? 'selected' : ''}>1 Star</option>
                             </select>
                         </div>
-                        <div class="col-md-4 mb-2 d-flex align-items-end">
+                        <div class="col-md-3 mb-2">
+                            <label for="visibilityFilter" class="form-label">Review Visibility</label>
+                            <select id="visibilityFilter" class="form-select">
+                                <option value="all" ${param.visibility == 'all' ? 'selected' : ''}>All Reviews</option>
+                                <option value="visible" ${param.visibility == 'visible' || empty param.visibility ? 'selected' : ''}>Visible Reviews</option>
+                                <option value="hidden" ${param.visibility == 'hidden' ? 'selected' : ''}>Hidden Reviews</option>
+                                <option value="low_rated" ${param.visibility == 'low_rated' ? 'selected' : ''}>Low Rated (< 4 Stars)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2 d-flex align-items-end">
                             <button id="applyFilters" class="btn btn-primary">
                                 <i class="fas fa-filter me-1"></i> Apply Filters
                             </button>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mb-4">
+                        <div class="d-flex">
+                            <div class="me-3">
+                                <i class="fas fa-info-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="alert-heading">Review Visibility Management</h5>
+                                <p class="mb-0">
+                                    Reviews with less than 4 stars are automatically hidden from users on the tour page. 
+                                    You can toggle visibility using the buttons below.
+                                </p>
+                            </div>
                         </div>
                     </div>
                     
@@ -78,6 +102,7 @@
                                     <th>Comment</th>
                                     <th>Date</th>
                                     <th>Admin Feedback</th>
+                                    <th>Visibility</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -88,6 +113,7 @@
                                     
                                     String tourIdParam = request.getParameter("tourId");
                                     String ratingParam = request.getParameter("rating");
+                                    String visibilityParam = request.getParameter("visibility");
                                     
                                     List<Review> reviews;
                                     if (tourIdParam != null && !tourIdParam.isEmpty()) {
@@ -105,15 +131,39 @@
                                         reviews = reviewDAO.getAllReviews();
                                     }
                                     
+                                    // Apply visibility filter if needed
+                                    List<Review> filteredReviews = new java.util.ArrayList<>();
+                                    if (visibilityParam != null) {
+                                        for (Review review : reviews) {
+                                            boolean isLowRated = review.getRating() < 4;
+                                            boolean isHidden = review.isIsDelete();
+                                            
+                                            if ("visible".equals(visibilityParam) && !isHidden) {
+                                                filteredReviews.add(review);
+                                            } else if ("hidden".equals(visibilityParam) && isHidden) {
+                                                filteredReviews.add(review);
+                                            } else if ("low_rated".equals(visibilityParam) && isLowRated) {
+                                                filteredReviews.add(review);
+                                            } else if ("all".equals(visibilityParam)) {
+                                                filteredReviews.add(review);
+                                            }
+                                        }
+                                        reviews = filteredReviews;
+                                    }
+                                    
                                     SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
                                     
                                     for (Review review : reviews) {
                                         Tour tour = tourDAO.getTourById(review.getTourId());
                                         User user = userDAO.getUserById(review.getAccountId());
                                         
+                                        boolean isLowRated = review.getRating() < 4;
+                                        boolean isHidden = review.isIsDelete();
+                                        String rowClass = isHidden ? "table-secondary" : (isLowRated ? "table-warning" : "");
+                                        
                                         if (tour != null && user != null) {
                                 %>
-                                <tr>
+                                <tr class="<%= rowClass %>">
                                     <td><%= review.getId() %></td>
                                     <td><a href="${pageContext.request.contextPath}/admin/tours/view?id=<%= tour.getId() %>"><%= tour.getName() %></a></td>
                                     <td><%= user.getFullName() %> (<%= user.getEmail() %>)</td>
@@ -121,6 +171,9 @@
                                         <div class="rating-stars">
                                             <% for (int i = 1; i <= 5; i++) { %>
                                                 <i class="fas fa-star <%= i <= review.getRating() ? "text-warning" : "text-muted" %>"></i>
+                                            <% } %>
+                                            <% if (isLowRated) { %>
+                                                <span class="badge bg-warning text-dark ms-2">Low Rating</span>
                                             <% } %>
                                         </div>
                                     </td>
@@ -134,6 +187,15 @@
                                         <% } %>
                                     </td>
                                     <td>
+                                        <% if (isHidden) { %>
+                                            <span class="badge bg-danger">Hidden</span>
+                                        <% } else if (isLowRated) { %>
+                                            <span class="badge bg-warning text-dark">Auto-Hidden</span>
+                                        <% } else { %>
+                                            <span class="badge bg-success">Visible</span>
+                                        <% } %>
+                                    </td>
+                                    <td>
                                         <div class="btn-group" role="group">
                                             <button class="btn btn-sm btn-primary add-feedback" 
                                                     data-id="<%= review.getId() %>" 
@@ -142,7 +204,29 @@
                                                     data-bs-target="#feedbackModal">
                                                 <i class="fas fa-reply"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-danger delete-review" data-id="<%= review.getId() %>" data-bs-toggle="modal" data-bs-target="#deleteReviewModal">
+                                            
+                                            <% if (isHidden || isLowRated) { %>
+                                                <button class="btn btn-sm btn-success toggle-visibility" 
+                                                       data-id="<%= review.getId() %>" 
+                                                       data-visibility="visible"
+                                                       data-bs-toggle="modal" 
+                                                       data-bs-target="#toggleVisibilityModal">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                            <% } else { %>
+                                                <button class="btn btn-sm btn-warning toggle-visibility" 
+                                                       data-id="<%= review.getId() %>" 
+                                                       data-visibility="hidden"
+                                                       data-bs-toggle="modal" 
+                                                       data-bs-target="#toggleVisibilityModal">
+                                                    <i class="fas fa-eye-slash"></i>
+                                                </button>
+                                            <% } %>
+                                            
+                                            <button class="btn btn-sm btn-danger delete-review" 
+                                                   data-id="<%= review.getId() %>" 
+                                                   data-bs-toggle="modal" 
+                                                   data-bs-target="#deleteReviewModal">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
@@ -177,6 +261,39 @@
                 <form id="deleteReviewForm" action="${pageContext.request.contextPath}/admin/reviews/delete" method="post">
                     <input type="hidden" id="reviewIdToDelete" name="reviewId" value="">
                     <button type="submit" class="btn btn-danger">Delete</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toggle Visibility Modal -->
+<div class="modal fade" id="toggleVisibilityModal" tabindex="-1" aria-labelledby="toggleVisibilityModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="toggleVisibilityModalLabel">
+                    <i class="fas fa-eye me-2"></i>Toggle Review Visibility
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="toggleVisibilityMessage">
+                    Are you sure you want to change the visibility of this review?
+                </p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span id="toggleVisibilityWarning">
+                        Changing the visibility of a low-rated review will make it visible to all users on the tour page.
+                    </span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="toggleVisibilityForm" action="${pageContext.request.contextPath}/admin/reviews/toggle-visibility" method="post">
+                    <input type="hidden" id="reviewIdToToggle" name="reviewId" value="">
+                    <input type="hidden" id="visibilityValue" name="isVisible" value="">
+                    <button type="submit" class="btn btn-primary">Confirm</button>
                 </form>
             </div>
         </div>
@@ -242,6 +359,7 @@
         document.getElementById('applyFilters').addEventListener('click', function() {
             const tourId = document.getElementById('tourFilter').value;
             const rating = document.getElementById('ratingFilter').value;
+            const visibility = document.getElementById('visibilityFilter').value;
             
             let url = '${pageContext.request.contextPath}/admin?action=reviews';
             
@@ -253,6 +371,10 @@
                 url += '&rating=' + rating;
             }
             
+            if (visibility) {
+                url += '&visibility=' + visibility;
+            }
+            
             window.location.href = url;
         });
         
@@ -262,6 +384,28 @@
             button.addEventListener('click', function() {
                 const reviewId = this.getAttribute('data-id');
                 document.getElementById('reviewIdToDelete').value = reviewId;
+            });
+        });
+        
+        // Handle toggle visibility button clicks
+        const toggleButtons = document.querySelectorAll('.toggle-visibility');
+        toggleButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const reviewId = this.getAttribute('data-id');
+                const visibility = this.getAttribute('data-visibility');
+                
+                document.getElementById('reviewIdToToggle').value = reviewId;
+                document.getElementById('visibilityValue').value = visibility === 'visible' ? 'true' : 'false';
+                
+                const message = visibility === 'visible' 
+                    ? 'Are you sure you want to make this review visible to all users?' 
+                    : 'Are you sure you want to hide this review from users?';
+                document.getElementById('toggleVisibilityMessage').textContent = message;
+                
+                const warning = visibility === 'visible' 
+                    ? 'Making a low-rated review visible may affect the overall tour rating and user perception.'
+                    : 'Hiding this review will prevent users from seeing it on the tour page.';
+                document.getElementById('toggleVisibilityWarning').textContent = warning;
             });
         });
         

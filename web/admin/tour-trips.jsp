@@ -5,6 +5,49 @@
     <jsp:param name="active" value="tours"/>
 </jsp:include>
 
+<!-- Custom CSS styles for trip tables -->
+<style>
+    .table-row-inactive {
+        background-color: #f8f9fa;
+    }
+    
+    #activeTripsTable tbody tr:hover {
+        background-color: #e8f5e9 !important;
+    }
+    
+    #inactiveTripsTable tbody tr:hover {
+        background-color: #f5f5f5 !important;
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.35em 0.65em;
+    }
+    
+    .rounded-pill {
+        padding-left: 0.8em;
+        padding-right: 0.8em;
+    }
+    
+    .table-success {
+        background-color: #e8f5e9 !important;
+    }
+    
+    .table-secondary {
+        background-color: #f5f5f5 !important;
+    }
+    
+    .table-row-inactive td {
+        color: #6c757d;
+    }
+    
+    /* Trip count badges */
+    .card-header .badge {
+        font-size: 1rem;
+        padding: 0.5em 0.8em;
+    }
+</style>
+
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
@@ -47,7 +90,7 @@
         <div class="card-body">
             <div class="row mb-3">
                 <div class="col-md-4">
-                    <strong>Departure City:</strong> ${departureCity.name}
+                    <strong>Destination City:</strong> ${departureCity.name}
                 </div>
                 <div class="col-md-4">
                     <strong>Duration:</strong> ${tour.duration}
@@ -56,238 +99,348 @@
         </div>
     </div>
 
+    <!-- Active Trips Table -->
     <div class="card shadow mb-4">
-        <div class="card-header py-3">
-            <h6 class="m-0 font-weight-bold text-primary">Trip Schedule</h6>
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-success"><i class="fas fa-check-circle me-2"></i>Active Trips</h6>
+            <span class="badge bg-success rounded-pill" id="activeTripsCount">0</span>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-bordered" id="tripsTable" width="100%" cellspacing="0">
-                    <thead>
+                <table class="table table-bordered table-hover" id="activeTripsTable" width="100%" cellspacing="0">
+                    <thead class="table-success">
                         <tr>
                             <th>ID</th>
                             <th>Departure Date</th>
                             <th>Return Date</th>
                             <th>Start/End Time</th>
                             <th>Available Slots</th>
+                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
+                        <% 
+                            int activeTripsCount = 0;
+                            java.util.Date today = new java.util.Date(); 
+                        %>
                         <c:forEach var="trip" items="${trips}">
-                            <tr>
-                                <td>${trip.id}</td>
-                                <td><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></td>
-                                <td><fmt:formatDate value="${trip.returnDate}" pattern="dd/MM/yyyy" /></td>
-                                <td>${trip.startTime} - ${trip.endTime}</td>
-                                <td>${trip.availableSlot}</td>
-                                <td>
-                                    <div class="d-flex">
-                                        <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}">
-                                            <i class="fas fa-receipt"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}">
-                                            <i class="fas fa-edit"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            
-                            <!-- View Bookings Modal -->
-                            <div class="modal fade" id="viewBookingsModal${trip.id}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <div class="modal-header">
-                                            <h5 class="modal-title">Bookings for Trip #${trip.id}</h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <c:if test="${(not trip.isIsDelete()) && (trip.departureDate.time > pageContext.session.creationTime) && (trip.availableSlot > 0)}">
+                                <% activeTripsCount++; %>
+                                <tr>
+                                    <td>${trip.id}</td>
+                                    <td><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></td>
+                                    <td><fmt:formatDate value="${trip.returnDate}" pattern="dd/MM/yyyy" /></td>
+                                    <td>${trip.startTime} - ${trip.endTime}</td>
+                                    <td>
+                                        <span class="fw-bold ${trip.availableSlot > 5 ? 'text-success' : 'text-warning'}">${trip.availableSlot}</span> / ${tour.maxCapacity}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex">
+                                            <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
+                                                <i class="fas fa-receipt"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
                                         </div>
-                                        <div class="modal-body">
-                                            <div class="text-center p-4 bookingsLoading${trip.id}">
-                                                <div class="spinner-border text-primary" role="status">
-                                                    <span class="visually-hidden">Loading...</span>
-                                                </div>
-                                                <p class="mt-2">Loading booking information...</p>
-                                            </div>
-                                            <div id="bookingsContent${trip.id}"></div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Edit Trip Modal -->
-                            <div class="modal fade" id="editTripModal${trip.id}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content">
-                                        <form action="${pageContext.request.contextPath}/admin/tours" method="post" id="editTripForm${trip.id}" class="needs-validation" novalidate>
-                                            <input type="hidden" name="action" value="update-trip">
-                                            <input type="hidden" name="tripId" value="${trip.id}">
-                                            <input type="hidden" name="tourId" value="${tour.id}">
-                                            <input type="hidden" name="isDelete" value="${trip.isIsDelete()}">
-                                            
-                                            <div class="modal-header bg-primary text-white">
-                                                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Trip #${trip.id}</h5>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                <div class="alert alert-info mb-4">
-                                                    <i class="fas fa-info-circle me-2"></i> Edit trip details below. All fields are required.
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="departureCityId${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-map-marker-alt me-1"></i> Departure City
-                                                            </label>
-                                                            <input type="text" class="form-control" value="${departureCity != null ? departureCity.name : 'Default Departure City'}" readonly>
-                                                            <input type="hidden" id="departureCityId${trip.id}" name="departureCityId" value="${trip.departureCityId}" required>
-                                                            <div class="form-text">Departure city cannot be changed</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="destinationCityId${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-map-marker-alt me-1"></i> Destination City
-                                                            </label>
-                                                            <select class="form-select" id="destinationCityId${trip.id}" name="destinationCityId" required>
-                                                                <c:forEach var="city" items="${allCities}">
-                                                                    <option value="${city.id}" ${city.id == trip.destinationCityId ? 'selected' : ''}>
-                                                                        ${city.name}
-                                                                    </option>
-                                                                </c:forEach>
-                                                            </select>
-                                                            <div class="form-text">Select destination city</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="departureDate${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-calendar-alt me-1"></i> Departure Date
-                                                            </label>
-                                                            <fmt:formatDate value="${trip.departureDate}" pattern="yyyy-MM-dd" var="formattedDepartureDate" />
-                                                            <input type="date" class="form-control" id="departureDate${trip.id}" name="departureDate" 
-                                                                value="${formattedDepartureDate}" required>
-                                                            <div class="form-text">Format: YYYY-MM-DD</div>
-                                                            <div class="invalid-feedback">Please provide a valid departure date.</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="returnDate${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-calendar-check me-1"></i> Return Date
-                                                            </label>
-                                                            <fmt:formatDate value="${trip.returnDate}" pattern="yyyy-MM-dd" var="formattedReturnDate" />
-                                                            <input type="date" class="form-control" id="returnDate${trip.id}" name="returnDate" 
-                                                                value="${formattedReturnDate}" required>
-                                                            <div class="form-text">Format: YYYY-MM-DD</div>
-                                                            <div class="invalid-feedback">Please provide a valid return date.</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="startTime${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-clock me-1"></i> Start Time
-                                                            </label>
-                                                            <input type="time" class="form-control" id="startTime${trip.id}" name="startTime" 
-                                                                value="${trip.startTime}" required>
-                                                            <div class="form-text">Format: HH:MM (24-hour)</div>
-                                                            <div class="invalid-feedback">Please provide a valid start time.</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="endTime${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-clock me-1"></i> End Time
-                                                            </label>
-                                                            <input type="time" class="form-control" id="endTime${trip.id}" name="endTime" 
-                                                                value="${trip.endTime}" required>
-                                                            <div class="form-text">Format: HH:MM (24-hour)</div>
-                                                            <div class="invalid-feedback">Please provide a valid end time.</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                
-                                                <div class="row mb-3">
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="availableSlot${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-users me-1"></i> Available Slots
-                                                            </label>
-                                                            <input type="number" class="form-control" id="availableSlot${trip.id}" name="availableSlots" 
-                                                                value="${trip.availableSlot}" min="0" max="${tour.maxCapacity}" required>
-                                                            <div class="form-text">Maximum capacity: ${tour.maxCapacity}</div>
-                                                            <div class="invalid-feedback">Please provide a valid number of available slots.</div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <div class="form-group">
-                                                            <label for="status${trip.id}" class="form-label fw-bold">
-                                                                <i class="fas fa-toggle-on me-1"></i> Status
-                                                            </label>
-                                                            <select class="form-select" id="status${trip.id}" name="status">
-                                                                <option value="active" ${!trip.isIsDelete() ? 'selected' : ''}>Active</option>
-                                                                <option value="inactive" ${trip.isIsDelete() ? 'selected' : ''}>Inactive</option>
-                                                            </select>
-                                                            <div class="form-text">Current status of the trip</div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div class="modal-footer bg-light">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                    <i class="fas fa-times me-1"></i> Cancel
-                                                </button>
-                                                <button type="button" class="btn btn-primary" onclick="submitEditTripForm('${trip.id}')">
-                                                    <i class="fas fa-save me-1"></i> Save Changes
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Delete Trip Modal -->
-                            <div class="modal fade" id="deleteTripModal${trip.id}" tabindex="-1" aria-hidden="true">
-                                <div class="modal-dialog">
-                                    <div class="modal-content">
-                                        <form action="${pageContext.request.contextPath}/admin/tours" method="post" id="deleteTripForm${trip.id}">
-                                            <input type="hidden" name="action" value="delete-trip">
-                                            <input type="hidden" name="tripId" value="${trip.id}">
-                                            <input type="hidden" name="tourId" value="${tour.id}">
-                                            
-                                            <div class="modal-header">
-                                                <h5 class="modal-title">Confirm Delete</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                Are you sure you want to delete this trip scheduled for <strong><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></strong>? This action cannot be undone.
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                <button type="submit" class="btn btn-danger">Delete</button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
+                                    </td>
+                                </tr>
+                            </c:if>
                         </c:forEach>
                     </tbody>
                 </table>
+                <% if (activeTripsCount == 0) { %>
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i> No active trips available. 
+                        <button class="btn btn-sm btn-success ms-3" data-bs-toggle="modal" data-bs-target="#addTripModal">
+                            <i class="fas fa-plus me-1"></i> Add a new trip
+                        </button>
+                    </div>
+                <% } %>
             </div>
         </div>
     </div>
+    
+    <!-- Inactive Trips Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-secondary"><i class="fas fa-ban me-2"></i>Inactive/Unavailable Trips</h6>
+            <span class="badge bg-secondary rounded-pill" id="inactiveTripsCount">0</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="inactiveTripsTable" width="100%" cellspacing="0">
+                    <thead class="table-secondary">
+                        <tr>
+                            <th>ID</th>
+                            <th>Departure Date</th>
+                            <th>Return Date</th>
+                            <th>Start/End Time</th>
+                            <th>Available Slots</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% 
+                            int inactiveTripsCount = 0;
+                        %>
+                        <c:forEach var="trip" items="${trips}">
+                            <c:if test="${trip.isIsDelete() || (trip.departureDate.time <= pageContext.session.creationTime) || (trip.availableSlot <= 0)}">
+                                <% inactiveTripsCount++; %>
+                                <tr class="table-row-inactive">
+                                    <td>${trip.id}</td>
+                                    <td><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></td>
+                                    <td><fmt:formatDate value="${trip.returnDate}" pattern="dd/MM/yyyy" /></td>
+                                    <td>${trip.startTime} - ${trip.endTime}</td>
+                                    <td>${trip.availableSlot} / ${tour.maxCapacity}</td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${trip.isIsDelete()}">
+                                                <span class="badge bg-danger">Deleted</span>
+                                            </c:when>
+                                            <c:when test="${trip.departureDate.time <= pageContext.session.creationTime}">
+                                                <span class="badge bg-warning text-dark">Past Trip</span>
+                                            </c:when>
+                                            <c:when test="${trip.availableSlot <= 0}">
+                                                <span class="badge bg-info">Fully Booked</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-secondary">Inactive</span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex">
+                                            <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
+                                                <i class="fas fa-receipt"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </c:if>
+                        </c:forEach>
+                    </tbody>
+                </table>
+                <% if (inactiveTripsCount == 0) { %>
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle me-2"></i> No inactive trips found.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Update the trip counts
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('activeTripsCount').innerText = <%= activeTripsCount %>;
+            document.getElementById('inactiveTripsCount').innerText = <%= inactiveTripsCount %>;
+        });
+    </script>
+    
+    <!-- Trip Modals (for both active and inactive trips) -->
+    <c:forEach var="trip" items="${trips}">
+        <!-- View Bookings Modal -->
+        <div class="modal fade" id="viewBookingsModal${trip.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Bookings for Trip #${trip.id}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center p-4 bookingsLoading${trip.id}">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading booking information...</p>
+                        </div>
+                        <div id="bookingsContent${trip.id}"></div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Edit Trip Modal -->
+        <div class="modal fade" id="editTripModal${trip.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <form action="${pageContext.request.contextPath}/admin/tours" method="post" id="editTripForm${trip.id}" class="needs-validation" novalidate>
+                        <input type="hidden" name="action" value="update-trip">
+                        <input type="hidden" name="tripId" value="${trip.id}">
+                        <input type="hidden" name="tourId" value="${tour.id}">
+                        <input type="hidden" name="isDelete" value="${trip.isIsDelete()}">
+                        
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Edit Trip #${trip.id}</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-info mb-4">
+                                <i class="fas fa-info-circle me-2"></i> Edit trip details below. All fields are required.
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="departureCityId${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-map-marker-alt me-1"></i> Destination City
+                                        </label>
+                                        <input type="text" class="form-control" value="${departureCity != null ? departureCity.name : 'Default Destination City'}" readonly>
+                                        <input type="hidden" id="departureCityId${trip.id}" name="departureCityId" value="${trip.departureCityId}" required>
+                                        <div class="form-text">Destination city cannot be changed</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="destinationCityId${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-map-marker-alt me-1"></i> Destination City
+                                        </label>
+                                        <select class="form-select" id="destinationCityId${trip.id}" name="destinationCityId" required>
+                                            <c:forEach var="city" items="${allCities}">
+                                                <option value="${city.id}" ${city.id == trip.destinationCityId ? 'selected' : ''}>
+                                                    ${city.name}
+                                                </option>
+                                            </c:forEach>
+                                        </select>
+                                        <div class="form-text">Select destination city</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="departureDate${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-calendar-alt me-1"></i> Departure Date
+                                        </label>
+                                        <fmt:formatDate value="${trip.departureDate}" pattern="yyyy-MM-dd" var="formattedDepartureDate" />
+                                        <input type="date" class="form-control" id="departureDate${trip.id}" name="departureDate" 
+                                            value="${formattedDepartureDate}" required>
+                                        <div class="form-text">Format: YYYY-MM-DD</div>
+                                        <div class="invalid-feedback">Please provide a valid departure date.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="returnDate${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-calendar-check me-1"></i> Return Date
+                                        </label>
+                                        <fmt:formatDate value="${trip.returnDate}" pattern="yyyy-MM-dd" var="formattedReturnDate" />
+                                        <input type="date" class="form-control" id="returnDate${trip.id}" name="returnDate" 
+                                            value="${formattedReturnDate}" required>
+                                        <div class="form-text">Format: YYYY-MM-DD</div>
+                                        <div class="invalid-feedback">Please provide a valid return date.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="startTime${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-clock me-1"></i> Start Time
+                                        </label>
+                                        <input type="time" class="form-control" id="startTime${trip.id}" name="startTime" 
+                                            value="${trip.startTime}" required>
+                                        <div class="form-text">Format: HH:MM (24-hour)</div>
+                                        <div class="invalid-feedback">Please provide a valid start time.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="endTime${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-clock me-1"></i> End Time
+                                        </label>
+                                        <input type="time" class="form-control" id="endTime${trip.id}" name="endTime" 
+                                            value="${trip.endTime}" required>
+                                        <div class="form-text">Format: HH:MM (24-hour)</div>
+                                        <div class="invalid-feedback">Please provide a valid end time.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="availableSlot${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-users me-1"></i> Available Slots
+                                        </label>
+                                        <input type="number" class="form-control" id="availableSlot${trip.id}" name="availableSlots" 
+                                            value="${trip.availableSlot}" min="0" max="${tour.maxCapacity}" required>
+                                        <div class="form-text">Maximum capacity: ${tour.maxCapacity}</div>
+                                        <div class="invalid-feedback">Please provide a valid number of available slots.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="status${trip.id}" class="form-label fw-bold">
+                                            <i class="fas fa-toggle-on me-1"></i> Status
+                                        </label>
+                                        <select class="form-select" id="status${trip.id}" name="status">
+                                            <option value="active" ${!trip.isIsDelete() ? 'selected' : ''}>Active</option>
+                                            <option value="inactive" ${trip.isIsDelete() ? 'selected' : ''}>Inactive</option>
+                                        </select>
+                                        <div class="form-text">Current status of the trip</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i> Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="submitEditTripForm('${trip.id}')">
+                                <i class="fas fa-save me-1"></i> Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Delete Trip Modal -->
+        <div class="modal fade" id="deleteTripModal${trip.id}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form action="${pageContext.request.contextPath}/admin/tours" method="post" id="deleteTripForm${trip.id}">
+                        <input type="hidden" name="action" value="delete-trip">
+                        <input type="hidden" name="tripId" value="${trip.id}">
+                        <input type="hidden" name="tourId" value="${tour.id}">
+                        
+                        <div class="modal-header">
+                            <h5 class="modal-title">Confirm Delete</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            Are you sure you want to delete this trip scheduled for <strong><fmt:formatDate value="${trip.departureDate}" pattern="dd/MM/yyyy" /></strong>? This action cannot be undone.
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-danger">Delete</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </c:forEach>
     
     <!-- Add Trip Modal -->
     <div class="modal fade" id="addTripModal" tabindex="-1" aria-hidden="true">
@@ -310,17 +463,17 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="departureCityId" class="form-label fw-bold">
-                                        <i class="fas fa-map-marker-alt me-1"></i> Thành phố khởi hành
+                                        <i class="fas fa-map-marker-alt me-1"></i> Thành phố đến
                                     </label>
-                                    <input type="text" class="form-control" value="${departureCity != null ? departureCity.name : 'Default Departure City'}" readonly>
+                                    <input type="text" class="form-control" value="${departureCity != null ? departureCity.name : 'Default Destination City'}" readonly>
                                     <input type="hidden" id="departureCityId" name="departureCityId" value="${departureCity != null ? departureCity.id : 1}" required>
-                                    <div class="form-text">Thành phố khởi hành không thể thay đổi</div>
+                                    <div class="form-text">Thành phố đến không thể thay đổi</div>
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label for="destinationCityId" class="form-label fw-bold">
-                                        <i class="fas fa-map-marker-alt me-1"></i> Thành phố đến
+                                        <i class="fas fa-map-marker-alt me-1"></i> Thành phố khởi hành
                                     </label>
                                     <select class="form-select" id="destinationCityId" name="destinationCityId" required>
                                         <c:forEach var="city" items="${allCities}">
@@ -329,7 +482,7 @@
                                             </option>
                                         </c:forEach>
                                     </select>
-                                    <div class="form-text">Chọn thành phố đến</div>
+                                    <div class="form-text">Chọn thành phố khởi hành</div>
                                 </div>
                             </div>
                         </div>

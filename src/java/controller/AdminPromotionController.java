@@ -198,7 +198,51 @@ public class AdminPromotionController extends HttpServlet {
             throws ServletException, IOException, SQLException, ClassNotFoundException {
         
         try {
-            int promotionId = Integer.parseInt(request.getParameter("id"));
+            // First check if we're coming from a tour (tourId parameter)
+            String tourIdParam = request.getParameter("tourId");
+            if (tourIdParam != null && !tourIdParam.isEmpty()) {
+                int tourId = Integer.parseInt(tourIdParam);
+                
+                // Get the tour to display information
+                Tour tour = tourDAO.getTourById(tourId);
+                if (tour == null) {
+                    request.setAttribute("errorMessage", "Tour not found!");
+                    request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                    return;
+                }
+                
+                // Get all promotions and already linked promotions
+                List<Promotion> allPromotions = promotionDAO.getAllPromotions(1, 100); // Get first 100 promotions
+                List<Promotion> linkedPromotions = promotionDAO.getPromotionsForTour(tourId);
+                
+                // Set status for each promotion
+                Timestamp now = new Timestamp(System.currentTimeMillis());
+                for (Promotion promotion : allPromotions) {
+                    if (promotion.getStartDate().after(now)) {
+                        promotion.setStatus("Upcoming");
+                    } else if (promotion.getEndDate().before(now)) {
+                        promotion.setStatus("Expired");
+                    } else {
+                        promotion.setStatus("Active");
+                    }
+                }
+                
+                request.setAttribute("tour", tour);
+                request.setAttribute("allPromotions", allPromotions);
+                request.setAttribute("linkedPromotions", linkedPromotions);
+                request.getRequestDispatcher("/admin/tour-promotion-link.jsp").forward(request, response);
+                return;
+            }
+            
+            // If not coming from a tour, we assume promotion ID is provided
+            String promotionIdParam = request.getParameter("id");
+            if (promotionIdParam == null || promotionIdParam.isEmpty()) {
+                request.setAttribute("errorMessage", "Missing required parameter: id");
+                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+                return;
+            }
+            
+            int promotionId = Integer.parseInt(promotionIdParam);
             Promotion promotion = promotionDAO.getPromotionById(promotionId);
             
             if (promotion == null) {

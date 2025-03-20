@@ -71,7 +71,7 @@
                                     <th>Image</th>
                                     <th>Name</th>
                                     <th>Region</th>
-                                    <th>Departure</th>
+                                    <th>Destination</th>
                                     <th>Duration</th>
                                     <th>Adult Price</th>
                                     <th>Actions</th>

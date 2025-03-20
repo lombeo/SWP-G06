@@ -285,7 +285,7 @@ public class AdminCityController extends HttpServlet {
                 HttpSession session = request.getSession();
                 String message = "Cannot delete city because it is used by ";
                 if (departureCount > 0) {
-                    message += departureCount + " tours as departure location";
+                    message += departureCount + " tours as destination location";
                 }
                 if (destinationCount > 0) {
                     if (departureCount > 0) {

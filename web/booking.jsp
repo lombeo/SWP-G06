@@ -297,7 +297,7 @@
                                         <div class="mb-4">
                                             <div class="flex items-center mb-2">
                                                 <span class="material-symbols-outlined mr-2">place</span>
-                                                <span class="font-medium">Khởi hành:</span>
+                                                <span class="font-medium">Điểm đến:</span>
                                                 <span class="ml-2 text-blue-600"><%= departureCityName %></span>
                                             </div>
                                             <div class="flex items-center">

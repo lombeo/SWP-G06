@@ -519,4 +519,183 @@ public class ReviewDAO {
             return false;
         }
     }
+    
+    /**
+     * Get reviews for a specific tour with rating >= 4 or not hidden for display to users
+     * @param tourId The tour ID
+     * @return List of visible reviews for the tour
+     */
+    public List<Review> getVisibleReviewsByTourId(int tourId) throws ClassNotFoundException {
+        List<Review> reviews = new ArrayList<>();
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.tour_id = ? AND r.is_delete = 0 AND r.rating >= 4 "
+                + "ORDER BY r.created_date DESC";
+        
+        try (Connection conn = new DBContext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, tourId);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Review review = new Review();
+                review.setId(rs.getInt("id"));
+                review.setTourId(rs.getInt("tour_id"));
+                review.setAccountId(rs.getInt("account_id"));
+                review.setRating(rs.getInt("rating"));
+                review.setComment(rs.getString("comment"));
+                review.setCreatedDate(rs.getTimestamp("created_date"));
+                review.setDeletedDate(rs.getTimestamp("deleted_date"));
+                review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
+                
+                reviews.add(review);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error getVisibleReviewsByTourId: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return reviews;
+    }
+    
+    /**
+     * Calculate the average rating for visible reviews (rating >= 4) for a tour
+     * @param tourId The tour ID
+     * @return The average rating (0-5) or 0 if no reviews
+     */
+    public double getVisibleAverageRatingForTour(int tourId) throws ClassNotFoundException {
+        String sql = "SELECT AVG(CAST(rating AS FLOAT)) FROM review WHERE tour_id = ? AND is_delete = 0 AND rating >= 4";
+        
+        try (Connection conn = new DBContext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, tourId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                double avg = rs.getDouble(1);
+                return avg > 0 ? avg : 0;
+            }
+        } catch (SQLException e) {
+            System.out.println("Error getVisibleAverageRatingForTour: " + e.getMessage());
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Count the number of visible reviews (rating >= 4) for a tour
+     * @param tourId The tour ID
+     * @return The number of visible reviews
+     */
+    public int getVisibleReviewCountForTour(int tourId) throws ClassNotFoundException {
+        String sql = "SELECT COUNT(*) FROM review WHERE tour_id = ? AND is_delete = 0 AND rating >= 4";
+        
+        try (Connection conn = new DBContext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, tourId);
+            ResultSet rs = ps.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error getVisibleReviewCountForTour: " + e.getMessage());
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Get low-rated reviews (rating < 4) for a tour
+     * @param tourId The tour ID
+     * @return List of low-rated reviews
+     */
+    public List<Review> getLowRatedReviewsByTourId(int tourId) throws ClassNotFoundException {
+        List<Review> reviews = new ArrayList<>();
+        String sql = "SELECT r.*, u.full_name, u.avatar, f.feedback "
+                + "FROM review r "
+                + "JOIN account u ON r.account_id = u.id "
+                + "LEFT JOIN feedback f ON r.id = f.review_id "
+                + "WHERE r.tour_id = ? AND r.rating < 4 "
+                + "ORDER BY r.created_date DESC";
+        
+        try (Connection conn = new DBContext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setInt(1, tourId);
+            ResultSet rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Review review = new Review();
+                review.setId(rs.getInt("id"));
+                review.setTourId(rs.getInt("tour_id"));
+                review.setAccountId(rs.getInt("account_id"));
+                review.setRating(rs.getInt("rating"));
+                review.setComment(rs.getString("comment"));
+                review.setCreatedDate(rs.getTimestamp("created_date"));
+                review.setDeletedDate(rs.getTimestamp("deleted_date"));
+                review.setIsDelete(rs.getBoolean("is_delete"));
+                review.setUserName(rs.getString("full_name"));
+                review.setUserAvatar(rs.getString("avatar"));
+                
+                // Add feedback if exists
+                review.setFeedback(rs.getString("feedback"));
+                
+                reviews.add(review);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error getLowRatedReviewsByTourId: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return reviews;
+    }
+    
+    /**
+     * Toggle visibility of a review (for admin to show/hide reviews)
+     * @param reviewId The review ID
+     * @param isVisible The new visibility state (true = visible, false = hidden)
+     * @return true if successful, false otherwise
+     */
+    public boolean toggleReviewVisibility(int reviewId, boolean isVisible) throws ClassNotFoundException {
+        String sql = "UPDATE review SET is_delete = ?, ";
+        
+        // If hiding, set deleted_date; if showing, clear it
+        if (!isVisible) {
+            sql += "deleted_date = ? ";
+        } else {
+            sql += "deleted_date = NULL ";
+        }
+        
+        sql += "WHERE id = ?";
+        
+        try (Connection conn = new DBContext().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            
+            ps.setBoolean(1, !isVisible); // is_delete is the opposite of isVisible
+            
+            if (!isVisible) {
+                ps.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
+                ps.setInt(3, reviewId);
+            } else {
+                ps.setInt(2, reviewId);
+            }
+            
+            int affectedRows = ps.executeUpdate();
+            return affectedRows > 0;
+        } catch (SQLException e) {
+            System.out.println("Error toggleReviewVisibility: " + e.getMessage());
+            return false;
+        }
+    }
 } 

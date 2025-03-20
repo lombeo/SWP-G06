@@ -208,7 +208,7 @@
                                                     <td>${tour.duration}</td>
                                                 </tr>
                                                 <tr>
-                                                    <th>Departure City</th>
+                                                    <th>Destination City</th>
                                                     <td>${trip.departureCityId}</td>
                                                 </tr>
                                                 <tr>

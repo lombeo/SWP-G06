@@ -55,6 +55,8 @@ public class AdminReviewController extends HttpServlet {
             deleteReview(request, response);
         } else if (pathInfo.equals("/feedback")) {
             addFeedback(request, response);
+        } else if (pathInfo.equals("/toggle-visibility")) {
+            toggleReviewVisibility(request, response);
         } else {
             // Redirect back to the reviews page
             response.sendRedirect(request.getContextPath() + "/admin?action=reviews");
@@ -123,6 +125,44 @@ public class AdminReviewController extends HttpServlet {
                 }
             } else {
                 session.setAttribute("errorMessage", "Review ID is required.");
+            }
+        } catch (NumberFormatException e) {
+            session.setAttribute("errorMessage", "Invalid review ID format.");
+        } catch (Exception e) {
+            session.setAttribute("errorMessage", "Error: " + e.getMessage());
+            e.printStackTrace(); // Add stack trace for better debugging in the server logs
+        }
+        
+        // Redirect back to the reviews page
+        response.sendRedirect(request.getContextPath() + "/admin?action=reviews");
+    }
+    
+    private void toggleReviewVisibility(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        HttpSession session = request.getSession();
+        
+        try {
+            String reviewIdParam = request.getParameter("reviewId");
+            String isVisibleParam = request.getParameter("isVisible");
+            
+            if (reviewIdParam != null && !reviewIdParam.isEmpty() && isVisibleParam != null) {
+                int reviewId = Integer.parseInt(reviewIdParam);
+                boolean isVisible = Boolean.parseBoolean(isVisibleParam);
+                
+                ReviewDAO reviewDAO = new ReviewDAO();
+                boolean success = reviewDAO.toggleReviewVisibility(reviewId, isVisible);
+                
+                if (success) {
+                    if (isVisible) {
+                        session.setAttribute("successMessage", "Review is now visible to users.");
+                    } else {
+                        session.setAttribute("successMessage", "Review is now hidden from users.");
+                    }
+                } else {
+                    session.setAttribute("errorMessage", "Failed to update review visibility.");
+                }
+            } else {
+                session.setAttribute("errorMessage", "Review ID and visibility state are required.");
             }
         } catch (NumberFormatException e) {
             session.setAttribute("errorMessage", "Invalid review ID format.");

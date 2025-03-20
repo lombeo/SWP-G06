@@ -244,7 +244,7 @@
 
                                                                         <!-- Điểm khởi hành -->
                                                                         <div class="mb-4">
-                                                                            <div class="text-sm mb-2">Điểm khởi hành:
+                                                                            <div class="text-sm mb-2">Điểm đến:
                                                                             </div>
                                                                             <select name="departure"
                                                                                 class="w-full border p-2 rounded text-sm"
@@ -265,7 +265,7 @@
 
                                                                         <!-- Điểm đến -->
                                                                         <div class="mb-4">
-                                                                            <div class="text-sm mb-2">Điểm đến:</div>
+                                                                            <div class="text-sm mb-2">Điểm khởi hành:</div>
                                                                             <select name="destination"
                                                                                 class="w-full border p-2 rounded text-sm"
                                                                                 onchange="this.form.submit()">
@@ -455,7 +455,7 @@
                                                                                         <span>
                                                                                             <i
                                                                                                 class="fas fa-plane-departure mr-1"></i>
-                                                                                            Khởi hành: <%=
+                                                                                            Điểm đến: <%=
                                                                                                 tour.getDepartureCity()
                                                                                                 %>
                                                                                         </span>

@@ -56,8 +56,8 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Name</th>
-                                    <th>Used as Departure</th>
                                     <th>Used as Destination</th>
+                                    <th>Used as Departure</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>

@@ -129,7 +129,7 @@
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">location_on</span>
                                 <div>
-                                    <span class="font-medium">Khởi hành từ: </span>
+                                    <span class="font-medium">Điểm đến: </span>
                                     <span class="departure-city-name">${departureCity.name}</span>
                                 </div>
                             </div>
@@ -409,14 +409,14 @@
                             // Import ReviewDAO
                             dao.ReviewDAO reviewDAO = new dao.ReviewDAO();
                             
-                            // Get reviews for this tour
-                            java.util.List<model.Review> reviews = reviewDAO.getReviewsByTourId(tour.getId());
+                            // Get reviews for this tour (only show 4+ star reviews)
+                            java.util.List<model.Review> reviews = reviewDAO.getVisibleReviewsByTourId(tour.getId());
                             
-                            // Get average rating
-                            double avgRating = reviewDAO.getAverageRatingForTour(tour.getId());
+                            // Get average rating (only for 4+ star reviews)
+                            double avgRating = reviewDAO.getVisibleAverageRatingForTour(tour.getId());
                             
-                            // Get review count
-                            int reviewCount = reviewDAO.getReviewCountForTour(tour.getId());
+                            // Get review count (only for 4+ star reviews)
+                            int reviewCount = reviewDAO.getVisibleReviewCountForTour(tour.getId());
                             
                             // Format avg rating to 1 decimal place
                             String formattedAvgRating = String.format("%.1f", avgRating);
@@ -495,7 +495,7 @@
                                         <div class="w-16 text-sm text-gray-600"><%= i %> sao</div>
                                         <div class="flex-1 mx-2">
                                             <div class="h-2 bg-gray-200 rounded-full">
-                                                <div class="h-2 bg-yellow-400 rounded-full" style="width: <%= widthPercentage %>%"></div>
+                                                <div class="h-2 bg-yellow-400 rounded-full" style="width:<%= widthPercentage %>%"></div>
                                             </div>
                                         </div>
                                         <div class="w-10 text-xs text-gray-600"><%= count %></div>
@@ -912,7 +912,7 @@
                                     <a href="tour-detail?id=<%= relatedTour.getId() %>" class="hover:text-blue-600 transition-colors"><%= tourName %></a>
                                 </h3>
                                 <div class="flex items-center text-xs text-gray-600 mb-1">
-                                    <span class="material-symbols-outlined text-sm mr-1">location_on</span> Khởi hành từ: <%= departCityName %>
+                                    <span class="material-symbols-outlined text-sm mr-1">location_on</span> Điểm đến: <%= departCityName %>
                                 </div>
                                 <div class="flex items-center text-xs text-gray-600 mb-1">
                                     <span class="material-symbols-outlined text-sm mr-1">confirmation_number</span> Mã tour: <%= relatedTour.getId() %> (<%= duration %>)
