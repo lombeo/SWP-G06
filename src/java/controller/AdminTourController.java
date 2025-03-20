@@ -7,8 +7,6 @@ import dao.TourImageDAO;
 import dao.TripDAO;
 import dao.BookingDAO;
 import dao.UserDAO;
-import dao.ReviewDAO;
-import dao.PromotionDAO;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -16,7 +14,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.HashMap;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -32,8 +29,6 @@ import model.TourSchedule;
 import model.Trip;
 import model.User;
 import model.Booking;
-import model.Review;
-import model.Promotion;
 import utils.DBContext;
 
 @WebServlet(name = "AdminTourController", urlPatterns = {"/admin/tours/*"})
@@ -53,111 +48,103 @@ public class AdminTourController extends HttpServlet {
     
     private void processRequest(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
-        String pathInfo = request.getPathInfo();
         
-        if (pathInfo == null) {
-            // Default action: list all tours
-            listTours(request, response);
+        HttpSession session = request.getSession();
+        User user = (User) session.getAttribute("user");
+        
+        // Check if user is logged in and is admin (roleId = 2)
+        if (user == null || user.getRoleId() != 2) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
         
-        try {
-            switch (pathInfo) {
-                case "/view":
-                    viewTour(request, response);
-                    break;
-                case "/create":
-                    if ("POST".equals(request.getMethod())) {
-                        createTour(request, response);
-                    } else {
-                        showCreateForm(request, response);
-                    }
-                    break;
-                case "/edit":
-                    if ("POST".equals(request.getMethod())) {
-                        updateTour(request, response);
-                    } else {
-                        showEditForm(request, response);
-                    }
-                    break;
-                case "/delete":
+        String pathInfo = request.getPathInfo();
+        String action = request.getParameter("action");
+        
+        // Handle form submissions with action parameter
+        if (action != null && !action.isEmpty()) {
+            switch (action) {
+                case "create":
+                    createTour(request, response);
+                    return;
+                case "update":
+                    updateTour(request, response);
+                    return;
+                case "delete":
                     deleteTour(request, response);
-                    break;
-                case "/trips":
-                    viewTourTrips(request, response);
-                    break;
-                case "/trips/create":
-                    createTrip(request, response);
-                    break;
-                case "/trips/edit":
-                    updateTrip(request, response);
-                    break;
-                case "/trips/delete":
-                    deleteTrip(request, response);
-                    break;
-                case "/schedules":
-                    viewTourSchedules(request, response);
-                    break;
-                case "/schedules/create":
+                    return;
+                case "create-schedule":
                     createSchedule(request, response);
-                    break;
-                case "/schedules/edit":
+                    return;
+                case "update-schedule":
                     updateSchedule(request, response);
-                    break;
-                case "/schedules/delete":
+                    return;
+                case "delete-schedule":
                     deleteSchedule(request, response);
-                    break;
-                case "/ajax/edit-tour":
-                    loadTourEditContent(request, response);
-                    break;
-                case "/ajax/edit-content":
-                    getEditContent(request, response);
-                    break;
-                case "/ajax/load-trips":
-                    loadTripsContent(request, response);
-                    break;
-                case "/ajax/cities":
-                    getCities(request, response);
-                    break;
-                case "/ajax/load-schedules":
-                    loadSchedulesContent(request, response);
-                    break;
-                case "/ajax/get-schedule":
+                    return;
+                case "get-schedule":
                     getSchedule(request, response);
-                    break;
-                case "/ajax/check-trip-bookings":
+                    return;
+                case "create-trip":
+                    createTrip(request, response);
+                    return;
+                case "update-trip":
+                    updateTrip(request, response);
+                    return;
+                case "delete-trip":
+                    deleteTrip(request, response);
+                    return;
+                case "check-trip-bookings":
                     checkTripBookings(request, response);
-                    break;
-                case "/ajax/check-tour-bookings":
+                    return;
+                case "check-tour-bookings":
                     checkTourBookings(request, response);
-                    break;
-                case "/images/add":
+                    return;
+                case "addImage":
                     addTourImage(request, response);
-                    break;
-                case "/images/delete":
+                    return;
+                case "deleteImage":
                     deleteTourImage(request, response);
-                    break;
-                case "/ajax/get-trip-bookings":
-                    getTripBookings(request, response);
-                    break;
-                case "/promotions/link":
-                    // Redirect to the AdminPromotionController for linking promotions
-                    response.sendRedirect(request.getContextPath() + "/admin/promotions/link?tourId=" + request.getParameter("id"));
-                    break;
-                default:
-                    // Default action: list all tours
-                    listTours(request, response);
-                    break;
+                    return;
+                case "getCities":
+                    getCities(request, response);
+                    return;
             }
-        } catch (Exception ex) {
-            // Log the error
-            ex.printStackTrace();
-            
-            // Check if response is committed
-            if (!response.isCommitted()) {
-                request.setAttribute("errorMessage", "An error occurred: " + ex.getMessage());
-                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
-            }
+        }
+        
+        // Handle URL path-based navigation
+        if (pathInfo == null || pathInfo.equals("/")) {
+            // Main tour listing
+            listTours(request, response);
+        } else if (pathInfo.equals("/create")) {
+            showCreateForm(request, response);
+        } else if (pathInfo.equals("/edit")) {
+            showEditForm(request, response);
+        } else if (pathInfo.equals("/view")) {
+            viewTour(request, response);
+        } else if (pathInfo.equals("/trips")) {
+            viewTourTrips(request, response);
+        } else if (pathInfo.equals("/schedules")) {
+            viewTourSchedules(request, response);
+        } else if (pathInfo.equals("/edit-content")) {
+            loadTourEditContent(request, response);
+        } else if (pathInfo.equals("/trips-content")) {
+            loadTripsContent(request, response);
+        } else if (pathInfo.equals("/schedules-content")) {
+            loadSchedulesContent(request, response);
+        } else if (pathInfo.equals("/cities")) {
+            getCities(request, response);
+        } else if (pathInfo.equals("/addImage")) {
+            addTourImage(request, response);
+        } else if (pathInfo.equals("/deleteImage")) {
+            deleteTourImage(request, response);
+        } else if (pathInfo.equals("/delete")) {
+            deleteTour(request, response);
+        } else if (pathInfo.equals("/trip-bookings")) {
+            getTripBookings(request, response);
+        } else {
+            // Default to listing all tours
+            listTours(request, response);
         }
     }
     
@@ -223,8 +210,6 @@ public class AdminTourController extends HttpServlet {
             TourImageDAO tourImageDAO = new TourImageDAO();
             TripDAO tripDAO = new TripDAO();
             BookingDAO bookingDAO = new BookingDAO();
-            ReviewDAO reviewDAO = new ReviewDAO();
-            PromotionDAO promotionDAO = new PromotionDAO();
             
             Tour tour = tourDAO.getTourById(tourId);
             if (tour == null) {
@@ -269,88 +254,11 @@ public class AdminTourController extends HttpServlet {
                 booking.setUser(usersMap.get(booking.getAccountId()));
             }
             
-            // Get reviews for this tour with filtering options
-            String ratingParam = request.getParameter("rating");
-            String visibilityParam = request.getParameter("visibility");
-            
-            List<Review> tourReviews;
-            if (ratingParam != null && !ratingParam.isEmpty()) {
-                int rating = Integer.parseInt(ratingParam);
-                tourReviews = reviewDAO.getReviewsByTourAndRating(tourId, rating);
-            } else {
-                tourReviews = reviewDAO.getReviewsByTour(tourId);
-            }
-            
-            // Apply visibility filter if needed
-            if (visibilityParam != null) {
-                List<Review> filteredReviews = new ArrayList<>();
-                
-                for (Review review : tourReviews) {
-                    boolean isLowRated = review.getRating() < 4;
-                    boolean isHidden = review.isIsDelete();
-                    
-                    if ("visible".equals(visibilityParam) && !isHidden) {
-                        filteredReviews.add(review);
-                    } else if ("hidden".equals(visibilityParam) && isHidden) {
-                        filteredReviews.add(review);
-                    } else if ("low_rated".equals(visibilityParam) && isLowRated) {
-                        filteredReviews.add(review);
-                    } else if ("all".equals(visibilityParam)) {
-                        filteredReviews.add(review);
-                    }
-                }
-                
-                tourReviews = filteredReviews;
-            }
-            
-            // Load additional user information for reviews
-            for (Review review : tourReviews) {
-                if (!usersMap.containsKey(review.getAccountId())) {
-                    User user = userDAO.getUserById(review.getAccountId());
-                    if (user != null) {
-                        usersMap.put(user.getId(), user);
-                        review.setUserName(user.getFullName());
-                        review.setUserEmail(user.getEmail());
-                    }
-                } else {
-                    User user = usersMap.get(review.getAccountId());
-                    review.setUserName(user.getFullName());
-                    review.setUserEmail(user.getEmail());
-                }
-            }
-            
-            // Get average rating
-            double tourAvgRating = reviewDAO.getAverageRatingForTour(tourId);
-            
-            // Get promotions for this tour
-            List<Promotion> tourPromotions = new ArrayList<>();
-            try {
-                tourPromotions = promotionDAO.getPromotionsForTour(tourId);
-                
-                // Set status for each promotion (Active, Upcoming, Expired)
-                Timestamp now = new Timestamp(System.currentTimeMillis());
-                for (Promotion promotion : tourPromotions) {
-                    if (promotion.getStartDate().after(now)) {
-                        promotion.setStatus("Upcoming");
-                    } else if (promotion.getEndDate().before(now)) {
-                        promotion.setStatus("Expired");
-                    } else {
-                        promotion.setStatus("Active");
-                    }
-                }
-            } catch (Exception e) {
-                System.out.println("Error loading promotions: " + e.getMessage());
-                e.printStackTrace();
-            }
-            
             request.setAttribute("tour", tour);
             request.setAttribute("tourImages", images);
             request.setAttribute("tourSchedules", schedules);
             request.setAttribute("upcomingTrips", upcomingTrips);
             request.setAttribute("tourBookings", tourBookings);
-            request.setAttribute("tourReviews", tourReviews);
-            request.setAttribute("tourAvgRating", String.format("%.1f", tourAvgRating));
-            request.setAttribute("tourPromotions", tourPromotions);
             
             request.getRequestDispatcher("/admin/tour-detail.jsp").forward(request, response);
         } catch (NumberFormatException e) {
@@ -738,96 +646,72 @@ public class AdminTourController extends HttpServlet {
     private void viewTourTrips(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-            // Get tour ID from request parameter
-            String tourIdParam = request.getParameter("id");
-            if (tourIdParam == null || tourIdParam.isEmpty()) {
-                request.setAttribute("errorMessage", "Tour ID is required");
-                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
-                return;
-            }
+            // Get the tour id from the request parameter
+            int tourId = Integer.parseInt(request.getParameter("id"));
             
-            int tourId = Integer.parseInt(tourIdParam);
-            
-            // Get pagination parameters
-            int page = 1;
-            int itemsPerPage = 10;
-            
-            String pageParam = request.getParameter("page");
-            if (pageParam != null && !pageParam.isEmpty()) {
-                page = Integer.parseInt(pageParam);
-            }
-            
-            String itemsPerPageParam = request.getParameter("items");
-            if (itemsPerPageParam != null && !itemsPerPageParam.isEmpty()) {
-                itemsPerPage = Integer.parseInt(itemsPerPageParam);
-            }
-            
-            // Get tour from database
+            // Get tour details
             TourDAO tourDAO = new TourDAO();
             Tour tour = tourDAO.getTourById(tourId);
             
-            if (tour == null) {
-                request.setAttribute("errorMessage", "Tour not found");
-                request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
-                return;
-            }
-            
-            // Get tour's associated cities
+            // Get departure city
             CityDAO cityDAO = new CityDAO();
-            City departureCity = null;
-            City destinationCity = null;
+            City departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
             
-            try {
-                departureCity = cityDAO.getCityById(tour.getDepartureLocationId());
-                // Get all cities for dropdown
-                List<City> allCities = cityDAO.getAllCities();
-                request.setAttribute("allCities", allCities);
-            } catch (SQLException | ClassNotFoundException e) {
-                System.out.println("Error fetching cities: " + e.getMessage());
-                e.printStackTrace();
-            }
-            
-            // Get trips for this tour
+            // Get trips
             TripDAO tripDAO = new TripDAO();
+            List<Trip> trips = tripDAO.getTripsByTourId(tourId);
             
-            // Get total count of trips for this tour
-            int totalTrips = tripDAO.getTotalTripsByTourId(tourId);
+            // Get bookings for this tour
+            BookingDAO bookingDAO = new BookingDAO();
+            List<Booking> tourBookings = bookingDAO.getBookingsByTourId(tourId);
             
-            // Get paginated list of trips
-            List<Trip> trips = tripDAO.getTripsByTourIdPaginated(tourId, page, itemsPerPage);
-            
-            // Format trip times for proper display in time inputs
+            // Create a map to track which trips have bookings
+            Map<Integer, Boolean> tripHasBookingsMap = new HashMap<>();
             for (Trip trip : trips) {
-                // Format time string: remove milliseconds if present
-                if (trip.getStartTime() != null && trip.getStartTime().contains(".")) {
-                    trip.setStartTime(trip.getStartTime().split("\\.")[0]);
-                }
-                if (trip.getEndTime() != null && trip.getEndTime().contains(".")) {
-                    trip.setEndTime(trip.getEndTime().split("\\.")[0]);
-                }
-                
-                // Truncate time string to just HH:MM if longer
-                if (trip.getStartTime() != null && trip.getStartTime().length() > 5) {
-                    trip.setStartTime(trip.getStartTime().substring(0, 5));
-                }
-                if (trip.getEndTime() != null && trip.getEndTime().length() > 5) {
-                    trip.setEndTime(trip.getEndTime().substring(0, 5));
-                }
+                boolean hasBookings = bookingDAO.tripHasBookings(trip.getId());
+                tripHasBookingsMap.put(trip.getId(), hasBookings);
             }
             
-            // Set attributes for the JSP page
+            // Load additional information for each booking
+            UserDAO userDAO = new UserDAO();
+            
+            // Create maps for trips and users to avoid multiple database calls
+            Map<Integer, User> usersMap = new HashMap<>();
+            Map<Integer, Trip> tripsMap = new HashMap<>();
+            
+            for (Booking booking : tourBookings) {
+                // Load trip information
+                if (!tripsMap.containsKey(booking.getTripId())) {
+                    Trip trip = tripDAO.getTripById(booking.getTripId());
+                    if (trip != null) {
+                        tripsMap.put(trip.getId(), trip);
+                    }
+                }
+                booking.setTrip(tripsMap.get(booking.getTripId()));
+                
+                // Load user information
+                if (!usersMap.containsKey(booking.getAccountId())) {
+                    User user = userDAO.getUserById(booking.getAccountId());
+                    if (user != null) {
+                        usersMap.put(booking.getAccountId(), user);
+                    }
+                }
+                booking.setUser(usersMap.get(booking.getAccountId()));
+            }
+            
+            // Set attributes for the JSP
             request.setAttribute("tour", tour);
             request.setAttribute("departureCity", departureCity);
             request.setAttribute("trips", trips);
-            request.setAttribute("totalTrips", totalTrips);
-            request.setAttribute("currentPage", page);
-            request.setAttribute("itemsPerPage", itemsPerPage);
-            request.setAttribute("totalPages", (int) Math.ceil((double) totalTrips / itemsPerPage));
+            request.setAttribute("tourBookings", tourBookings);
+            request.setAttribute("tripHasBookingsMap", tripHasBookingsMap);
             
-            // Forward to JSP page
+            // Forward to the trips JSP
             request.getRequestDispatcher("/admin/tour-trips.jsp").forward(request, response);
+        } catch (NumberFormatException e) {
+            request.setAttribute("errorMessage", "Invalid tour ID");
+            request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
         } catch (Exception e) {
-            e.printStackTrace();
             request.setAttribute("errorMessage", "Error fetching tour trips: " + e.getMessage());
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
         }
@@ -1628,7 +1512,7 @@ public class AdminTourController extends HttpServlet {
                     
                     // Create a simple table as fallback
                     if (!trips.isEmpty()) {
-                        response.getWriter().write("<table class='table'><thead><tr><th>ID</th><th>Destination</th><th>Return</th><th>Available Slots</th></tr></thead><tbody>");
+                        response.getWriter().write("<table class='table'><thead><tr><th>ID</th><th>Departure</th><th>Return</th><th>Available Slots</th></tr></thead><tbody>");
                         for (Trip trip : trips) {
                             response.getWriter().write("<tr><td>" + trip.getId() + "</td><td>" + trip.getDepartureDate() + 
                                                      "</td><td>" + trip.getReturnDate() + "</td><td>" + trip.getAvailableSlot() + "</td></tr>");

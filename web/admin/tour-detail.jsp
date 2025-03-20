@@ -5,76 +5,6 @@
     <jsp:param name="active" value="tours"/>
 </jsp:include>
 
-<!-- Custom CSS for Tour Detail Page -->
-<style>
-    /* Itinerary styling */
-    .custom-accordion .accordion-button {
-        padding: 1rem 1.25rem;
-    }
-    
-    .custom-accordion .accordion-button:not(.collapsed) {
-        background-color: rgba(13, 110, 253, 0.1);
-        color: #0d6efd;
-    }
-    
-    .custom-accordion .accordion-button::after {
-        margin-left: 0.5rem;
-    }
-    
-    /* Review and promotion tables */
-    .table th {
-        font-weight: 600;
-        white-space: nowrap;
-    }
-    
-    .rating-stars {
-        white-space: nowrap;
-    }
-    
-    /* Prevent excessive text wrapping in tables */
-    .table td {
-        max-width: 300px;
-        vertical-align: middle;
-    }
-    
-    /* Better spacing for table content */
-    .table.table-hover tbody tr:hover {
-        background-color: rgba(0, 0, 0, 0.03);
-    }
-    
-    /* Make action buttons more compact */
-    .btn-group .btn {
-        padding: 0.25rem 0.5rem;
-    }
-    
-    /* Improve button spacing in modals */
-    .modal-footer {
-        gap: 0.5rem;
-    }
-    
-    /* Make tooltips larger for feedback preview */
-    .tooltip-inner {
-        max-width: 300px;
-        text-align: left;
-    }
-
-    /* Card header adjustments */
-    .card-header {
-        background-color: #f8f9fc;
-    }
-    
-    /* Badges styling */
-    .badge {
-        font-weight: 500;
-        padding: 0.35em 0.65em;
-    }
-    
-    /* When scrolling in tables is needed */
-    .table-responsive {
-        max-height: 500px;
-    }
-</style>
-
 <div class="container-fluid">
     <div class="row mb-4">
         <div class="col-12 d-flex justify-content-between align-items-center">
@@ -110,18 +40,9 @@
                 <button type="button" class="btn btn-success me-2" data-bs-toggle="modal" data-bs-target="#manageScheduleModal">
                     <i class="fas fa-route me-1"></i> Manage Schedules
                 </button>
-                <c:choose>
-                    <c:when test="${empty tourBookings}">
-                        <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="btn btn-primary">
-                            <i class="fas fa-calendar-alt me-1"></i> Manage Trips
-                        </a>
-                    </c:when>
-                    <c:otherwise>
-                        <button type="button" class="btn btn-primary" disabled title="Cannot modify trips when tour has active bookings">
-                            <i class="fas fa-calendar-alt me-1"></i> Manage Trips
-                        </button>
-                    </c:otherwise>
-                </c:choose>
+                <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="btn btn-primary">
+                    <i class="fas fa-calendar-alt me-1"></i> Manage Trips
+                </a>
             </div>
         </div>
     </div>
@@ -145,7 +66,7 @@
 
     <c:if test="${not empty tourBookings}">
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
-            <i class="fas fa-lock me-2"></i><strong>Notice:</strong> This tour has active bookings (${tourBookings.size()} booking(s)). To protect customer reservations, editing tour details, managing trips, and deleting the tour are not allowed while bookings exist.
+            <i class="fas fa-exclamation-triangle me-2"></i><strong>Notice:</strong> This tour has active bookings (${tourBookings.size()} booking(s)). To protect customer reservations, editing tour details and deleting the tour are not allowed. In the trip management page, you can only add new trips or modify trips that don't have active bookings.
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
     </c:if>
@@ -170,7 +91,7 @@
                                 <span>${tour.duration}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span><strong>Destination:</strong></span>
+                                <span><strong>Departure From:</strong></span>
                                 <span>${tour.departureCity}</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
@@ -222,17 +143,12 @@
                     </c:if>
                     
                     <c:if test="${not empty tourSchedules}">
-                        <div class="accordion custom-accordion" id="itineraryAccordion">
+                        <div class="accordion" id="itineraryAccordion">
                             <c:forEach var="schedule" items="${tourSchedules}" varStatus="status">
                                 <div class="accordion-item">
                                     <h2 class="accordion-header" id="heading${status.index}">
                                         <button class="accordion-button ${status.index == 0 ? '' : 'collapsed'}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${status.index}" aria-expanded="${status.index == 0 ? 'true' : 'false'}" aria-controls="collapse${status.index}">
-                                            <div class="d-flex align-items-center w-100">
-                                                <div class="day-number me-3 bg-primary text-white rounded-circle d-flex justify-content-center align-items-center" style="width: 36px; height: 36px;">
-                                                    ${schedule.dayNumber}
-                                                </div>
-                                                <span class="fw-bold">${schedule.itinerary}</span>
-                                            </div>
+                                            Day ${schedule.dayNumber}: ${schedule.itinerary}
                                         </button>
                                     </h2>
                                     <div id="collapse${status.index}" class="accordion-collapse collapse ${status.index == 0 ? 'show' : ''}" aria-labelledby="heading${status.index}" data-bs-parent="#itineraryAccordion">
@@ -306,28 +222,16 @@
                 <div class="card-body">
                     <div class="list-group">
                         <c:forEach var="trip" items="${upcomingTrips}" varStatus="status">
-                            <c:choose>
-                                <c:when test="${empty tourBookings}">
-                                    <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="list-group-item list-group-item-action">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h5 class="mb-1">Trip #${trip.id}</h5>
-                                        </div>
-                                        <p class="mb-1">Departure: ${trip.departureDate}</p>
-                                        <small class="text-muted">Available Slots: ${trip.availableSlot}</small>
-                                    </a>
-                                </c:when>
-                                <c:otherwise>
-                                    <div class="list-group-item">
-                                        <div class="d-flex w-100 justify-content-between">
-                                            <h5 class="mb-1">Trip #${trip.id}</h5>
-                                            <span class="badge bg-warning text-dark">Locked</span>
-                                        </div>
-                                        <p class="mb-1">Departure: ${trip.departureDate}</p>
-                                        <small class="text-muted">Available Slots: ${trip.availableSlot}</small>
-                                        <small class="d-block text-danger mt-1"><i class="fas fa-lock me-1"></i>Cannot modify - Tour has active bookings</small>
-                                    </div>
-                                </c:otherwise>
-                            </c:choose>
+                            <a href="${pageContext.request.contextPath}/admin/tours/trips?id=${tour.id}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">Trip #${trip.id}</h5>
+                                    <c:if test="${not empty tourBookings}">
+                                        <span class="badge bg-info">Bookings Exist</span>
+                                    </c:if>
+                                </div>
+                                <p class="mb-1">Departure: ${trip.departureDate}</p>
+                                <small class="text-muted">Available Slots: ${trip.availableSlot}</small>
+                            </a>
                         </c:forEach>
                         
                         <c:if test="${empty upcomingTrips}">
@@ -341,258 +245,6 @@
             
             <!-- Tour Bookings Card -->
             <jsp:include page="fragments/tour-bookings.jsp" />
-        </div>
-    </div>
-
-    <!-- Tour Reviews Section -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-star me-2"></i>Tour Reviews</h6>
-                    <div>
-                        <span class="badge bg-info me-2" style="font-size: 0.85rem;">
-                            <i class="fas fa-star me-1 text-warning"></i>
-                            <span id="avgRating">${tourAvgRating}</span>/5 
-                            (<span id="reviewCount">${tourReviews.size()}</span> reviews)
-                        </span>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#reviewsCollapse" aria-expanded="true">
-                            <i class="fas fa-chevron-down review-toggle-icon"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body collapse show" id="reviewsCollapse">
-                    <div class="row mb-3">
-                        <div class="col-md-4 mb-2">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-filter text-primary"></i></span>
-                                <select id="ratingFilter" class="form-select">
-                                    <option value="">All Ratings</option>
-                                    <option value="5">5 Stars</option>
-                                    <option value="4">4 Stars</option>
-                                    <option value="3">3 Stars</option>
-                                    <option value="2">2 Stars</option>
-                                    <option value="1">1 Star</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="fas fa-eye text-primary"></i></span>
-                                <select id="visibilityFilter" class="form-select">
-                                    <option value="all">All Reviews</option>
-                                    <option value="visible" selected>Visible Reviews</option>
-                                    <option value="hidden">Hidden Reviews</option>
-                                    <option value="low_rated">Low Rated (< 4 Stars)</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="col-md-4 mb-2">
-                            <button id="applyReviewFilters" class="btn btn-primary w-100">
-                                <i class="fas fa-search me-1"></i> Apply Filters
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="tourReviewsTable" width="100%" cellspacing="0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 60px">ID</th>
-                                    <th style="width: 160px">User</th>
-                                    <th style="width: 120px">Rating</th>
-                                    <th>Comment</th>
-                                    <th style="width: 110px">Date</th>
-                                    <th style="width: 100px">Status</th>
-                                    <th style="width: 120px">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:forEach var="review" items="${tourReviews}">
-                                    <c:set var="isLowRated" value="${review.rating < 4}" />
-                                    <c:set var="isHidden" value="${review.isDelete}" />
-                                    <c:set var="rowClass" value="${isHidden ? 'table-secondary' : (isLowRated ? 'table-warning' : '')}" />
-                                    
-                                    <tr class="${rowClass}">
-                                        <td>${review.id}</td>
-                                        <td>${review.userName}</td>
-                                        <td>
-                                            <div class="rating-stars">
-                                                <c:forEach begin="1" end="5" var="i">
-                                                    <i class="fas fa-star ${i <= review.rating ? 'text-warning' : 'text-muted'}"></i>
-                                                </c:forEach>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex justify-content-between align-items-start">
-                                                <div>${review.comment}</div>
-                                                <c:if test="${not empty review.feedback}">
-                                                    <button class="btn btn-sm btn-outline-success ms-2" 
-                                                            data-bs-toggle="tooltip" 
-                                                            data-bs-placement="top" 
-                                                            title="${review.feedback}">
-                                                        <i class="fas fa-comment-dots"></i>
-                                                    </button>
-                                                </c:if>
-                                            </div>
-                                        </td>
-                                        <td><fmt:formatDate value="${review.createdDate}" pattern="dd/MM/yyyy" /></td>
-                                        <td>
-                                            <c:choose>
-                                                <c:when test="${isHidden}">
-                                                    <span class="badge bg-danger">Hidden</span>
-                                                </c:when>
-                                                <c:when test="${isLowRated}">
-                                                    <span class="badge bg-warning text-dark">Auto-Hidden</span>
-                                                </c:when>
-                                                <c:otherwise>
-                                                    <span class="badge bg-success">Visible</span>
-                                                </c:otherwise>
-                                            </c:choose>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <button class="btn btn-sm btn-primary add-feedback" 
-                                                        data-id="${review.id}" 
-                                                        data-feedback="${review.feedback}"
-                                                        data-bs-toggle="modal" 
-                                                        data-bs-target="#tourFeedbackModal"
-                                                        title="Respond">
-                                                    <i class="fas fa-reply"></i>
-                                                </button>
-                                                
-                                                <c:choose>
-                                                    <c:when test="${isHidden || isLowRated}">
-                                                        <button class="btn btn-sm btn-success toggle-visibility" 
-                                                              data-id="${review.id}" 
-                                                              data-visibility="visible"
-                                                              data-bs-toggle="modal" 
-                                                              data-bs-target="#tourToggleVisibilityModal"
-                                                              title="Make Visible">
-                                                            <i class="fas fa-eye"></i>
-                                                        </button>
-                                                    </c:when>
-                                                    <c:otherwise>
-                                                        <button class="btn btn-sm btn-warning toggle-visibility" 
-                                                              data-id="${review.id}" 
-                                                              data-visibility="hidden"
-                                                              data-bs-toggle="modal" 
-                                                              data-bs-target="#tourToggleVisibilityModal"
-                                                              title="Hide">
-                                                            <i class="fas fa-eye-slash"></i>
-                                                        </button>
-                                                    </c:otherwise>
-                                                </c:choose>
-                                                
-                                                <button class="btn btn-sm btn-danger delete-review" 
-                                                      data-id="${review.id}" 
-                                                      data-bs-toggle="modal" 
-                                                      data-bs-target="#tourDeleteReviewModal"
-                                                      title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                                
-                                <c:if test="${empty tourReviews}">
-                                    <tr>
-                                        <td colspan="7" class="text-center py-3">No reviews found for this tour.</td>
-                                    </tr>
-                                </c:if>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tour Promotions Section -->
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow mb-4">
-                <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary"><i class="fas fa-percentage me-2"></i>Tour Promotions</h6>
-                    <div>
-                        <a href="${pageContext.request.contextPath}/admin/promotions/link?tourId=${tour.id}" class="btn btn-sm btn-success me-2">
-                            <i class="fas fa-link me-1"></i>Link Promotion
-                        </a>
-                        <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#promotionsCollapse" aria-expanded="true">
-                            <i class="fas fa-chevron-down promo-toggle-icon"></i>
-                        </button>
-                    </div>
-                </div>
-                <div class="card-body collapse show" id="promotionsCollapse">
-                    <div class="table-responsive">
-                        <table class="table table-bordered table-hover" id="tourPromotionsTable" width="100%" cellspacing="0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th style="width: 60px">ID</th>
-                                    <th>Title</th>
-                                    <th style="width: 100px">Discount</th>
-                                    <th style="width: 140px">Start Date</th>
-                                    <th style="width: 140px">End Date</th>
-                                    <th style="width: 100px">Status</th>
-                                    <th style="width: 120px">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <c:forEach var="promotion" items="${tourPromotions}">
-                                    <tr>
-                                        <td>${promotion.id}</td>
-                                        <td>${promotion.title}</td>
-                                        <td class="text-center">
-                                            <span class="badge bg-info" style="font-size: 0.9rem;">
-                                                <fmt:formatNumber value="${promotion.discountPercentage}" type="number" maxFractionDigits="1" />%
-                                            </span>
-                                        </td>
-                                        <td><fmt:formatDate value="${promotion.startDate}" pattern="dd/MM/yyyy" /></td>
-                                        <td><fmt:formatDate value="${promotion.endDate}" pattern="dd/MM/yyyy" /></td>
-                                        <td>
-                                            <span class="badge ${promotion.status eq 'Active' ? 'bg-success' : promotion.status eq 'Upcoming' ? 'bg-primary' : 'bg-secondary'}">
-                                                ${promotion.status}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <a href="${pageContext.request.contextPath}/admin/promotions/view?id=${promotion.id}" class="btn btn-sm btn-info text-white" title="View">
-                                                    <i class="fas fa-eye"></i>
-                                                </a>
-                                                <a href="${pageContext.request.contextPath}/admin/promotions/edit?id=${promotion.id}" class="btn btn-sm btn-warning text-white" title="Edit">
-                                                    <i class="fas fa-edit"></i>
-                                                </a>
-                                                <button class="btn btn-sm btn-danger unlink-promotion" 
-                                                       data-id="${promotion.id}" 
-                                                       data-title="${promotion.title}" 
-                                                       data-bs-toggle="modal" 
-                                                       data-bs-target="#unlinkPromotionModal" title="Unlink">
-                                                    <i class="fas fa-unlink"></i>
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </c:forEach>
-                                
-                                <c:if test="${empty tourPromotions}">
-                                    <tr>
-                                        <td colspan="7" class="text-center py-3">
-                                            <div class="py-4">
-                                                <i class="fas fa-percentage text-muted fa-2x mb-3"></i>
-                                                <p class="mb-0">No promotions linked to this tour.</p>
-                                                <a href="${pageContext.request.contextPath}/admin/promotions/link?tourId=${tour.id}" class="btn btn-sm btn-outline-primary mt-2">
-                                                    <i class="fas fa-link me-1"></i>Link a promotion
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </c:if>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>
@@ -683,143 +335,6 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <a href="${pageContext.request.contextPath}/admin/tours/delete?id=${tour.id}" class="btn btn-danger">Delete Tour</a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tour Review Modal - Delete Confirmation -->
-<div class="modal fade" id="tourDeleteReviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Delete Review</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this review? This action cannot be undone.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="${pageContext.request.contextPath}/admin/reviews/delete" method="post">
-                    <input type="hidden" id="reviewIdToDelete" name="reviewId" value="">
-                    <input type="hidden" name="tourId" value="${tour.id}">
-                    <input type="hidden" name="redirectToTour" value="true">
-                    <button type="submit" class="btn btn-danger">Delete</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tour Review Modal - Toggle Visibility -->
-<div class="modal fade" id="tourToggleVisibilityModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-eye me-2"></i>Toggle Review Visibility
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p id="tourToggleVisibilityMessage">
-                    Are you sure you want to change the visibility of this review?
-                </p>
-                <div class="alert alert-warning">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <span id="tourToggleVisibilityWarning">
-                        Changing the visibility of a low-rated review will make it visible to all users on the tour page.
-                    </span>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="${pageContext.request.contextPath}/admin/reviews/toggle-visibility" method="post">
-                    <input type="hidden" id="tourReviewIdToToggle" name="reviewId" value="">
-                    <input type="hidden" id="tourVisibilityValue" name="isVisible" value="">
-                    <input type="hidden" name="tourId" value="${tour.id}">
-                    <input type="hidden" name="redirectToTour" value="true">
-                    <button type="submit" class="btn btn-primary">Confirm</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tour Review Modal - Add Feedback -->
-<div class="modal fade" id="tourFeedbackModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title">
-                    <i class="fas fa-reply me-2"></i>Respond to Review
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form action="${pageContext.request.contextPath}/admin/reviews/feedback" method="post">
-                <div class="modal-body">
-                    <input type="hidden" id="tourReviewIdForFeedback" name="reviewId" value="">
-                    <input type="hidden" name="tourId" value="${tour.id}">
-                    <input type="hidden" name="redirectToTour" value="true">
-                    
-                    <div class="mb-3">
-                        <label for="tourFeedbackContent" class="form-label">Your Response</label>
-                        <textarea class="form-control" id="tourFeedbackContent" name="feedback" rows="4" 
-                                  placeholder="Enter your response to this review..."></textarea>
-                        <div class="form-text">
-                            This response will be visible to all users viewing the tour page.
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info">
-                        <div class="d-flex">
-                            <div>
-                                <i class="fas fa-info-circle me-2 mt-1"></i>
-                            </div>
-                            <div>
-                                <strong>Guidelines for good responses:</strong>
-                                <ul class="mb-0 mt-1">
-                                    <li>Thank the reviewer for their feedback</li>
-                                    <li>Address specific concerns they mentioned</li>
-                                    <li>Explain any improvements or actions you'll take</li>
-                                    <li>Keep responses professional and courteous</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-paper-plane me-1"></i> Send Response
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Unlink Promotion Modal -->
-<div class="modal fade" id="unlinkPromotionModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Confirm Unlink Promotion</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to unlink the promotion: <span id="promotionTitleToUnlink"></span> from this tour?</p>
-                <p>This will only remove the association between the promotion and this tour. The promotion itself will not be deleted.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <form action="${pageContext.request.contextPath}/admin/promotions/unlink" method="post">
-                    <input type="hidden" id="promotionIdToUnlink" name="promotionId" value="">
-                    <input type="hidden" name="tourId" value="${tour.id}">
-                    <input type="hidden" name="redirectToTour" value="true">
-                    <button type="submit" class="btn btn-danger">Unlink</button>
-                </form>
             </div>
         </div>
     </div>
@@ -950,144 +465,6 @@
         
         // Ensure Bootstrap is properly loaded for modals
         console.log("Bootstrap version:", typeof bootstrap !== 'undefined' ? 'Loaded' : 'Not loaded');
-    });
-    
-    // Tour Reviews JavaScript
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize tooltips
-        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-        const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl);
-        });
-        
-        // Enhanced collapse behavior for sections
-        const reviewCollapse = document.getElementById('reviewsCollapse');
-        const promoCollapse = document.getElementById('promotionsCollapse');
-        
-        // Update icon on collapse state change for reviews
-        reviewCollapse.addEventListener('show.bs.collapse', function () {
-            document.querySelector('.review-toggle-icon').classList.replace('fa-chevron-down', 'fa-chevron-up');
-        });
-        reviewCollapse.addEventListener('hide.bs.collapse', function () {
-            document.querySelector('.review-toggle-icon').classList.replace('fa-chevron-up', 'fa-chevron-down');
-        });
-        
-        // Update icon on collapse state change for promotions
-        promoCollapse.addEventListener('show.bs.collapse', function () {
-            document.querySelector('.promo-toggle-icon').classList.replace('fa-chevron-down', 'fa-chevron-up');
-        });
-        promoCollapse.addEventListener('hide.bs.collapse', function () {
-            document.querySelector('.promo-toggle-icon').classList.replace('fa-chevron-up', 'fa-chevron-down');
-        });
-        
-        // Improve tour itinerary section
-        const itineraryItems = document.querySelectorAll('.accordion-item');
-        if (itineraryItems.length > 0) {
-            // Show at least the first itinerary day by default
-            const firstCollapse = new bootstrap.Collapse(document.querySelector('.accordion-collapse'), {
-                toggle: true
-            });
-        }
-        
-        // Filter reviews for this tour
-        document.getElementById('applyReviewFilters').addEventListener('click', function() {
-            const rating = document.getElementById('ratingFilter').value;
-            const visibility = document.getElementById('visibilityFilter').value;
-            
-            let url = '${pageContext.request.contextPath}/admin/tours/view?id=${tour.id}';
-            
-            if (rating) {
-                url += '&rating=' + rating;
-            }
-            
-            if (visibility) {
-                url += '&visibility=' + visibility;
-            }
-            
-            window.location.href = url;
-        });
-        
-        // Handle review action buttons
-        const deleteButtons = document.querySelectorAll('#tourReviewsTable .delete-review');
-        deleteButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const reviewId = this.getAttribute('data-id');
-                document.getElementById('reviewIdToDelete').value = reviewId;
-            });
-        });
-        
-        const toggleButtons = document.querySelectorAll('#tourReviewsTable .toggle-visibility');
-        toggleButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const reviewId = this.getAttribute('data-id');
-                const visibility = this.getAttribute('data-visibility');
-                
-                document.getElementById('tourReviewIdToToggle').value = reviewId;
-                document.getElementById('tourVisibilityValue').value = visibility === 'visible' ? 'true' : 'false';
-                
-                const message = visibility === 'visible' 
-                    ? 'Are you sure you want to make this review visible to all users?' 
-                    : 'Are you sure you want to hide this review from users?';
-                document.getElementById('tourToggleVisibilityMessage').textContent = message;
-                
-                const warning = visibility === 'visible' 
-                    ? 'Making a low-rated review visible may affect the overall tour rating and user perception.'
-                    : 'Hiding this review will prevent users from seeing it on the tour page.';
-                document.getElementById('tourToggleVisibilityWarning').textContent = warning;
-            });
-        });
-        
-        const feedbackButtons = document.querySelectorAll('#tourReviewsTable .add-feedback');
-        feedbackButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const reviewId = this.getAttribute('data-id');
-                const existingFeedback = this.getAttribute('data-feedback');
-                
-                document.getElementById('tourReviewIdForFeedback').value = reviewId;
-                document.getElementById('tourFeedbackContent').value = existingFeedback || '';
-                
-                // Focus the textarea after the modal is shown
-                const feedbackModal = document.getElementById('tourFeedbackModal');
-                feedbackModal.addEventListener('shown.bs.modal', function () {
-                    document.getElementById('tourFeedbackContent').focus();
-                }, { once: true });
-            });
-        });
-        
-        // Promotions unlink functionality
-        const unlinkButtons = document.querySelectorAll('.unlink-promotion');
-        unlinkButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const promotionId = this.getAttribute('data-id');
-                const promotionTitle = this.getAttribute('data-title');
-                
-                document.getElementById('promotionIdToUnlink').value = promotionId;
-                document.getElementById('promotionTitleToUnlink').textContent = promotionTitle;
-            });
-        });
-        
-        // Initialize DataTables for tables if jQuery and DataTables are available
-        if (typeof $ !== 'undefined' && $.fn.DataTable) {
-            $('#tourReviewsTable').DataTable({
-                "pageLength": 5,
-                "lengthMenu": [[5, 10, 25, -1], [5, 10, 25, "All"]],
-                "order": [[4, "desc"]], // Sort by date
-                "columnDefs": [
-                    { "orderable": false, "targets": [6] } // Disable sorting on actions column
-                ],
-                "responsive": true
-            });
-            
-            $('#tourPromotionsTable').DataTable({
-                "pageLength": 5,
-                "lengthMenu": [[5, 10, 25, -1], [5, 10, 25, "All"]],
-                "order": [[3, "desc"]], // Sort by start date
-                "columnDefs": [
-                    { "orderable": false, "targets": [6] } // Disable sorting on actions column
-                ],
-                "responsive": true
-            });
-        }
     });
 </script>
 

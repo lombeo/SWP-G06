@@ -18,7 +18,6 @@ public class Review {
     // User information for display purposes
     private String userName;
     private String userAvatar;
-    private String userEmail;
     private String tourName;
     
     // Admin feedback
@@ -118,14 +117,6 @@ public class Review {
 
     public void setUserAvatar(String userAvatar) {
         this.userAvatar = userAvatar;
-    }
-
-    public String getUserEmail() {
-        return userEmail;
-    }
-
-    public void setUserEmail(String userEmail) {
-        this.userEmail = userEmail;
     }
 
     public String getTourName() {

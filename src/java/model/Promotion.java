@@ -12,7 +12,6 @@ public class Promotion {
     private Timestamp createdDate;
     private Timestamp deletedDate;
     private boolean isDelete;
-    private String status;
     
     // Constructors
     public Promotion() {
@@ -91,10 +90,6 @@ public class Promotion {
         this.isDelete = isDelete;
     }
     
-    public void setStatus(String status) {
-        this.status = status;
-    }
-    
     // Helper methods
     public String getFormattedStartDate() {
         if (startDate == null) return "";
@@ -118,10 +113,6 @@ public class Promotion {
     }
     
     public String getStatus() {
-        if (status != null) {
-            return status;
-        }
-        
         if (isDelete) {
             return "Deleted";
         }

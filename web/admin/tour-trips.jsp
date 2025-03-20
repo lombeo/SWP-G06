@@ -80,6 +80,13 @@
                 </div>
                 <% session.removeAttribute("errorMessage"); %>
             </c:if>
+            
+            <c:if test="${not empty tourBookings}">
+                <div class="alert alert-info alert-dismissible fade show" role="alert">
+                    <i class="fas fa-info-circle me-2"></i><strong>Notice:</strong> Some trips may have active bookings. You can add new trips and modify trips without bookings, but trips with active bookings cannot be edited or deleted to protect customer reservations.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            </c:if>
         </div>
     </div>
 
@@ -136,19 +143,39 @@
                                         <span class="fw-bold ${trip.availableSlot > 5 ? 'text-success' : 'text-warning'}">${trip.availableSlot}</span> / ${tour.maxCapacity}
                                     </td>
                                     <td>
-                                        <span class="badge bg-success">Active</span>
+                                        <c:choose>
+                                            <c:when test="${tripHasBookingsMap[trip.id]}">
+                                                <span class="badge bg-success">Active</span>
+                                                <span class="badge bg-warning text-dark ms-1">Has Bookings</span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="badge bg-success">Active</span>
+                                            </c:otherwise>
+                                        </c:choose>
                                     </td>
                                     <td>
                                         <div class="d-flex">
                                             <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
                                                 <i class="fas fa-receipt"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <c:choose>
+                                                <c:when test="${tripHasBookingsMap[trip.id]}">
+                                                    <button class="btn btn-sm btn-secondary me-2" disabled title="Cannot edit: Trip has active bookings">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary" disabled title="Cannot delete: Trip has active bookings">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </td>
                                 </tr>
@@ -216,18 +243,33 @@
                                                 <span class="badge bg-secondary">Inactive</span>
                                             </c:otherwise>
                                         </c:choose>
+                                        <c:if test="${tripHasBookingsMap[trip.id]}">
+                                            <span class="badge bg-warning text-dark ms-1">Has Bookings</span>
+                                        </c:if>
                                     </td>
                                     <td>
                                         <div class="d-flex">
                                             <button class="btn btn-sm btn-info me-2" data-bs-toggle="modal" data-bs-target="#viewBookingsModal${trip.id}" title="View Bookings">
                                                 <i class="fas fa-receipt"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            <c:choose>
+                                                <c:when test="${tripHasBookingsMap[trip.id]}">
+                                                    <button class="btn btn-sm btn-secondary me-2" disabled title="Cannot edit: Trip has active bookings">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary" disabled title="Cannot delete: Trip has active bookings">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button class="btn btn-sm btn-primary me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </div>
                                     </td>
                                 </tr>
