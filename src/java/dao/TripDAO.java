@@ -186,7 +186,7 @@ public class TripDAO {
     public List<Trip> getTripsByTourId(int tourId) {
         List<Trip> trips = new ArrayList<>();
         // Only select columns we're sure exist based on the database diagram
-        String sql = "SELECT id, tour_id, departure_date, return_date, start_time, end_time, available_slot FROM trip WHERE tour_id = ? ORDER BY departure_date ASC";
+        String sql = "SELECT id, tour_id, departure_city_id, destination_city_id, departure_date, return_date, start_time, end_time, available_slot, is_delete FROM trip WHERE tour_id = ? ORDER BY departure_date ASC";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
