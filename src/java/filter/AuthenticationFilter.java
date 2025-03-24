@@ -11,6 +11,7 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import model.User;
 
 @WebFilter("/*")
 public class AuthenticationFilter implements Filter {
@@ -31,8 +32,19 @@ public class AuthenticationFilter implements Filter {
         boolean isLoginPage = requestURI.endsWith("/login");
         boolean isRegisterPage = requestURI.endsWith("/register");
         boolean isProfilePage = requestURI.endsWith("/user-profile");
+        boolean isAdminPath = requestURI.contains("/admin");
         
         if (isLoggedIn) {
+            // Check admin access to admin pages
+            if (isAdminPath) {
+                User user = (User) session.getAttribute("user");
+                // Admin role is assumed to be roleId = 1
+                if (user.getRoleId() != 2) {
+                    httpResponse.sendRedirect(httpRequest.getContextPath() + "/home");
+                    return;
+                }
+            }
+            
             // Nếu đã đăng nhập, không cho phép truy cập trang login và register
             if (isLoginPage || isRegisterPage) {
                 httpResponse.sendRedirect(httpRequest.getContextPath() + "/home");
@@ -41,6 +53,12 @@ public class AuthenticationFilter implements Filter {
         } else {
             // Nếu chưa đăng nhập, không cho phép truy cập trang profile
             if (isProfilePage) {
+                httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
+                return;
+            }
+            
+            // Redirect unauthenticated users trying to access admin pages
+            if (isAdminPath) {
                 httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
                 return;
             }

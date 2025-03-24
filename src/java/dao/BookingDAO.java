@@ -204,9 +204,10 @@ public class BookingDAO {
     /**
      * Soft delete a booking by setting is_delete to true
      * @param bookingId The booking ID to delete
+     * @param reason The reason for deletion
      * @return True if successful, false otherwise
      */
-    public boolean deleteBooking(int bookingId) {
+    public boolean deleteBooking(int bookingId, String reason) {
         String sql = "UPDATE booking SET is_delete = 1, deleted_date = GETDATE() WHERE id = ?";
         
         try (Connection conn = DBContext.getConnection();
@@ -215,12 +216,35 @@ public class BookingDAO {
             stmt.setInt(1, bookingId);
             
             int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0 && reason != null && !reason.trim().isEmpty()) {
+                // Create a transaction record to store the deletion reason
+                String transactionSql = "INSERT INTO [transaction] (booking_id, transaction_type, amount, description, status, created_date) VALUES (?, ?, ?, ?, ?, GETDATE())";
+                try (PreparedStatement transStmt = conn.prepareStatement(transactionSql)) {
+                    transStmt.setInt(1, bookingId);
+                    transStmt.setString(2, "Cancellation");
+                    transStmt.setDouble(3, 0.0);
+                    transStmt.setString(4, "Deleted by admin. Reason: " + reason);
+                    transStmt.setString(5, "Completed");
+                    transStmt.executeUpdate();
+                }
+            }
+            
             return rowsAffected > 0;
         } catch (SQLException | ClassNotFoundException e) {
             System.out.println("Error deleting booking: " + e.getMessage());
         }
         
         return false;
+    }
+    
+    /**
+     * Soft delete a booking by setting is_delete to true (without reason)
+     * @param bookingId The booking ID to delete
+     * @return True if successful, false otherwise
+     */
+    public boolean deleteBooking(int bookingId) {
+        return deleteBooking(bookingId, null);
     }
     
     /**

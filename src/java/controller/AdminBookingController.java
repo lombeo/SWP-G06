@@ -275,6 +275,7 @@ public class AdminBookingController extends HttpServlet {
     private void deleteBooking(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         String idParam = request.getParameter("id");
+        String reason = request.getParameter("reason");
         HttpSession session = request.getSession();
         
         if (idParam == null || idParam.isEmpty()) {
@@ -285,7 +286,7 @@ public class AdminBookingController extends HttpServlet {
         
         try {
             int bookingId = Integer.parseInt(idParam);
-            boolean success = bookingDAO.deleteBooking(bookingId);
+            boolean success = bookingDAO.deleteBooking(bookingId, reason);
             
             if (success) {
                 session.setAttribute("successMessage", "Booking deleted successfully");
