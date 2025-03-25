@@ -1,6 +1,23 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ page import="java.text.NumberFormat" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Locale" %>
+<%@ page import="java.util.Currency" %>
+
+<%
+    // Format currency
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+    
+    // Make formatter available in EL
+    pageContext.setAttribute("currencyFormatter", currencyFormatter);
+%>
 
 <div class="card shadow mb-4">
     <div class="card-header py-3 d-flex justify-content-between align-items-center">
@@ -59,7 +76,7 @@
                                     <span title="Children" class="badge bg-info">${booking.childNumber} <i class="fas fa-child"></i></span>
                                     <c:if test="${not empty booking.trip}">
                                         <div class="small text-muted mt-1">
-                                            <fmt:formatNumber type="number" value="${booking.adultNumber * tour.priceAdult + booking.childNumber * tour.priceChildren}" pattern="#,###" /> VNĐ
+                                            ${currencyFormatter.format(booking.adultNumber * tour.priceAdult + booking.childNumber * tour.priceChildren)}
                                         </div>
                                     </c:if>
                                 </td>

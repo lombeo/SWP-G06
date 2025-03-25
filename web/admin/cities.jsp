@@ -303,9 +303,13 @@
         });
         
         function applyFilters() {
-            const searchText = document.getElementById('searchInput').value.trim();
-            const sortOrder = document.getElementById('sortOrder').value;
-            const region = document.getElementById('regionFilter').value;
+            const searchInput = document.getElementById('searchInput');
+            const sortOrderElement = document.getElementById('sortOrder');
+            const regionElement = document.getElementById('regionFilter');
+            
+            const searchText = searchInput ? searchInput.value.trim() : '';
+            const sortOrder = sortOrderElement ? sortOrderElement.value : '';
+            const region = regionElement ? regionElement.value : '';
             
             // Create a URL object
             const url = new URL("${pageContext.request.contextPath}/admin/city", window.location.origin);

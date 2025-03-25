@@ -294,8 +294,11 @@
         });
         
         function applyFilters() {
-            const searchText = document.getElementById('searchInput').value.trim();
-            const sortOrder = document.getElementById('sortOrder').value;
+            const searchInput = document.getElementById('searchInput');
+            const sortOrderElement = document.getElementById('sortOrder');
+            
+            const searchText = searchInput ? searchInput.value.trim() : '';
+            const sortOrder = sortOrderElement ? sortOrderElement.value : '';
             
             // Create a URL object
             const url = new URL("${pageContext.request.contextPath}/admin/category", window.location.origin);

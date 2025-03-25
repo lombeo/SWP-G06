@@ -1,6 +1,24 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ page import="java.text.NumberFormat" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Locale" %>
+<%@ page import="java.util.Currency" %>
+
+<%
+    // Format currency
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+    
+    // Make formatter available in EL
+    pageContext.setAttribute("currencyFormatter", currencyFormatter);
+%>
+
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="promotions"/>
 </jsp:include>
@@ -116,7 +134,7 @@
                                                 <td>${tour.id}</td>
                                                 <td>${tour.name}</td>
                                                 <td>
-                                                    <fmt:formatNumber value="${tour.priceAdult}" type="currency" currencySymbol="₫" />
+                                                    ${currencyFormatter.format(tour.priceAdult)}
                                                 </td>
                                                 <td>
                                                     <div class="d-flex gap-2">

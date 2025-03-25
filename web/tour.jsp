@@ -5,6 +5,21 @@
             <%@ page import="java.util.*" %>
                 <%@ page import="model.*" %>
                     <%@ page import="dao.*" %>
+                        <%@ page import="java.text.NumberFormat" %>
+                        <%@ page import="java.util.Locale" %>
+                        <%@ page import="java.text.SimpleDateFormat" %>
+                        <%@ page import="java.text.DecimalFormat" %>
+                        <%@ page import="java.text.DecimalFormatSymbols" %>
+                        <%@ page import="java.util.Currency" %>
+
+                        <%
+                            // Format currency
+                            NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+                            currencyFormatter.setCurrency(Currency.getInstance("VND"));
+                            DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+                            dfs.setCurrencySymbol("VNĐ");
+                            ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+                        %>
 
                         <!DOCTYPE html>
                         <html lang="en">
@@ -482,17 +497,17 @@
                                                                                                     double discountedPrice = tour.getPriceAdult() * (1 - discountPercent);
                                                                                             %>
                                                                                                 <div class="text-gray-500 line-through text-sm">
-                                                                                                    <%= String.format("%,.0f", tour.getPriceAdult()) %> đ
+                                                                                                    <%= currencyFormatter.format(tour.getPriceAdult()) %>
                                                                                                 </div>
                                                                                                 <div class="text-red-500 font-bold">
-                                                                                                    <%= String.format("%,.0f", discountedPrice) %> đ
+                                                                                                    <%= currencyFormatter.format(discountedPrice) %>
                                                                                                 </div>
                                                                                                 <div class="text-red-500 text-sm">
                                                                                                     Giảm <%= String.format("%.0f", promotion.getDiscountPercentage()) %>%
                                                                                                 </div>
                                                                                             <% } else { %>
                                                                                                 <div class="text-red-500 font-bold">
-                                                                                                    <%= String.format("%,.0f", tour.getPriceAdult()) %> đ
+                                                                                                    <%= currencyFormatter.format(tour.getPriceAdult()) %>
                                                                                                 </div>
                                                                                             <% } %>
                                                                                         </div>

@@ -1,7 +1,26 @@
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ page import="java.text.SimpleDateFormat" %>
 <%@ page import="java.util.Date" %>
+<%@ page import="java.text.NumberFormat" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Locale" %>
+<%@ page import="java.util.Currency" %>
+
+<%
+    // Format currency
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+    
+    // Make formatter available in EL
+    pageContext.setAttribute("currencyFormatter", currencyFormatter);
+%>
+
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="bookings"/>
 </jsp:include>
@@ -141,7 +160,7 @@
                                                         <c:set var="totalAmount" value="${totalAmount + transaction.amount}" />
                                                     </c:if>
                                                 </c:forEach>
-                                                ${totalAmount} VNĐ
+                                                ${currencyFormatter.format(totalAmount)}
                                             </td>
                                         </tr>
                                     </table>
@@ -217,11 +236,11 @@
                                                 </tr>
                                                 <tr>
                                                     <th>Adult Price</th>
-                                                    <td>${tour.priceAdult} VNĐ</td>
+                                                    <td>${currencyFormatter.format(tour.priceAdult)}</td>
                                                 </tr>
                                                 <tr>
                                                     <th>Child Price</th>
-                                                    <td>${tour.priceChildren} VNĐ</td>
+                                                    <td>${currencyFormatter.format(tour.priceChildren)}</td>
                                                 </tr>
                                             </table>
                                         </div>
@@ -256,7 +275,7 @@
                                                         <tr>
                                                             <td>${transaction.id}</td>
                                                             <td>${transaction.transactionType}</td>
-                                                            <td>${transaction.amount} VNĐ</td>
+                                                            <td>${currencyFormatter.format(transaction.amount)}</td>
                                                             <td>${transaction.description}</td>
                                                             <td>${transaction.transactionDate}</td>
                                                             <td>

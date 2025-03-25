@@ -9,6 +9,9 @@
 <%@ page import="java.util.Locale" %>
 <%@ page import="java.time.LocalDateTime" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.util.Currency" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
 <%
     // Get the attributes set by the HomeServlet
     List<Tour> topDiscountedTours = (List<Tour>) request.getAttribute("topDiscountedTours");
@@ -20,6 +23,10 @@
     
     // Initialize numberFormat for currency display
     NumberFormat numberFormat = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    numberFormat.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) numberFormat).setDecimalFormatSymbols(dfs);
 %>
 <!DOCTYPE html>
 <html lang="en">

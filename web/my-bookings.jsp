@@ -19,6 +19,9 @@
 <%@ page import="java.util.Date" %>
 <%@ page import="java.util.Calendar" %>
 <%@ page import="java.util.concurrent.TimeUnit" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Currency" %>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -49,6 +52,10 @@
             
             // Format currency
             NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+            currencyFormatter.setCurrency(Currency.getInstance("VND"));
+            DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+            dfs.setCurrencySymbol("VNĐ");
+            ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
             
             // Format date
             SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");

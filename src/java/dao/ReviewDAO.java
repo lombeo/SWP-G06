@@ -113,13 +113,13 @@ public class ReviewDAO {
     }
     
     /**
-     * Check if a user has already reviewed a tour
+     * Check if a user has already reviewed a tour (including hidden reviews)
      * @param tourId The tour ID
      * @param accountId The user's account ID
-     * @return true if the user has already reviewed this tour, false otherwise
+     * @return true if user has reviewed this tour (even if review is hidden), false otherwise
      */
     public boolean hasUserReviewedTour(int tourId, int accountId) throws ClassNotFoundException {
-        String sql = "SELECT COUNT(*) FROM review WHERE tour_id = ? AND account_id = ? AND is_delete = 0";
+        String sql = "SELECT COUNT(*) FROM review WHERE tour_id = ? AND account_id = ?";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -227,18 +227,17 @@ public class ReviewDAO {
     }
     
     /**
-     * Delete a review (soft delete)
+     * Delete a review (hard delete)
      * @param reviewId The review ID
      * @return true if successful, false otherwise
      */
     public boolean deleteReview(int reviewId) throws ClassNotFoundException {
-        String sql = "UPDATE review SET is_delete = 1, deleted_date = ? WHERE id = ?";
+        String sql = "DELETE FROM review WHERE id = ?";
         
         try (Connection conn = new DBContext().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             
-            ps.setTimestamp(1, new Timestamp(System.currentTimeMillis()));
-            ps.setInt(2, reviewId);
+            ps.setInt(1, reviewId);
             
             int affectedRows = ps.executeUpdate();
             return affectedRows > 0;

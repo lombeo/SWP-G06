@@ -15,7 +15,22 @@
 <%@ page import="java.text.SimpleDateFormat" %>
 <%@ page import="java.util.Locale" %>
 <%@ page import="java.time.format.DateTimeFormatter" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Currency" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+
+<%
+    // Format currency for Vietnamese format
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+    
+    // Make formatter available to EL
+    pageContext.setAttribute("currencyFormatter", currencyFormatter);
+%>
 
 <!DOCTYPE html>
 <html lang="en">
@@ -61,10 +76,10 @@
                         <div class="mb-6">
                             <c:if test="${promotion != null}">
                                 <div class="text-gray-500 line-through text-lg">
-                                    ${String.format("%,.0f", tour.getPriceAdult())} đ / Khách
+                                    ${currencyFormatter.format(tour.getPriceAdult())} / Khách
                                 </div>
                                 <div class="text-3xl font-bold text-red-600">
-                                    ${String.format("%,.0f", tour.getPriceAdult() * (1 - (promotion.getDiscountPercentage() / 100.0)))} đ
+                                    ${currencyFormatter.format(tour.getPriceAdult() * (1 - (promotion.getDiscountPercentage() / 100.0)))}
                                     <span class="text-lg font-normal">/ Khách</span>
                                 </div>
                                 <div class="text-red-600 text-sm mt-1">
@@ -73,7 +88,7 @@
                             </c:if>
                             <c:if test="${promotion == null}">
                                 <div class="text-3xl font-bold text-red-600">
-                                    ${String.format("%,.0f", tour.getPriceAdult())} đ
+                                    ${currencyFormatter.format(tour.getPriceAdult())}
                                     <span class="text-lg font-normal">/ Khách</span>
                                 </div>
                             </c:if>
@@ -335,10 +350,10 @@
                                             <div class="text-gray-600 text-sm">(Từ 12 tuổi trở lên)</div>
                                             <c:if test="${promotion != null}">
                                                 <div class="text-gray-500 line-through text-sm mt-2">
-                                                    ${String.format("%,.0f", tour.getPriceAdult())} đ
+                                                    ${currencyFormatter.format(tour.getPriceAdult())}
                                                 </div>
                                                 <div class="text-red-600 font-bold">
-                                                    ${String.format("%,.0f", tour.getPriceAdult() * (1 - (promotion.getDiscountPercentage() / 100.0)))} đ
+                                                    ${currencyFormatter.format(tour.getPriceAdult() * (1 - (promotion.getDiscountPercentage() / 100.0)))}
                                                 </div>
                                                 <div class="text-red-500 text-sm">
                                                     Giảm ${String.format("%.0f", promotion.getDiscountPercentage())}%
@@ -346,7 +361,7 @@
                                             </c:if>
                                             <c:if test="${promotion == null}">
                                                 <div class="text-red-600 font-bold mt-2">
-                                                    ${String.format("%,.0f", tour.getPriceAdult())} đ
+                                                    ${currencyFormatter.format(tour.getPriceAdult())}
                                                 </div>
                                             </c:if>
                                         </div>
@@ -355,10 +370,10 @@
                                             <div class="text-gray-600 text-sm">(Từ 5 đến 11 tuổi)</div>
                                             <c:if test="${promotion != null}">
                                                 <div class="text-gray-500 line-through text-sm mt-2">
-                                                    <fmt:formatNumber value="${tour.getPriceChildren()}" pattern="#,##0"/> đ
+                                                    <fmt:formatNumber value="${tour.getPriceChildren()}" pattern="#,##0"/>
                                                 </div>
                                                 <div class="text-red-600 font-bold">
-                                                    <fmt:formatNumber value="${tour.getPriceChildren() * (1 - promotion.getDiscountPercentage()/100)}" pattern="#,##0"/> đ
+                                                    <fmt:formatNumber value="${tour.getPriceChildren() * (1 - promotion.getDiscountPercentage()/100)}" pattern="#,##0"/>
                                                 </div>
                                                 <div class="text-red-500 text-sm">
                                                     Giảm ${promotion.getDiscountPercentage()}%
@@ -366,7 +381,7 @@
                                             </c:if>
                                             <c:if test="${promotion == null}">
                                                 <div class="text-red-600 font-bold mt-2">
-                                                    <fmt:formatNumber value="${tour.getPriceChildren()}" pattern="#,##0"/> đ
+                                                    <fmt:formatNumber value="${tour.getPriceChildren()}" pattern="#,##0"/>
                                                 </div>
                                             </c:if>
                                         </div>
@@ -995,14 +1010,14 @@
                                 <div class="text-xs text-gray-600 mb-1">Giá từ</div>
                                 <% if (hasPromotion) { %>
                                     <div class="text-gray-500 line-through text-xs">
-                                        <%= String.format("%,.0f", relatedTour.getPriceAdult()) %> đ
+                                        <%= currencyFormatter.format(relatedTour.getPriceAdult()) %>
                                     </div>
                                     <div class="text-red-600 font-bold text-lg">
-                                        <%= String.format("%,.0f", displayPrice) %> đ
+                                        <%= currencyFormatter.format(displayPrice) %>
                                         <span class="text-xs font-normal ml-1">(-<%= String.format("%.0f", discountPercentage) %>%)</span>
                                     </div>
                                 <% } else { %>
-                                    <div class="text-red-600 font-bold text-lg"><%= String.format("%,.0f", displayPrice) %> đ</div>
+                                    <div class="text-red-600 font-bold text-lg"><%= currencyFormatter.format(displayPrice) %></div>
                                 <% } %>
                                 <div class="flex justify-end mt-2">
                                     <a href="tour-detail?id=<%= relatedTour.getId() %>" class="text-blue-600 hover:text-blue-800 text-xs flex items-center transition-colors">

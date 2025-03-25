@@ -228,13 +228,13 @@ $(document).ready(function() {
                     dayCell.append(
                         $('<div>').addClass('flex flex-col items-center text-xs')
                             .append($('<span>').addClass('text-red-500 flex items-center').html('&#9733; ' + discountPercent + '%'))
-                            .append($('<span>').addClass('text-gray-500 line-through').text(new Intl.NumberFormat('vi-VN').format(originalPrice) + 'K'))
-                            .append($('<span>').addClass('text-red-600 font-bold').text(new Intl.NumberFormat('vi-VN').format(discountedPrice) + 'K'))
+                            .append($('<span>').addClass('text-gray-500 line-through').text(new Intl.NumberFormat('vi-VN').format(originalPrice) + 'VNĐ'))
+                            .append($('<span>').addClass('text-red-600 font-bold').text(new Intl.NumberFormat('vi-VN').format(discountedPrice) + 'VNĐ'))
                     );
                 } else {
                     // Regular price without promotion
                     dayCell.append(
-                        $('<div>').addClass('text-xs text-gray-800').text(new Intl.NumberFormat('vi-VN').format(data.tour.priceAdult) + 'K')
+                        $('<div>').addClass('text-xs text-gray-800').text(new Intl.NumberFormat('vi-VN').format(data.tour.priceAdult) + 'VNĐ')
                     );
                 }
                 
@@ -448,11 +448,11 @@ $(document).ready(function() {
             discountPercent = data.promotion.discountPercentage;
             adultDiscountedPrice = adultOriginalPrice * (1 - (discountPercent / 100));
             
-            adultPriceEl.append(`<div class="text-gray-500 line-through text-sm mt-2">${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)}đ</div>`);
-            adultPriceEl.append(`<div class="text-red-600 font-bold">${new Intl.NumberFormat('vi-VN').format(adultDiscountedPrice)}đ</div>`);
+            adultPriceEl.append(`<div class="text-gray-500 line-through text-sm mt-2">${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} VNĐ</div>`);
+            adultPriceEl.append(`<div class="text-red-600 font-bold">${new Intl.NumberFormat('vi-VN').format(adultDiscountedPrice)} VNĐ</div>`);
             adultPriceEl.append(`<div class="text-red-500 text-sm">Giảm ${discountPercent}%</div>`);
         } else {
-            adultPriceEl.append(`<div class="text-red-600 font-bold mt-2">${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)}đ</div>`);
+            adultPriceEl.append(`<div class="text-red-600 font-bold mt-2">${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} VNĐ</div>`);
         }
         
         // Child price
@@ -466,11 +466,11 @@ $(document).ready(function() {
         if (hasValidPromotion) {
             childDiscountedPrice = childOriginalPrice * (1 - (discountPercent / 100));
             
-            childPriceEl.append(`<div class="text-gray-500 line-through text-sm mt-2">${new Intl.NumberFormat('vi-VN').format(childOriginalPrice)}đ</div>`);
-            childPriceEl.append(`<div class="text-red-600 font-bold">${new Intl.NumberFormat('vi-VN').format(childDiscountedPrice)}đ</div>`);
+            childPriceEl.append(`<div class="text-gray-500 line-through text-sm mt-2">${new Intl.NumberFormat('vi-VN').format(childOriginalPrice)} VNĐ</div>`);
+            childPriceEl.append(`<div class="text-red-600 font-bold">${new Intl.NumberFormat('vi-VN').format(childDiscountedPrice)} VNĐ</div>`);
             childPriceEl.append(`<div class="text-red-500 text-sm">Giảm ${discountPercent}%</div>`);
         } else {
-            childPriceEl.append(`<div class="text-red-600 font-bold mt-2">${new Intl.NumberFormat('vi-VN').format(childOriginalPrice)}đ</div>`);
+            childPriceEl.append(`<div class="text-red-600 font-bold mt-2">${new Intl.NumberFormat('vi-VN').format(childOriginalPrice)} VNĐ</div>`);
         }
         
         priceContainer.append(adultPriceEl);
@@ -501,12 +501,12 @@ $(document).ready(function() {
                 
                 // Add the original price with strikethrough
                 $('<div class="text-gray-500 line-through text-lg">')
-                    .text(`${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} đ / Khách`)
+                    .text(`${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} VNĐ / Khách`)
                     .appendTo(mainPriceContainer);
                 
                 // Add the discounted price
                 const priceElement = $('<div class="text-3xl font-bold text-red-600">');
-                priceElement.text(`${new Intl.NumberFormat('vi-VN').format(adultDiscountedPrice)} đ`);
+                priceElement.text(`${new Intl.NumberFormat('vi-VN').format(adultDiscountedPrice)} VNĐ`);
                 $('<span class="text-lg font-normal"> / Khách</span>').appendTo(priceElement);
                 priceElement.appendTo(mainPriceContainer);
                 
@@ -524,7 +524,7 @@ $(document).ready(function() {
             } else {
                 // If no promotion, just show the regular price
                 const priceElement = $('<div class="text-3xl font-bold text-red-600">');
-                priceElement.text(`${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} đ`);
+                priceElement.text(`${new Intl.NumberFormat('vi-VN').format(adultOriginalPrice)} VNĐ`);
                 $('<span class="text-lg font-normal"> / Khách</span>').appendTo(priceElement);
                 priceElement.appendTo(mainPriceContainer);
             }

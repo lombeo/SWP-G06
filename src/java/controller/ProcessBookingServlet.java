@@ -70,11 +70,37 @@ public class ProcessBookingServlet extends HttpServlet {
             
             // Check if there are enough available slots
             TripDAO tripDAO = new TripDAO();
-            Trip trip = tripDAO.getAvailableTripForTour(tourId, adultCount + childCount);
+            int totalPassengers = adultCount + childCount;
+            
+            // Get trip information if a specific trip was selected
+            int tripId = 0;
+            try {
+                String tripIdParam = request.getParameter("tripId");
+                if (tripIdParam != null && !tripIdParam.isEmpty()) {
+                    tripId = Integer.parseInt(tripIdParam);
+                }
+            } catch (NumberFormatException e) {
+                // Invalid trip ID, ignore
+            }
+            
+            Trip trip = null;
+            if (tripId > 0) {
+                trip = tripDAO.getTripById(tripId);
+            } else {
+                // Find an available trip if no specific one was selected
+                trip = tripDAO.getAvailableTripForTour(tourId, totalPassengers);
+            }
             
             if (trip == null) {
                 request.setAttribute("errorMessage", "Rất tiếc, không có chuyến đi nào khả dụng cho tour này vào thời điểm hiện tại.");
                 request.getRequestDispatcher("tour").forward(request, response);
+                return;
+            }
+            
+            // Check if the number of passengers exceeds available slots
+            if (totalPassengers > trip.getAvailableSlot()) {
+                request.setAttribute("errorMessage", "Số lượng hành khách vượt quá số chỗ còn trống. Hiện tại chỉ còn " + trip.getAvailableSlot() + " chỗ trống.");
+                request.getRequestDispatcher("booking?tourId=" + tourId + "&tripId=" + trip.getId()).forward(request, response);
                 return;
             }
             

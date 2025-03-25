@@ -126,7 +126,6 @@
                             <th>Discount</th>
                             <th>Start Date</th>
                             <th>End Date</th>
-                            <th>Status</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -138,11 +137,6 @@
                                 <td><fmt:formatNumber value="${promotion.discountPercentage}" type="number" maxFractionDigits="2" />%</td>
                                 <td><fmt:formatDate value="${promotion.startDate}" pattern="dd/MM/yyyy HH:mm" /></td>
                                 <td><fmt:formatDate value="${promotion.endDate}" pattern="dd/MM/yyyy HH:mm" /></td>
-                                <td>
-                                    <span class="badge ${promotion.status eq 'Active' ? 'bg-success' : promotion.status eq 'Upcoming' ? 'bg-primary' : 'bg-secondary'}">
-                                        ${promotion.status}
-                                    </span>
-                                </td>
                                 <td>
                                     <div class="d-flex gap-2">
                                         <a href="${pageContext.request.contextPath}/admin/promotions/view?id=${promotion.id}" class="btn btn-sm btn-info text-white" title="View">
@@ -165,7 +159,7 @@
                         <!-- Display message if no promotions found -->
                         <c:if test="${empty promotions}">
                             <tr>
-                                <td colspan="7" class="text-center py-4">No promotions found.</td>
+                                <td colspan="6" class="text-center py-4">No promotions found.</td>
                             </tr>
                         </c:if>
                     </tbody>

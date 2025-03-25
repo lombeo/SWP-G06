@@ -5,6 +5,24 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.text.SimpleDateFormat" %>
 <%@ page import="java.util.Date" %>
+<%@ page import="java.text.NumberFormat" %>
+<%@ page import="java.text.DecimalFormat" %>
+<%@ page import="java.text.DecimalFormatSymbols" %>
+<%@ page import="java.util.Locale" %>
+<%@ page import="java.util.Currency" %>
+
+<%
+    // Format currency
+    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+    DecimalFormatSymbols dfs = new DecimalFormatSymbols(new Locale("vi", "VN"));
+    dfs.setCurrencySymbol("VNĐ");
+    ((DecimalFormat) currencyFormatter).setDecimalFormatSymbols(dfs);
+    
+    // Make formatter available in EL
+    pageContext.setAttribute("currencyFormatter", currencyFormatter);
+%>
+
 <jsp:include page="layout/header.jsp">
     <jsp:param name="active" value="bookings"/>
 </jsp:include>
@@ -31,38 +49,43 @@
                     <h6 class="m-0 font-weight-bold text-primary">All Bookings</h6>
                 </div>
                 <div class="card-body">
-                    <div class="row mb-3">
-                        <div class="col-md-3 mb-2">
-                            <div class="input-group">
-                                <input type="text" id="searchInput" class="form-control" placeholder="Search bookings..." value="${param.search}">
-                                <button class="btn btn-primary" type="button" id="searchButton">
-                                    <i class="fas fa-search"></i>
-                                </button>
+                    <form id="filterForm" action="${pageContext.request.contextPath}/admin" method="get">
+                        <input type="hidden" name="action" value="bookings">
+                        <input type="hidden" name="page" value="1">
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-3 mb-2">
+                                <div class="input-group">
+                                    <input type="text" id="searchInput" name="search" class="form-control" placeholder="Search bookings..." value="${param.search}">
+                                    <button class="btn btn-primary" type="submit">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <select id="statusFilter" name="status" class="form-select" onchange="document.getElementById('filterForm').submit();">
+                                    <option value="">Tất cả trạng thái</option>
+                                    <option value="Đã thanh toán" ${param.status == 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
+                                    <option value="Đã duyệt" ${param.status == 'Đã duyệt' ? 'selected' : ''}>Đã duyệt</option>
+                                    <option value="Đã hủy" ${param.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
+                                    <option value="Đã hủy muộn" ${param.status == 'Đã hủy muộn' ? 'selected' : ''}>Đã hủy muộn</option>
+                                    <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
+                                    <option value="Chờ thanh toán" ${param.status == 'Chờ thanh toán' ? 'selected' : ''}>Chờ thanh toán</option>
+                                </select>
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <input type="date" id="dateFilter" name="date" class="form-control" placeholder="Filter by date" value="${param.date}" onchange="document.getElementById('filterForm').submit();">
+                            </div>
+                            <div class="col-md-3 mb-2">
+                                <select id="sortOrder" name="sort" class="form-select" onchange="document.getElementById('filterForm').submit();">
+                                    <option value="date_desc" ${param.sort == 'date_desc' || param.sort == null ? 'selected' : ''}>Date (Newest First)</option>
+                                    <option value="date_asc" ${param.sort == 'date_asc' ? 'selected' : ''}>Date (Oldest First)</option>
+                                    <option value="amount_desc" ${param.sort == 'amount_desc' ? 'selected' : ''}>Amount (High-Low)</option>
+                                    <option value="amount_asc" ${param.sort == 'amount_asc' ? 'selected' : ''}>Amount (Low-High)</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <select id="statusFilter" class="form-select">
-                                <option value="">Tất cả trạng thái</option>
-                                <option value="Chờ thanh toán" ${param.status == 'Chờ thanh toán' ? 'selected' : ''}>Chờ thanh toán</option>
-                                <option value="Đã thanh toán" ${param.status == 'Đã thanh toán' ? 'selected' : ''}>Đã thanh toán</option>
-                                <option value="Đã duyệt" ${param.status == 'Đã duyệt' ? 'selected' : ''}>Đã duyệt</option>
-                                <option value="Đã hủy" ${param.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
-                                <option value="Đã hủy muộn" ${param.status == 'Đã hủy muộn' ? 'selected' : ''}>Đã hủy muộn</option>
-                                <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <input type="date" id="dateFilter" class="form-control" placeholder="Filter by date" value="${param.date}">
-                        </div>
-                        <div class="col-md-3 mb-2">
-                            <select id="sortOrder" class="form-select">
-                                <option value="date_desc" ${param.sort == 'date_desc' || param.sort == null ? 'selected' : ''}>Date (Newest First)</option>
-                                <option value="date_asc" ${param.sort == 'date_asc' ? 'selected' : ''}>Date (Oldest First)</option>
-                                <option value="amount_desc" ${param.sort == 'amount_desc' ? 'selected' : ''}>Amount (High-Low)</option>
-                                <option value="amount_asc" ${param.sort == 'amount_asc' ? 'selected' : ''}>Amount (Low-High)</option>
-                            </select>
-                        </div>
-                    </div>
+                    </form>
                     
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover" id="bookingsTable" width="100%" cellspacing="0">
@@ -100,7 +123,7 @@
                                         <td>
                                             <c:forEach var="transaction" items="${booking.transactions}">
                                                 <c:if test="${transaction.transactionType == 'Payment'}">
-                                                    <fmt:formatNumber type="number" pattern="#,##0" value="${transaction.amount}" /> VNĐ
+                                                    ${currencyFormatter.format(transaction.amount)}
                                                 </c:if>
                                             </c:forEach>
                                         </td>
@@ -288,30 +311,11 @@
             new bootstrap.Tooltip(tooltipTriggerEl);
         });
         
-        // Search functionality
-        document.getElementById('searchButton').addEventListener('click', function() {
-            applyAllFilters();
-        });
-        
+        // Enter key in search box submits the form
         document.getElementById('searchInput').addEventListener('keyup', function(e) {
             if (e.key === 'Enter') {
-                applyAllFilters();
+                document.getElementById('filterForm').submit();
             }
-        });
-        
-        // Status filter
-        document.getElementById('statusFilter').addEventListener('change', function() {
-            applyAllFilters();
-        });
-        
-        // Date filter
-        document.getElementById('dateFilter').addEventListener('change', function() {
-            applyAllFilters();
-        });
-        
-        // Sort order
-        document.getElementById('sortOrder').addEventListener('change', function() {
-            applyAllFilters();
         });
         
         // Approve Booking Button
@@ -345,59 +349,6 @@
                 document.getElementById('rejectBookingId').value = bookingId;
             });
         });
-        
-        // Unified filter function that preserves all filter states
-        function applyAllFilters() {
-            // Start with base URL
-            let url = "${pageContext.request.contextPath}/admin?action=bookings";
-            
-            // Add search parameter if exists
-            const searchInput = document.getElementById('searchInput').value;
-            if (searchInput && searchInput.trim() !== '') {
-                url += "&search=" + encodeURIComponent(searchInput.trim());
-            }
-            
-            // Add status parameter if selected
-            const statusFilter = document.getElementById('statusFilter').value;
-            if (statusFilter && statusFilter !== '') {
-                url += "&status=" + encodeURIComponent(statusFilter);
-            }
-            
-            // Add date parameter if selected
-            const dateFilter = document.getElementById('dateFilter').value;
-            if (dateFilter && dateFilter !== '') {
-                url += "&date=" + encodeURIComponent(dateFilter);
-            }
-            
-            // Add sort parameter
-            const sortOrder = document.getElementById('sortOrder').value;
-            if (sortOrder && sortOrder !== '') {
-                url += "&sort=" + encodeURIComponent(sortOrder);
-            }
-            
-            // Reset to page 1 when filtering
-            url += "&page=1";
-            
-            // Navigate to the filtered URL
-            window.location.href = url;
-        }
-
-        // Apply client-side status filtering if needed
-        // This is useful if we need to do additional filtering that wasn't handled server-side
-        const statusParam = "${param.status}";
-        if (statusParam && statusParam !== '') {
-            const bookingRows = document.querySelectorAll("#bookingsTable tbody tr");
-            bookingRows.forEach(row => {
-                const statusCell = row.querySelector("td:nth-child(9)"); // Status is the 9th column
-                const statusText = statusCell.textContent.trim();
-                
-                if (statusText.includes(statusParam)) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
-            });
-        }
     });
 </script>
 

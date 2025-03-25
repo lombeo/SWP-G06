@@ -181,7 +181,7 @@
                                                     <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
                                                         <i class="fas fa-edit"></i>
                                                     </button>
-                                                    <button class="btn btn-sm btn-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
+                                                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTripModal${trip.id}" title="Delete Trip">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </c:otherwise>
@@ -275,6 +275,14 @@
                                                         <i class="fas fa-edit"></i>
                                                     </button>
                                                     <button class="btn btn-sm btn-secondary" disabled title="Cannot delete: Trip has active bookings">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:when test="${trip.isIsDelete() || trip.departureDate.time <= pageContext.session.creationTime || trip.availableSlot <= 0}">
+                                                    <button class="btn btn-sm btn-warning me-2" data-bs-toggle="modal" data-bs-target="#editTripModal${trip.id}" title="Edit Trip">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-secondary" disabled title="Cannot delete: Inactive/unavailable trip">
                                                         <i class="fas fa-trash"></i>
                                                     </button>
                                                 </c:when>

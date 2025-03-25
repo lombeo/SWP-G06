@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -857,6 +858,8 @@ public class TourDAO {
         }
         
         System.out.println("Starting tour update for ID: " + tour.getId());
+        System.out.println("Tour data: name=" + tour.getName() + ", region=" + tour.getRegion() + 
+                ", priceAdult=" + tour.getPriceAdult() + ", priceChildren=" + tour.getPriceChildren());
         
         // First check if any trips for this tour have bookings
         BookingDAO bookingDAO = new BookingDAO();
@@ -889,7 +892,10 @@ public class TourDAO {
                     ps.setString(8, tour.getSuitableFor() != null ? tour.getSuitableFor() : "");
                     ps.setInt(9, tour.getId());
                     
-                    System.out.println("Executing safe SQL update for tour ID: " + tour.getId());
+                    System.out.println("Executing safe SQL update for tour ID: " + tour.getId() + ": " + safeSql);
+                    System.out.println("Parameter 1 (name): " + (tour.getName() != null ? tour.getName() : ""));
+                    System.out.println("Parameter 9 (id): " + tour.getId());
+                    
                     int rowsAffected = ps.executeUpdate();
                     System.out.println("Safe update complete. Rows affected: " + rowsAffected);
                     
@@ -915,8 +921,17 @@ public class TourDAO {
                 conn = DBContext.getConnection();
                 ps = conn.prepareStatement(sql);
                 
+                // Check for required fields
+                if (tour.getName() == null || tour.getName().trim().isEmpty()) {
+                    throw new SQLException("Tour name cannot be empty");
+                }
+                
+                if (tour.getRegion() == null) {
+                    throw new SQLException("Tour region cannot be null");
+                }
+                
                 // Set parameters with validation
-                ps.setString(1, tour.getName() != null ? tour.getName() : "");
+                ps.setString(1, tour.getName());
                 ps.setString(2, tour.getImg() != null ? tour.getImg() : "");
                 ps.setDouble(3, tour.getPriceAdult());
                 ps.setDouble(4, tour.getPriceChildren());
@@ -924,14 +939,14 @@ public class TourDAO {
                 ps.setString(6, tour.getSuitableFor() != null ? tour.getSuitableFor() : "");
                 ps.setString(7, tour.getBestTime() != null ? tour.getBestTime() : "");
                 ps.setString(8, tour.getCuisine() != null ? tour.getCuisine() : "");
-                ps.setString(9, tour.getRegion() != null ? tour.getRegion() : "");
+                ps.setString(9, tour.getRegion());
                 ps.setInt(10, tour.getMaxCapacity());
                 ps.setInt(11, tour.getDepartureLocationId() > 0 ? tour.getDepartureLocationId() : 1);
                 ps.setInt(12, tour.getCategoryId() > 0 ? tour.getCategoryId() : 1);
                 ps.setString(13, tour.getSightseeing() != null ? tour.getSightseeing() : "");
                 ps.setInt(14, tour.getId());
                 
-                System.out.println("Executing full SQL update for tour ID: " + tour.getId());
+                System.out.println("Executing full SQL update for tour ID: " + tour.getId() + ": " + sql);
                 System.out.println("Parameters:");
                 System.out.println("1. Name: " + tour.getName());
                 System.out.println("2. Image: " + tour.getImg());
@@ -1122,35 +1137,115 @@ public class TourDAO {
      * @return The ID of the created tour, or -1 if the operation failed
      */
     public int createTour(Tour tour) throws SQLException, ClassNotFoundException {
+        // SQL query without OUTPUT clause, using standard JDBC getGeneratedKeys instead
         String sql = "INSERT INTO tours (name, img, price_adult, price_children, duration, departure_location_id, " +
                      "suitable_for, best_time, cuisine, region, sightseeing, max_capacity, category_id) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); " +
-                     "SELECT SCOPE_IDENTITY() as id";
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement st = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS)) {
-            st.setString(1, tour.getName());
-            st.setString(2, tour.getImg());
-            st.setDouble(3, tour.getPriceAdult());
-            st.setDouble(4, tour.getPriceChildren());
-            st.setString(5, tour.getDuration());
-            st.setInt(6, tour.getDepartureLocationId());
-            st.setString(7, tour.getSuitableFor());
-            st.setString(8, tour.getBestTime());
-            st.setString(9, tour.getCuisine());
-            st.setString(10, tour.getRegion());
-            st.setString(11, tour.getSightseeing());
-            st.setInt(12, tour.getMaxCapacity());
-            st.setInt(13, tour.getCategoryId());
+        Connection conn = null;
+        PreparedStatement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DBContext.getConnection();
+            System.out.println("Connection established for createTour");
             
-            st.executeUpdate();
+            // Prepare the statement to return generated keys
+            stmt = conn.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
             
-            ResultSet rs = st.getGeneratedKeys();
-            if (rs.next()) {
-                return rs.getInt(1);
+            // Validate and set required parameters
+            if (tour.getName() == null || tour.getName().trim().isEmpty()) {
+                throw new SQLException("Tour name cannot be empty");
             }
+            
+            if (tour.getRegion() == null) {
+                throw new SQLException("Tour region cannot be null");
+            }
+            
+            stmt.setString(1, tour.getName());
+            stmt.setString(2, tour.getImg() != null ? tour.getImg() : "");
+            stmt.setDouble(3, tour.getPriceAdult());
+            stmt.setDouble(4, tour.getPriceChildren());
+            stmt.setString(5, tour.getDuration() != null ? tour.getDuration() : "");
+            stmt.setInt(6, tour.getDepartureLocationId() > 0 ? tour.getDepartureLocationId() : 1);
+            stmt.setString(7, tour.getSuitableFor() != null ? tour.getSuitableFor() : "");
+            stmt.setString(8, tour.getBestTime() != null ? tour.getBestTime() : "");
+            stmt.setString(9, tour.getCuisine() != null ? tour.getCuisine() : "");
+            stmt.setString(10, tour.getRegion());
+            stmt.setString(11, tour.getSightseeing() != null ? tour.getSightseeing() : "");
+            stmt.setInt(12, tour.getMaxCapacity() > 0 ? tour.getMaxCapacity() : 10);
+            stmt.setInt(13, tour.getCategoryId() > 0 ? tour.getCategoryId() : 1);
+            
+            System.out.println("Executing SQL: " + sql.replaceAll("\\s+", " "));
+            System.out.println("With parameters:");
+            System.out.println("1. Name: " + tour.getName());
+            System.out.println("2. Img: " + (tour.getImg() != null ? tour.getImg() : ""));
+            System.out.println("3. Price Adult: " + tour.getPriceAdult());
+            System.out.println("4. Price Children: " + tour.getPriceChildren());
+            System.out.println("5. Duration: " + (tour.getDuration() != null ? tour.getDuration() : ""));
+            System.out.println("6. Departure Location ID: " + (tour.getDepartureLocationId() > 0 ? tour.getDepartureLocationId() : 1));
+            System.out.println("13. Category ID: " + (tour.getCategoryId() > 0 ? tour.getCategoryId() : 1));
+            
+            // Execute the INSERT statement - use executeUpdate() for INSERT
+            int affectedRows = stmt.executeUpdate();
+            System.out.println("Insert executed, rows affected: " + affectedRows);
+            
+            if (affectedRows == 0) {
+                throw new SQLException("Creating tour failed, no rows affected.");
+            }
+            
+            // Get the generated key(s)
+            rs = stmt.getGeneratedKeys();
+            
+            if (rs.next()) {
+                int generatedId = rs.getInt(1); // Get the first generated key
+                System.out.println("Generated tour ID in DAO: " + generatedId);
+                
+                // Set the ID on the tour object
+                tour.setId(generatedId);
+                return generatedId;
+            } else {
+                System.err.println("No ID returned after tour creation!");
+                
+                // If getGeneratedKeys didn't work, try a fallback method
+                Statement idStatement = null;
+                ResultSet idRs = null;
+                try {
+                    idStatement = conn.createStatement();
+                    idRs = idStatement.executeQuery("SELECT @@IDENTITY AS ID");
+                    if (idRs.next()) {
+                        int generatedId = idRs.getInt("ID");
+                        System.out.println("Fallback method got ID: " + generatedId);
+                        if (generatedId > 0) {
+                            tour.setId(generatedId);
+                            return generatedId;
+                        }
+                    }
+                    
+                    // If @@IDENTITY didn't work, try one more fallback approach
+                    System.out.println("Trying final fallback method - getting last inserted tour ID");
+                    int lastId = getLastInsertedTourId(conn);
+                    if (lastId > 0) {
+                        System.out.println("Using last inserted ID as fallback: " + lastId);
+                        tour.setId(lastId);
+                        return lastId;
+                    }
+                } finally {
+                    if (idRs != null) try { idRs.close(); } catch (SQLException e) { /* ignore */ }
+                    if (idStatement != null) try { idStatement.close(); } catch (SQLException e) { /* ignore */ }
+                }
+                
+                throw new SQLException("Creating tour failed, no ID obtained.");
+            }
+        } catch (SQLException e) {
+            System.err.println("SQL error in createTour: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } finally {
+            if (rs != null) try { rs.close(); } catch (SQLException e) { /* ignore */ }
+            if (stmt != null) try { stmt.close(); } catch (SQLException e) { /* ignore */ }
+            if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignore */ }
         }
-        return -1;
     }
 
     // Check if a tour has available trips (future departures)
@@ -1288,33 +1383,192 @@ public class TourDAO {
     }
 
     /**
-     * Soft delete a tour by setting is_delete to true
+     * Delete a tour (hard delete)
      * @param tourId The ID of the tour to delete
      * @return True if successful, false otherwise
      */
     public boolean softDeleteTour(int tourId) {
         // First check if any trips for this tour have bookings
         BookingDAO bookingDAO = new BookingDAO();
-        if (bookingDAO.tourHasBookings(tourId)) {
-            System.out.println("Cannot delete tour #" + tourId + " as it has associated bookings");
-            return false;
-        }
-        
-        String sql = "DELETE tours WHERE id = ?";
-        
-        try (Connection conn = DBContext.getConnection();
-             PreparedStatement st = conn.prepareStatement(sql)) {
+        try {
+            if (bookingDAO.tourHasBookings(tourId)) {
+                System.out.println("Cannot delete tour #" + tourId + " as it has associated bookings");
+                return false;
+            }
             
-            st.setInt(1, tourId);
+            // First delete any related tour schedules
+            String deleteSchedulesSql = "DELETE FROM tour_schedule WHERE tour_id = ?";
             
-            int rowsAffected = st.executeUpdate();
-            System.out.println("Soft-deleted tour #" + tourId + ", rows affected: " + rowsAffected);
-            return rowsAffected > 0;
-        } catch (SQLException | ClassNotFoundException e) {
-            System.out.println("Error soft-deleting tour: " + e.getMessage());
+            // Then delete any tour promotions
+            String deletePromotionsSql = "DELETE FROM tour_promotion WHERE tour_id = ?";
+            
+            // Then delete any tour images
+            String deleteImagesSql = "DELETE FROM tour_images WHERE tour_id = ?";
+            
+            // Finally delete the tour itself
+            String deleteTourSql = "DELETE FROM tours WHERE id = ?";
+            
+            Connection conn = null;
+            PreparedStatement stSchedules = null;
+            PreparedStatement stPromotions = null;
+            PreparedStatement stImages = null;
+            PreparedStatement stTour = null;
+            
+            try {
+                conn = DBContext.getConnection();
+                // Start transaction
+                conn.setAutoCommit(false);
+                
+                // Delete schedules
+                stSchedules = conn.prepareStatement(deleteSchedulesSql);
+                stSchedules.setInt(1, tourId);
+                stSchedules.executeUpdate();
+                
+                // Delete promotions
+                stPromotions = conn.prepareStatement(deletePromotionsSql);
+                stPromotions.setInt(1, tourId);
+                stPromotions.executeUpdate();
+                
+                // Delete images
+                stImages = conn.prepareStatement(deleteImagesSql);
+                stImages.setInt(1, tourId);
+                stImages.executeUpdate();
+                
+                // Delete tour
+                stTour = conn.prepareStatement(deleteTourSql);
+                stTour.setInt(1, tourId);
+                int rowsAffected = stTour.executeUpdate();
+                
+                // Commit transaction
+                conn.commit();
+                
+                System.out.println("Deleted tour #" + tourId + ", rows affected: " + rowsAffected);
+                return rowsAffected > 0;
+            } catch (SQLException e) {
+                // Rollback on error
+                if (conn != null) {
+                    try {
+                        conn.rollback();
+                    } catch (SQLException ex) {
+                        System.err.println("Error during rollback: " + ex.getMessage());
+                    }
+                }
+                System.err.println("Error deleting tour: " + e.getMessage());
+                e.printStackTrace();
+                return false;
+            } finally {
+                // Restore auto-commit
+                if (conn != null) {
+                    try {
+                        conn.setAutoCommit(true);
+                    } catch (SQLException e) {
+                        System.err.println("Error restoring auto-commit: " + e.getMessage());
+                    }
+                }
+                
+                // Close resources
+                if (stSchedules != null) try { stSchedules.close(); } catch (SQLException e) { /* ignore */ }
+                if (stPromotions != null) try { stPromotions.close(); } catch (SQLException e) { /* ignore */ }
+                if (stImages != null) try { stImages.close(); } catch (SQLException e) { /* ignore */ }
+                if (stTour != null) try { stTour.close(); } catch (SQLException e) { /* ignore */ }
+                if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignore */ }
+            }
+        } catch (ClassNotFoundException e) {
+            System.err.println("ClassNotFoundException in softDeleteTour: " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            System.err.println("Exception in softDeleteTour: " + e.getMessage());
             e.printStackTrace();
         }
         
         return false;
+    }
+
+    /**
+     * Search for tours by name
+     * @param name The tour name to search for
+     * @return List of tours matching the name
+     */
+    public List<Tour> searchToursByName(String name) throws SQLException, ClassNotFoundException {
+        List<Tour> tours = new ArrayList<>();
+        if (name == null || name.trim().isEmpty()) {
+            return tours;
+        }
+        
+        String sql = "SELECT t.*, c.name as departure_city_name FROM tours t " +
+                     "LEFT JOIN city c ON t.departure_location_id = c.id " +
+                     "WHERE t.name LIKE ? " +
+                     "ORDER BY t.id DESC"; // Most recently added first
+        
+        Connection conn = null;
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DBContext.getConnection();
+            ps = conn.prepareStatement(sql);
+            ps.setString(1, "%" + name + "%");
+            
+            System.out.println("Searching for tours with name like: " + name);
+            rs = ps.executeQuery();
+            
+            while (rs.next()) {
+                Tour tour = new Tour();
+                tour.setId(rs.getInt("id"));
+                tour.setName(rs.getString("name"));
+                tour.setImg(rs.getString("img"));
+                tour.setPriceAdult(rs.getDouble("price_adult"));
+                tour.setPriceChildren(rs.getDouble("price_children"));
+                tour.setDuration(rs.getString("duration"));
+                tour.setDepartureLocationId(rs.getInt("departure_location_id"));
+                tour.setSuitableFor(rs.getString("suitable_for"));
+                tour.setBestTime(rs.getString("best_time"));
+                tour.setSightseeing(rs.getString("sightseeing"));
+                tour.setCuisine(rs.getString("cuisine"));
+                tour.setRegion(rs.getString("region"));
+                tour.setMaxCapacity(rs.getInt("max_capacity"));
+                tour.setCategoryId(rs.getInt("category_id"));
+                // Set the departure city name
+                tour.setDepartureCity(rs.getString("departure_city_name"));
+                
+                System.out.println("Found tour: ID=" + tour.getId() + ", Name=" + tour.getName());
+                tours.add(tour);
+            }
+            
+            System.out.println("Total tours found: " + tours.size());
+        } catch (SQLException e) {
+            System.err.println("Error searching tours by name: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        } finally {
+            if (rs != null) try { rs.close(); } catch (SQLException e) { /* ignore */ }
+            if (ps != null) try { ps.close(); } catch (SQLException e) { /* ignore */ }
+            if (conn != null) try { conn.close(); } catch (SQLException e) { /* ignore */ }
+        }
+        
+        return tours;
+    }
+
+    /**
+     * Get the last inserted tour ID
+     * @return The last inserted tour ID or -1 if not found
+     */
+    private int getLastInsertedTourId(Connection conn) throws SQLException {
+        String sql = "SELECT TOP 1 id FROM tours ORDER BY id DESC";
+        
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            
+            if (rs.next()) {
+                int id = rs.getInt("id");
+                System.out.println("Last inserted tour ID: " + id);
+                return id;
+            }
+        } catch (SQLException e) {
+            System.err.println("Error getting last inserted tour ID: " + e.getMessage());
+            throw e;
+        }
+        
+        return -1;
     }
 }

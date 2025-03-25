@@ -19,8 +19,8 @@
             <h6 class="m-0 font-weight-bold text-primary">Tour Information</h6>
         </div>
         <div class="card-body">
-            <form action="${pageContext.request.contextPath}/admin/tours" method="post" class="needs-validation" novalidate>
-                <input type="hidden" name="action" value="create">
+            <form action="${pageContext.request.contextPath}/admin/tours/create" method="post" class="needs-validation" novalidate>
+                <input type="hidden" name="id" value="0">
                 
                 <div class="row mb-3">
                     <div class="col-md-6">

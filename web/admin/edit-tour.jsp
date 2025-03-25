@@ -34,7 +34,7 @@
                 Region: ${tour.region}<br>
             </div>
             
-            <form action="${pageContext.request.contextPath}/admin/tours" method="post" class="needs-validation" novalidate>
+            <form action="${pageContext.request.contextPath}/admin/tours/update" method="post" class="needs-validation" novalidate>
                 <input type="hidden" name="action" value="update">
                 <input type="hidden" name="id" value="${tour.id}">
                 

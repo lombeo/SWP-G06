@@ -11,6 +11,7 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.RequestDispatcher;
 import model.User;
 
 @WebFilter("/*")
@@ -38,9 +39,12 @@ public class AuthenticationFilter implements Filter {
             // Check admin access to admin pages
             if (isAdminPath) {
                 User user = (User) session.getAttribute("user");
-                // Admin role is assumed to be roleId = 1
+                // Admin role is assumed to be roleId = 2
                 if (user.getRoleId() != 2) {
-                    httpResponse.sendRedirect(httpRequest.getContextPath() + "/home");
+                    // Show error page instead of redirecting
+                    request.setAttribute("errorMessage", "Bạn không có quyền truy cập vào trang quản trị.");
+                    RequestDispatcher dispatcher = request.getRequestDispatcher("/error.jsp");
+                    dispatcher.forward(request, response);
                     return;
                 }
             }
@@ -53,13 +57,18 @@ public class AuthenticationFilter implements Filter {
         } else {
             // Nếu chưa đăng nhập, không cho phép truy cập trang profile
             if (isProfilePage) {
-                httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
+                // Show error page instead of redirecting to login
+                request.setAttribute("errorMessage", "Bạn cần đăng nhập để xem trang cá nhân.");
+                RequestDispatcher dispatcher = request.getRequestDispatcher("/error.jsp");
+                dispatcher.forward(request, response);
                 return;
             }
             
-            // Redirect unauthenticated users trying to access admin pages
+            // Show error page for unauthenticated users trying to access admin pages
             if (isAdminPath) {
-                httpResponse.sendRedirect(httpRequest.getContextPath() + "/login");
+                request.setAttribute("errorMessage", "Bạn không có quyền truy cập vào trang quản trị.");
+                RequestDispatcher dispatcher = request.getRequestDispatcher("/error.jsp");
+                dispatcher.forward(request, response);
                 return;
             }
         }
