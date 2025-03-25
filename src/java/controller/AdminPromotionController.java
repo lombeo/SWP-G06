@@ -18,7 +18,7 @@ import model.Promotion;
 import model.Tour;
 import model.TourPromotion;
 
-@WebServlet(name = "AdminPromotionController", urlPatterns = {"/admin/promotions", "/admin/promotions/*"})
+@WebServlet(name = "AdminPromotionController", urlPatterns = {"/admin/promotions", "/admin/promotions/*", "/admin/api/promotion-linked"})
 public class AdminPromotionController extends HttpServlet {
 
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
@@ -37,12 +37,19 @@ public class AdminPromotionController extends HttpServlet {
             throws ServletException, IOException {
         String path = request.getPathInfo();
         String action = request.getParameter("action");
+        String servletPath = request.getServletPath();
         
         if (path == null) {
             path = "";
         }
         
         try {
+            // Handle API request to check if promotion is linked to tours
+            if ("/admin/api/promotion-linked".equals(servletPath)) {
+                checkPromotionLinked(request, response);
+                return;
+            }
+            
             switch (path) {
                 case "/create":
                     showCreateForm(request, response);
@@ -195,6 +202,12 @@ public class AdminPromotionController extends HttpServlet {
             // Get all promotions without filters
             promotions = promotionDAO.getAllPromotions(page, itemsPerPage);
             totalPromotions = promotionDAO.getTotalPromotions();
+        }
+        
+        // Check which promotions are linked to tours
+        for (Promotion promotion : promotions) {
+            boolean isLinked = promotionDAO.isPromotionLinkedToTours(promotion.getId());
+            promotion.setHasLinkedTours(isLinked);
         }
         
         int totalPages = (int) Math.ceil((double) totalPromotions / itemsPerPage);
@@ -485,6 +498,31 @@ public class AdminPromotionController extends HttpServlet {
         } else {
             request.setAttribute("errorMessage", "Failed to unlink tour!");
             request.getRequestDispatcher("/admin/error.jsp").forward(request, response);
+        }
+    }
+
+    /**
+     * API endpoint to check if a promotion is linked to any tours
+     */
+    private void checkPromotionLinked(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        
+        try {
+            int id = Integer.parseInt(request.getParameter("id"));
+            boolean isLinked = promotionDAO.isPromotionLinkedToTours(id);
+            
+            String jsonResponse = "{\"isLinked\": " + isLinked + "}";
+            response.getWriter().write(jsonResponse);
+            
+        } catch (NumberFormatException e) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().write("{\"error\": \"Invalid promotion ID\"}");
+        } catch (SQLException | ClassNotFoundException e) {
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().write("{\"error\": \"Database error\"}");
         }
     }
 } 

@@ -126,6 +126,7 @@
                             <th>Discount</th>
                             <th>Start Date</th>
                             <th>End Date</th>
+                            <th>Linked Tours</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -138,6 +139,16 @@
                                 <td><fmt:formatDate value="${promotion.startDate}" pattern="dd/MM/yyyy HH:mm" /></td>
                                 <td><fmt:formatDate value="${promotion.endDate}" pattern="dd/MM/yyyy HH:mm" /></td>
                                 <td>
+                                    <c:choose>
+                                        <c:when test="${promotion.hasLinkedTours}">
+                                            <span class="badge bg-primary"><i class="fas fa-link me-1"></i> Linked</span>
+                                        </c:when>
+                                        <c:otherwise>
+                                            <span class="badge bg-secondary">None</span>
+                                        </c:otherwise>
+                                    </c:choose>
+                                </td>
+                                <td>
                                     <div class="d-flex gap-2">
                                         <a href="${pageContext.request.contextPath}/admin/promotions/view?id=${promotion.id}" class="btn btn-sm btn-info text-white" title="View">
                                             <i class="fas fa-eye"></i>
@@ -145,8 +156,8 @@
                                         <a href="${pageContext.request.contextPath}/admin/promotions/edit?id=${promotion.id}" class="btn btn-sm btn-warning text-white" title="Edit">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="${pageContext.request.contextPath}/admin/promotions/link?id=${promotion.id}" class="btn btn-sm btn-primary" title="Link to Tours">
-                                            <i class="fas fa-link"></i>
+                                        <a href="${pageContext.request.contextPath}/admin/promotions/link?id=${promotion.id}" class="btn btn-sm btn-primary" title="Manage Tour Links">
+                                            <i class="fas fa-link"></i> Links
                                         </a>
                                         <button class="btn btn-sm btn-danger" onclick="confirmDelete(${promotion.id}, '${promotion.title}')" title="Delete">
                                             <i class="fas fa-trash"></i>
@@ -185,6 +196,11 @@
             <div class="modal-body">
                 <p>Are you sure you want to delete the promotion: <span id="promotionTitle"></span>?</p>
                 <p class="text-danger">This action cannot be undone.</p>
+                <div class="alert alert-warning mt-3">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> Promotions linked to tours cannot be deleted. 
+                    You must first remove all tour links before deleting a promotion.
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -196,19 +212,54 @@
 
 <script>
     function confirmDelete(id, title) {
-        document.getElementById('promotionTitle').textContent = title;
-        document.getElementById('confirmDeleteBtn').href = '${pageContext.request.contextPath}/admin/promotions?action=delete&id=' + id;
-        
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        deleteModal.show();
+        // First check if promotion is linked to any tours
+        fetch('${pageContext.request.contextPath}/admin/api/promotion-linked?id=' + id)
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                if (data.isLinked) {
+                    // Show error message as toast/alert if promotion is linked to tours
+                    var alertHtml = '<div class="alert alert-danger alert-dismissible fade show" role="alert">';
+                    alertHtml += 'Cannot delete promotion "' + title + '" because it is linked to one or more tours!';
+                    alertHtml += '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+                    alertHtml += '</div>';
+                    document.querySelector('.container-fluid').insertAdjacentHTML('afterbegin', alertHtml);
+                    
+                    // Auto close alert after 5 seconds
+                    setTimeout(function() {
+                        var alerts = document.querySelectorAll('.alert');
+                        alerts.forEach(function(alert) {
+                            var bsAlert = new bootstrap.Alert(alert);
+                            bsAlert.close();
+                        });
+                    }, 5000);
+                } else {
+                    // If not linked, show the delete confirmation modal
+                    document.getElementById('promotionTitle').textContent = title;
+                    document.getElementById('confirmDeleteBtn').href = '${pageContext.request.contextPath}/admin/promotions?action=delete&id=' + id;
+                    
+                    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                    deleteModal.show();
+                }
+            })
+            .catch(function(error) {
+                console.error('Error checking promotion status:', error);
+                // Fallback to server-side validation in case of error
+                document.getElementById('promotionTitle').textContent = title;
+                document.getElementById('confirmDeleteBtn').href = '${pageContext.request.contextPath}/admin/promotions?action=delete&id=' + id;
+                
+                var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+                deleteModal.show();
+            });
     }
     
     // Auto close alert after 5 seconds
     window.addEventListener('load', function() {
         setTimeout(function() {
-            const alerts = document.querySelectorAll('.alert');
+            var alerts = document.querySelectorAll('.alert');
             alerts.forEach(function(alert) {
-                const bsAlert = new bootstrap.Alert(alert);
+                var bsAlert = new bootstrap.Alert(alert);
                 bsAlert.close();
             });
         }, 5000);
