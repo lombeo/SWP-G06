@@ -25,6 +25,92 @@
         </div>
     </c:if>
     
+    <!-- Search Form -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Search Promotions</h6>
+            <button class="btn btn-sm btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#searchCollapse" aria-expanded="false" aria-controls="searchCollapse">
+                <i class="fas fa-chevron-down"></i>
+            </button>
+        </div>
+        <div class="collapse" id="searchCollapse">
+            <div class="card-body">
+                <form action="${pageContext.request.contextPath}/admin/promotions" method="GET" class="row g-3">
+                    <!-- Title Search -->
+                    <div class="col-md-6">
+                        <label for="title" class="form-label">Title</label>
+                        <input type="text" class="form-control" id="title" name="title" value="${title}" placeholder="Search by title">
+                    </div>
+                    
+                    <!-- Status Filter -->
+                    <div class="col-md-6">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-select" id="status" name="status">
+                            <option value="" ${empty status ? 'selected' : ''}>All Statuses</option>
+                            <option value="active" ${status == 'active' ? 'selected' : ''}>Active</option>
+                            <option value="upcoming" ${status == 'upcoming' ? 'selected' : ''}>Upcoming</option>
+                            <option value="expired" ${status == 'expired' ? 'selected' : ''}>Expired</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Discount Range -->
+                    <div class="col-md-6">
+                        <label class="form-label">Discount Percentage Range</label>
+                        <div class="row g-2">
+                            <div class="col">
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="minDiscount" value="${minDiscount}" min="0" max="100" step="0.1" placeholder="Min">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="input-group">
+                                    <input type="number" class="form-control" name="maxDiscount" value="${maxDiscount}" min="0" max="100" step="0.1" placeholder="Max">
+                                    <span class="input-group-text">%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Date Filters -->
+                    <div class="col-md-6">
+                        <label class="form-label">Start Date Range</label>
+                        <div class="row g-2">
+                            <div class="col">
+                                <input type="datetime-local" class="form-control" name="startDateFrom" value="${startDateFrom}" placeholder="From" />
+                            </div>
+                            <div class="col">
+                                <input type="datetime-local" class="form-control" name="startDateTo" value="${startDateTo}" placeholder="To" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label">End Date Range</label>
+                        <div class="row g-2">
+                            <div class="col">
+                                <input type="datetime-local" class="form-control" name="endDateFrom" value="${endDateFrom}" placeholder="From" />
+                            </div>
+                            <div class="col">
+                                <input type="datetime-local" class="form-control" name="endDateTo" value="${endDateTo}" placeholder="To" />
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Search Buttons -->
+                    <div class="col-12 mt-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-2"></i>Search
+                        </button>
+                        <a href="${pageContext.request.contextPath}/admin/promotions" class="btn btn-secondary ms-2">
+                            <i class="fas fa-undo me-2"></i>Reset
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
     <!-- Promotion Table -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">

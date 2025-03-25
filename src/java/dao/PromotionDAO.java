@@ -38,6 +38,177 @@ public class PromotionDAO {
         return promotions;
     }
     
+    // Search promotions with filters (with pagination)
+    public List<Promotion> searchPromotions(String title, String status, Double minDiscount, Double maxDiscount, 
+                                           Timestamp startDateFrom, Timestamp startDateTo, Timestamp endDateFrom, Timestamp endDateTo, 
+                                           int page, int pageSize) throws SQLException, ClassNotFoundException {
+        List<Promotion> promotions = new ArrayList<>();
+        int offset = (page - 1) * pageSize;
+        
+        StringBuilder sqlBuilder = new StringBuilder("SELECT * FROM promotion WHERE deleted_date IS NULL");
+        List<Object> params = new ArrayList<>();
+        
+        // Add filters
+        if (title != null && !title.trim().isEmpty()) {
+            sqlBuilder.append(" AND title LIKE ?");
+            params.add("%" + title.trim() + "%");
+        }
+        
+        if (status != null && !status.isEmpty()) {
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            
+            switch (status) {
+                case "active":
+                    sqlBuilder.append(" AND start_date <= ? AND end_date >= ?");
+                    params.add(now);
+                    params.add(now);
+                    break;
+                case "upcoming":
+                    sqlBuilder.append(" AND start_date > ?");
+                    params.add(now);
+                    break;
+                case "expired":
+                    sqlBuilder.append(" AND end_date < ?");
+                    params.add(now);
+                    break;
+            }
+        }
+        
+        if (minDiscount != null) {
+            sqlBuilder.append(" AND discount_percentage >= ?");
+            params.add(minDiscount);
+        }
+        
+        if (maxDiscount != null) {
+            sqlBuilder.append(" AND discount_percentage <= ?");
+            params.add(maxDiscount);
+        }
+        
+        if (startDateFrom != null) {
+            sqlBuilder.append(" AND start_date >= ?");
+            params.add(startDateFrom);
+        }
+        
+        if (startDateTo != null) {
+            sqlBuilder.append(" AND start_date <= ?");
+            params.add(startDateTo);
+        }
+        
+        if (endDateFrom != null) {
+            sqlBuilder.append(" AND end_date >= ?");
+            params.add(endDateFrom);
+        }
+        
+        if (endDateTo != null) {
+            sqlBuilder.append(" AND end_date <= ?");
+            params.add(endDateTo);
+        }
+        
+        // Add ordering and pagination
+        sqlBuilder.append(" ORDER BY id DESC OFFSET ? ROWS FETCH NEXT ? ROWS ONLY");
+        params.add(offset);
+        params.add(pageSize);
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())) {
+            
+            // Set parameters
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    promotions.add(extractPromotionFromResultSet(rs));
+                }
+            }
+        }
+        
+        return promotions;
+    }
+    
+    // Get total count of search results
+    public int getTotalSearchResults(String title, String status, Double minDiscount, Double maxDiscount,
+                                    Timestamp startDateFrom, Timestamp startDateTo, Timestamp endDateFrom, Timestamp endDateTo) 
+                                    throws SQLException, ClassNotFoundException {
+        
+        StringBuilder sqlBuilder = new StringBuilder("SELECT COUNT(*) FROM promotion WHERE deleted_date IS NULL");
+        List<Object> params = new ArrayList<>();
+        
+        // Add filters (same as in searchPromotions)
+        if (title != null && !title.trim().isEmpty()) {
+            sqlBuilder.append(" AND title LIKE ?");
+            params.add("%" + title.trim() + "%");
+        }
+        
+        if (status != null && !status.isEmpty()) {
+            Timestamp now = new Timestamp(System.currentTimeMillis());
+            
+            switch (status) {
+                case "active":
+                    sqlBuilder.append(" AND start_date <= ? AND end_date >= ?");
+                    params.add(now);
+                    params.add(now);
+                    break;
+                case "upcoming":
+                    sqlBuilder.append(" AND start_date > ?");
+                    params.add(now);
+                    break;
+                case "expired":
+                    sqlBuilder.append(" AND end_date < ?");
+                    params.add(now);
+                    break;
+            }
+        }
+        
+        if (minDiscount != null) {
+            sqlBuilder.append(" AND discount_percentage >= ?");
+            params.add(minDiscount);
+        }
+        
+        if (maxDiscount != null) {
+            sqlBuilder.append(" AND discount_percentage <= ?");
+            params.add(maxDiscount);
+        }
+        
+        if (startDateFrom != null) {
+            sqlBuilder.append(" AND start_date >= ?");
+            params.add(startDateFrom);
+        }
+        
+        if (startDateTo != null) {
+            sqlBuilder.append(" AND start_date <= ?");
+            params.add(startDateTo);
+        }
+        
+        if (endDateFrom != null) {
+            sqlBuilder.append(" AND end_date >= ?");
+            params.add(endDateFrom);
+        }
+        
+        if (endDateTo != null) {
+            sqlBuilder.append(" AND end_date <= ?");
+            params.add(endDateTo);
+        }
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sqlBuilder.toString())) {
+            
+            // Set parameters
+            for (int i = 0; i < params.size(); i++) {
+                ps.setObject(i + 1, params.get(i));
+            }
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        }
+        
+        return 0;
+    }
+    
     // Get total count of promotions
     public int getTotalPromotions() throws SQLException, ClassNotFoundException {
         String sql = "SELECT COUNT(*) FROM promotion WHERE deleted_date IS NULL";

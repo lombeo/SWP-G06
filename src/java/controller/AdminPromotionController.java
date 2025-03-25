@@ -132,9 +132,71 @@ public class AdminPromotionController extends HttpServlet {
             // Use default values if parsing fails
         }
         
-        // Get promotions for the current page
-        List<Promotion> promotions = promotionDAO.getAllPromotions(page, itemsPerPage);
-        int totalPromotions = promotionDAO.getTotalPromotions();
+        // Get search parameters
+        String title = request.getParameter("title");
+        String status = request.getParameter("status");
+        Double minDiscount = null;
+        Double maxDiscount = null;
+        Timestamp startDateFrom = null;
+        Timestamp startDateTo = null;
+        Timestamp endDateFrom = null;
+        Timestamp endDateTo = null;
+        
+        // Parse discount range
+        try {
+            if (request.getParameter("minDiscount") != null && !request.getParameter("minDiscount").isEmpty()) {
+                minDiscount = Double.parseDouble(request.getParameter("minDiscount"));
+            }
+            if (request.getParameter("maxDiscount") != null && !request.getParameter("maxDiscount").isEmpty()) {
+                maxDiscount = Double.parseDouble(request.getParameter("maxDiscount"));
+            }
+        } catch (NumberFormatException e) {
+            // Ignore invalid number formats
+        }
+        
+        // Parse date ranges
+        try {
+            if (request.getParameter("startDateFrom") != null && !request.getParameter("startDateFrom").isEmpty()) {
+                Date date = DATE_FORMAT.parse(request.getParameter("startDateFrom"));
+                startDateFrom = new Timestamp(date.getTime());
+            }
+            if (request.getParameter("startDateTo") != null && !request.getParameter("startDateTo").isEmpty()) {
+                Date date = DATE_FORMAT.parse(request.getParameter("startDateTo"));
+                startDateTo = new Timestamp(date.getTime());
+            }
+            if (request.getParameter("endDateFrom") != null && !request.getParameter("endDateFrom").isEmpty()) {
+                Date date = DATE_FORMAT.parse(request.getParameter("endDateFrom"));
+                endDateFrom = new Timestamp(date.getTime());
+            }
+            if (request.getParameter("endDateTo") != null && !request.getParameter("endDateTo").isEmpty()) {
+                Date date = DATE_FORMAT.parse(request.getParameter("endDateTo"));
+                endDateTo = new Timestamp(date.getTime());
+            }
+        } catch (ParseException e) {
+            // Ignore invalid date formats
+        }
+        
+        // Check if any search parameters are provided
+        boolean isSearching = title != null || status != null || minDiscount != null || 
+                              maxDiscount != null || startDateFrom != null || startDateTo != null || 
+                              endDateFrom != null || endDateTo != null;
+        
+        List<Promotion> promotions;
+        int totalPromotions;
+        
+        if (isSearching) {
+            // Perform search with filters
+            promotions = promotionDAO.searchPromotions(title, status, minDiscount, maxDiscount, 
+                                                      startDateFrom, startDateTo, endDateFrom, endDateTo, 
+                                                      page, itemsPerPage);
+            totalPromotions = promotionDAO.getTotalSearchResults(title, status, minDiscount, maxDiscount, 
+                                                               startDateFrom, startDateTo, endDateFrom, endDateTo);
+        } else {
+            // Get all promotions without filters
+            promotions = promotionDAO.getAllPromotions(page, itemsPerPage);
+            totalPromotions = promotionDAO.getTotalPromotions();
+        }
+        
         int totalPages = (int) Math.ceil((double) totalPromotions / itemsPerPage);
         
         // Set attributes for the JSP
@@ -143,6 +205,16 @@ public class AdminPromotionController extends HttpServlet {
         request.setAttribute("itemsPerPage", itemsPerPage);
         request.setAttribute("totalItems", totalPromotions);
         request.setAttribute("totalPages", totalPages);
+        
+        // Set search parameters as attributes to retain form values
+        request.setAttribute("title", title);
+        request.setAttribute("status", status);
+        request.setAttribute("minDiscount", minDiscount);
+        request.setAttribute("maxDiscount", maxDiscount);
+        request.setAttribute("startDateFrom", request.getParameter("startDateFrom"));
+        request.setAttribute("startDateTo", request.getParameter("startDateTo"));
+        request.setAttribute("endDateFrom", request.getParameter("endDateFrom"));
+        request.setAttribute("endDateTo", request.getParameter("endDateTo"));
         
         // Forward to the promotions list JSP
         request.getRequestDispatcher("/admin/promotions.jsp").forward(request, response);
