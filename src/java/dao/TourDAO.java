@@ -1391,11 +1391,11 @@ public class TourDAO {
         // First check if any trips for this tour have bookings
         BookingDAO bookingDAO = new BookingDAO();
         try {
-            if (bookingDAO.tourHasBookings(tourId)) {
-                System.out.println("Cannot delete tour #" + tourId + " as it has associated bookings");
-                return false;
-            }
-            
+        if (bookingDAO.tourHasBookings(tourId)) {
+            System.out.println("Cannot delete tour #" + tourId + " as it has associated bookings");
+            return false;
+        }
+        
             // First delete any feedback that references reviews for this tour
             String deleteFeedbackSql = "DELETE FROM feedback WHERE review_id IN (SELECT id FROM review WHERE tour_id = ?)";
             
@@ -1473,7 +1473,7 @@ public class TourDAO {
                 conn.commit();
                 
                 System.out.println("Deleted tour #" + tourId + ", rows affected: " + rowsAffected);
-                return rowsAffected > 0;
+            return rowsAffected > 0;
             } catch (SQLException e) {
                 // Rollback on error
                 if (conn != null) {
