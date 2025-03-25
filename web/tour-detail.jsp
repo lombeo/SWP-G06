@@ -144,7 +144,7 @@
                             <div class="flex items-center">
                                 <span class="material-symbols-outlined text-gray-600 mr-3">location_on</span>
                                 <div>
-                                    <span class="font-medium">Điểm khởi hành: </span>
+                                    <span class="font-medium">Điểm đến: </span>
                                     <span class="departure-city-name">${departureCity.name}</span>
                                 </div>
                             </div>
@@ -1002,7 +1002,7 @@
                                     <a href="tour-detail?id=<%= relatedTour.getId() %>" class="hover:text-blue-600 transition-colors"><%= tourName %></a>
                                 </h3>
                                 <div class="flex items-center text-xs text-gray-600 mb-1">
-                                    <span class="material-symbols-outlined text-sm mr-1">location_on</span> Điểm khởi hành: <%= departCityName %>
+                                    <span class="material-symbols-outlined text-sm mr-1">location_on</span> Điểm đến: <%= departCityName %>
                                 </div>
                                 <div class="flex items-center text-xs text-gray-600 mb-1">
                                     <span class="material-symbols-outlined text-sm mr-1">confirmation_number</span> Mã tour: <%= relatedTour.getId() %> (<%= duration %>)

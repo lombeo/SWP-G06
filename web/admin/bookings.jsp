@@ -196,38 +196,6 @@
                                                         </button>
                                                     </c:otherwise>
                                                 </c:choose>
-                                                
-                                                <%-- Delete button remains for all bookings --%>
-                                                <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#deleteBookingModal${booking.id}" title="Delete">
-                                                    <i class="fas fa-trash"></i>
-                                                </button>
-                                            </div>
-                                            
-                                            <!-- Delete Confirmation Modal -->
-                                            <div class="modal fade" id="deleteBookingModal${booking.id}" tabindex="-1" aria-labelledby="deleteBookingModalLabel${booking.id}" aria-hidden="true">
-                                                <div class="modal-dialog">
-                                                    <div class="modal-content">
-                                                        <div class="modal-header">
-                                                            <h5 class="modal-title" id="deleteBookingModalLabel${booking.id}">Confirm Delete</h5>
-                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                                        </div>
-                                                        <form action="${pageContext.request.contextPath}/admin/bookings/delete" method="get">
-                                                            <div class="modal-body">
-                                                                <input type="hidden" name="id" value="${booking.id}">
-                                                                <p>Are you sure you want to delete booking #${booking.id}? This action cannot be undone.</p>
-                                                                <div class="mb-3">
-                                                                    <label for="deleteReason${booking.id}" class="form-label">Reason for Deletion</label>
-                                                                    <textarea class="form-control" id="deleteReason${booking.id}" name="reason" rows="3" required></textarea>
-                                                                    <div class="form-text">Please provide a reason for deleting this booking.</div>
-                                                                </div>
-                                                            </div>
-                                                            <div class="modal-footer">
-                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                                                <button type="submit" class="btn btn-danger">Delete</button>
-                                                            </div>
-                                                        </form>
-                                                    </div>
-                                                </div>
                                             </div>
                                         </td>
                                     </tr>
