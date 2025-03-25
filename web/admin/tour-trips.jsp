@@ -416,7 +416,7 @@
         <div class="modal fade" id="deleteTripModal${trip.id}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form action="${pageContext.request.contextPath}/admin/tours" method="post" id="deleteTripForm${trip.id}">
+                    <form action="${pageContext.request.contextPath}/admin/tours/trips/delete" method="post" id="deleteTripForm${trip.id}">
                         <input type="hidden" name="action" value="delete-trip">
                         <input type="hidden" name="tripId" value="${trip.id}">
                         <input type="hidden" name="tourId" value="${tour.id}">
