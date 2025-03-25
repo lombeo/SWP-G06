@@ -257,19 +257,19 @@
                                                                             </select>
                                                                         </div>
 
-                                                                        <!-- Điểm đến -->
+                                                                        <!-- Điểm khởi hành -->
                                                                         <div class="mb-4">
                                                                             <div class="text-sm mb-2">Điểm khởi hành:</div>
-                                                                            <select name="departure"
+                                                                            <select name="destination"
                                                                                 class="w-full border p-2 rounded text-sm"
                                                                                 onchange="this.form.submit()">
-                                                                                <option value="" ${empty param.departure
+                                                                                <option value="" ${empty param.destination
                                                                                     ? 'selected' : '' }>Tất cả</option>
                                                                                 <% List<City> cities =
                                                                                     tourDAO.getAllCities();
                                                                                     for(City city : cities) { %>
                                                                                     <option value="<%= city.getId() %>"
-                                                                                        <%=String.valueOf(city.getId()).equals(request.getParameter("departure"))
+                                                                                        <%=String.valueOf(city.getId()).equals(request.getParameter("destination"))
                                                                                         ? "selected" : "" %>>
                                                                                         <%= city.getName() %>
                                                                                     </option>
@@ -277,18 +277,18 @@
                                                                             </select>
                                                                         </div>
 
-                                                                        <!-- Điểm khởi hành -->
+                                                                        <!-- Điểm đến -->
                                                                         <div class="mb-4">
                                                                             <div class="text-sm mb-2">Điểm đến:</div>
-                                                                            <select name="destination"
+                                                                            <select name="departure"
                                                                                 class="w-full border p-2 rounded text-sm"
                                                                                 onchange="this.form.submit()">
                                                                                 <option value="" ${empty
-                                                                                    param.destination ? 'selected' : ''
+                                                                                    param.departure ? 'selected' : ''
                                                                                     }>Tất cả</option>
                                                                                 <% for(City city : cities) { %>
                                                                                     <option value="<%= city.getId() %>"
-                                                                                        <%=String.valueOf(city.getId()).equals(request.getParameter("destination"))
+                                                                                        <%=String.valueOf(city.getId()).equals(request.getParameter("departure"))
                                                                                         ? "selected" : "" %>>
                                                                                         <%= city.getName() %>
                                                                                     </option>

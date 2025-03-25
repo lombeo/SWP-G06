@@ -70,7 +70,6 @@
                                     <option value="Đã hủy" ${param.status == 'Đã hủy' ? 'selected' : ''}>Đã hủy</option>
                                     <option value="Đã hủy muộn" ${param.status == 'Đã hủy muộn' ? 'selected' : ''}>Đã hủy muộn</option>
                                     <option value="Hoàn thành" ${param.status == 'Hoàn thành' ? 'selected' : ''}>Hoàn thành</option>
-                                    <option value="Chờ thanh toán" ${param.status == 'Chờ thanh toán' ? 'selected' : ''}>Chờ thanh toán</option>
                                 </select>
                             </div>
                             <div class="col-md-3 mb-2">

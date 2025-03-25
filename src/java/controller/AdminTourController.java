@@ -839,32 +839,55 @@ public class AdminTourController extends HttpServlet {
             // Check if tour has any bookings before deleting
             TourDAO tourDAO = new TourDAO();
             BookingDAO bookingDAO = new BookingDAO();
+            TripDAO tripDAO = new TripDAO();
+            
+            // Get trip count for diagnostic purposes
+            int tripCount = tripDAO.getTripCountByTourId(tourId);
+            System.out.println("Tour #" + tourId + " has " + tripCount + " trips (including deleted ones)");
             
             if (bookingDAO.tourHasBookings(tourId)) {
+                System.out.println("Cannot delete tour #" + tourId + " as it has associated active bookings");
                 session.setAttribute("errorMessage", "Cannot delete tour as it has associated bookings");
                 response.sendRedirect(request.getContextPath() + "/admin/tours");
                 return;
             }
             
             // No bookings, proceed with deletion
-            System.out.println("Attempting to delete tour #" + tourId);
+            System.out.println("Attempting to delete tour #" + tourId + " with " + tripCount + " trips");
             boolean deleted = tourDAO.softDeleteTour(tourId);
             
             // Check if deletion was successful
             if (deleted) {
-                session.setAttribute("successMessage", "Tour deleted successfully");
-                System.out.println("Tour #" + tourId + " deleted successfully");
+                session.setAttribute("successMessage", "Tour and all its trips deleted successfully");
+                System.out.println("Tour #" + tourId + " and all its trips deleted successfully");
             } else {
-                session.setAttribute("errorMessage", "Failed to delete tour. It might have associated data");
+                session.setAttribute("errorMessage", "Failed to delete tour. Please check for related data (feedback, reviews, etc.) that may need to be deleted first.");
                 System.out.println("Failed to delete tour #" + tourId);
             }
             
             // Redirect back to tours list
             response.sendRedirect(request.getContextPath() + "/admin/tours");
+        } catch (SQLException e) {
+            System.err.println("SQL Error in deleteTour: " + e.getMessage());
+            e.printStackTrace();
+            
+            // Provide more helpful error message for foreign key constraints
+            String errorMessage = "Database error while deleting tour";
+            if (e.getMessage().contains("REFERENCE constraint")) {
+                errorMessage = "Cannot delete tour because it has related data. Please contact your administrator.";
+                if (e.getMessage().contains("FK_feedback_review")) {
+                    errorMessage = "Cannot delete tour because it has related feedback. Contact your administrator.";
+                } else if (e.getMessage().contains("FK_review_tour")) {
+                    errorMessage = "Cannot delete tour because it has related reviews. Contact your administrator.";
+                }
+            }
+            
+            session.setAttribute("errorMessage", errorMessage);
+            response.sendRedirect(request.getContextPath() + "/admin/tours");
         } catch (Exception e) {
             System.err.println("Error in deleteTour: " + e.getMessage());
             e.printStackTrace();
-            session.setAttribute("errorMessage", "Error: " + e.getMessage());
+            session.setAttribute("errorMessage", "Error deleting tour: " + e.getMessage());
             response.sendRedirect(request.getContextPath() + "/admin/tours");
         }
     }
@@ -1644,10 +1667,17 @@ public class AdminTourController extends HttpServlet {
             
             System.out.println("DEBUG - Checking tour ID: " + tourId + ", hasBookings: " + hasBookings);
             
+            // Also get the count of trips for the tour for debugging
+            TripDAO tripDAO = new TripDAO();
+            int tripCount = tripDAO.getTripCountByTourId(tourId);
+            System.out.println("DEBUG - Tour ID: " + tourId + " has " + tripCount + " trips");
+            
             if (hasBookings) {
                 response.getWriter().write("has-bookings");
+                System.out.println("DEBUG - Tour ID: " + tourId + " has active bookings, cannot delete");
             } else {
                 response.getWriter().write("no-bookings");
+                System.out.println("DEBUG - Tour ID: " + tourId + " has no active bookings, can delete");
             }
         } catch (NumberFormatException e) {
             response.getWriter().write("error: Invalid tour ID format");

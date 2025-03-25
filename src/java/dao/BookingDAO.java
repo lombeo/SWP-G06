@@ -607,7 +607,7 @@ public class BookingDAO {
      * @return True if trip has bookings, false otherwise
      */
     public boolean tripHasBookings(int tripId) {
-        String sql = "SELECT COUNT(*) FROM booking WHERE trip_id = ?";
+        String sql = "SELECT COUNT(*) FROM booking WHERE trip_id = ? AND is_delete = 0";
         
         try (Connection conn = DBContext.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -635,7 +635,7 @@ public class BookingDAO {
     public boolean tourHasBookings(int tourId) {
         String sql = "SELECT COUNT(*) FROM booking b " +
                      "JOIN trip t ON b.trip_id = t.id " +
-                     "WHERE t.tour_id = ?";
+                     "WHERE t.tour_id = ? AND b.is_delete = 0";
         
         System.out.println("DEBUG - BookingDAO.tourHasBookings - Checking bookings for tour ID: " + tourId);
         System.out.println("DEBUG - BookingDAO.tourHasBookings - SQL: " + sql);

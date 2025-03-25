@@ -201,6 +201,7 @@
                                 <jsp:param name="totalItems" value="${totalItems}" />
                                 <jsp:param name="totalPages" value="${totalPages}" />
                                 <jsp:param name="queryString" value="${queryString}" />
+                                <jsp:param name="action" value="tours" />
                             </jsp:include>
                         </c:if>
                     </div>
@@ -239,6 +240,18 @@
             }
         }
         
+        // Initialize sort dropdown
+        const sortParam = urlParams.get('sort');
+        if (sortParam) {
+            const sortSelect = document.getElementById('sortOrder');
+            for (let i = 0; i < sortSelect.options.length; i++) {
+                if (sortSelect.options[i].value === sortParam) {
+                    sortSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+        
         // Search functionality
         document.getElementById('searchButton')?.addEventListener('click', function() {
             applyAllFilters();
@@ -257,51 +270,45 @@
         
         // Unified filter function that preserves all filter states
         function applyAllFilters() {
-            // Start with base URL
-            let url = "${pageContext.request.contextPath}/admin?action=tours";
+            // Start with current URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
             
-            // Add search parameter if exists
+            // Set action parameter
+            urlParams.set('action', 'tours');
+            
+            // Update search parameter if exists
             const searchInput = document.getElementById('searchInput').value;
             if (searchInput && searchInput.trim() !== '') {
-                url += "&search=" + encodeURIComponent(searchInput.trim());
+                urlParams.set('search', searchInput.trim());
+            } else {
+                urlParams.delete('search');
             }
             
-            // Add region parameter if selected
+            // Update region parameter if selected
             const regionFilter = document.getElementById('regionFilter').value;
             if (regionFilter && regionFilter !== '') {
-                url += "&region=" + encodeURIComponent(regionFilter);
+                urlParams.set('region', regionFilter);
+            } else {
+                urlParams.delete('region');
             }
             
-            // Reset to page 1 when filtering
-            url += "&page=1";
+            // Reset to page 1 when applying new filters
+            urlParams.set('page', '1');
             
             // Navigate to the filtered URL
-            window.location.href = url;
+            window.location.href = "${pageContext.request.contextPath}/admin?" + urlParams.toString();
         }
         
         // Sort functionality
         document.getElementById('sortOrder').addEventListener('change', function() {
             const sortOption = this.value;
-            const table = document.getElementById('toursTable');
-            const tbody = table.getElementsByTagName('tbody')[0];
-            const rows = Array.from(tbody.getElementsByTagName('tr'));
             
-            rows.sort((a, b) => {
-                if (sortOption === 'name_asc') {
-                    return a.cells[2].innerText.localeCompare(b.cells[2].innerText);
-                } else if (sortOption === 'name_desc') {
-                    return b.cells[2].innerText.localeCompare(a.cells[2].innerText);
-                } else if (sortOption === 'price_asc') {
-                    return parseFloat(a.cells[6].innerText.replace('$', '')) - parseFloat(b.cells[6].innerText.replace('$', ''));
-                } else if (sortOption === 'price_desc') {
-                    return parseFloat(b.cells[6].innerText.replace('$', '')) - parseFloat(a.cells[6].innerText.replace('$', ''));
-                }
-            });
+            // Preserve all current URL parameters and update the sort value
+            const urlParams = new URLSearchParams(window.location.search);
+            urlParams.set('sort', sortOption);
             
-            // Append sorted rows
-            rows.forEach(row => {
-                tbody.appendChild(row);
-            });
+            // Navigate to the sorted URL
+            window.location.href = "${pageContext.request.contextPath}/admin?" + urlParams.toString();
         });
         
         // Load modal content for edit tour

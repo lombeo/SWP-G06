@@ -232,18 +232,46 @@ public class ReviewDAO {
      * @return true if successful, false otherwise
      */
     public boolean deleteReview(int reviewId) throws ClassNotFoundException {
-        String sql = "DELETE FROM review WHERE id = ?";
-        
-        try (Connection conn = new DBContext().getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+        Connection conn = null;
+        try {
+            conn = new DBContext().getConnection();
+            conn.setAutoCommit(false);
             
-            ps.setInt(1, reviewId);
+            // First delete any associated feedback
+            String deleteFeedbackSql = "DELETE FROM feedback WHERE review_id = ?";
+            try (PreparedStatement psDeleteFeedback = conn.prepareStatement(deleteFeedbackSql)) {
+                psDeleteFeedback.setInt(1, reviewId);
+                psDeleteFeedback.executeUpdate();
+            }
             
-            int affectedRows = ps.executeUpdate();
-            return affectedRows > 0;
+            // Then delete the review
+            String deleteReviewSql = "DELETE FROM review WHERE id = ?";
+            try (PreparedStatement psDeleteReview = conn.prepareStatement(deleteReviewSql)) {
+                psDeleteReview.setInt(1, reviewId);
+                int affectedRows = psDeleteReview.executeUpdate();
+                
+                conn.commit();
+                return affectedRows > 0;
+            }
         } catch (SQLException e) {
             System.out.println("Error deleteReview: " + e.getMessage());
+            if (conn != null) {
+                try {
+                    conn.rollback();
+                } catch (SQLException ex) {
+                    System.out.println("Error rolling back transaction: " + ex.getMessage());
+                }
+            }
             return false;
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                } catch (SQLException e) {
+                    System.out.println("Error closing connection: " + e.getMessage());
+                }
+            }
         }
     }
     

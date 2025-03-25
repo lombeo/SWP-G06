@@ -13,21 +13,13 @@
         <span>${totalItems}</span> entries
     </div>
     
-    <!-- Extract action parameter from queryString if available -->
-    <c:set var="actionParam" value="" />
-    <c:if test="${not empty queryString}">
-        <c:set var="queryParts" value="${fn:split(queryString, '&')}" />
-        <c:forEach var="part" items="${queryParts}">
-            <c:if test="${fn:startsWith(part, 'action=')}">
-                <c:set var="actionParam" value="${part}" />
-            </c:if>
-        </c:forEach>
-    </c:if>
+    <!-- Use the action parameter that was passed to this component -->
+    <c:set var="pageAction" value="${param.action}" />
     
     <nav aria-label="Page navigation">
         <ul class="pagination">
             <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                <a class="page-link" href="${pageContext.request.contextPath}/admin?action=bookings&page=${currentPage - 1}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}" 
+                <a class="page-link" href="${pageContext.request.contextPath}/admin?action=${pageAction}&page=${currentPage - 1}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}${not empty param.region ? '&region='.concat(param.region) : ''}" 
                    aria-label="Previous" ${currentPage == 1 ? 'tabindex="-1"' : ''}>
                     <span aria-hidden="true">&laquo;</span>
                 </a>
@@ -35,7 +27,7 @@
             
             <c:if test="${currentPage > 2}">
                 <li class="page-item">
-                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=bookings&page=1${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}">1</a>
+                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=${pageAction}&page=1${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}${not empty param.region ? '&region='.concat(param.region) : ''}">1</a>
                 </li>
                 <c:if test="${currentPage > 3}">
                     <li class="page-item disabled">
@@ -56,7 +48,7 @@
             
             <c:forEach begin="${startPage}" end="${endPage}" var="i">
                 <li class="page-item ${i == currentPage ? 'active' : ''}">
-                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=bookings&page=${i}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}">${i}</a>
+                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=${pageAction}&page=${i}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}${not empty param.region ? '&region='.concat(param.region) : ''}">${i}</a>
                 </li>
             </c:forEach>
             
@@ -67,12 +59,12 @@
                     </li>
                 </c:if>
                 <li class="page-item">
-                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=bookings&page=${totalPages}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}">${totalPages}</a>
+                    <a class="page-link" href="${pageContext.request.contextPath}/admin?action=${pageAction}&page=${totalPages}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}${not empty param.region ? '&region='.concat(param.region) : ''}">${totalPages}</a>
                 </li>
             </c:if>
             
             <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="${pageContext.request.contextPath}/admin?action=bookings&page=${currentPage + 1}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}" 
+                <a class="page-link" href="${pageContext.request.contextPath}/admin?action=${pageAction}&page=${currentPage + 1}${not empty param.search ? '&search='.concat(param.search) : ''}${not empty param.status ? '&status='.concat(param.status) : ''}${not empty param.date ? '&date='.concat(param.date) : ''}${not empty param.sort ? '&sort='.concat(param.sort) : ''}${not empty param.region ? '&region='.concat(param.region) : ''}" 
                    aria-label="Next" ${currentPage == totalPages ? 'tabindex="-1"' : ''}>
                     <span aria-hidden="true">&raquo;</span>
                 </a>
@@ -85,6 +77,7 @@
     <input type="hidden" id="items-per-page" value="${itemsPerPage}">
     <input type="hidden" id="total-pages" value="${totalPages}">
     <input type="hidden" id="query-string" value="${queryString}">
+    <input type="hidden" id="current-action" value="${pageAction}">
 </div>
 
 <script>
@@ -97,7 +90,7 @@
             
             // Keep existing action parameter instead of hardcoding
             if (!urlParams.has('action') && window.location.pathname.includes('/admin')) {
-                const currentAction = document.querySelector('input[name="current-action"]')?.value || 'tours';
+                const currentAction = document.querySelector('#current-action')?.value || 'tours';
                 urlParams.set('action', currentAction);
             }
             
@@ -131,9 +124,9 @@
             const ajaxUrl = `${window.location.pathname}?${urlParams.toString()}`;
             
             // Show loading indicator
-            const bookingTable = document.getElementById('bookingsTable');
-            if (bookingTable) {
-                bookingTable.classList.add('loading');
+            const contentTable = document.querySelector('.table-responsive table');
+            if (contentTable) {
+                contentTable.classList.add('loading');
             }
             
             // Make AJAX request
@@ -152,9 +145,9 @@
                 const doc = parser.parseFromString(html, 'text/html');
                 
                 // Replace only the table content
-                const newTableBody = doc.querySelector('#bookingsTable tbody');
-                if (newTableBody && bookingTable) {
-                    bookingTable.querySelector('tbody').innerHTML = newTableBody.innerHTML;
+                const newTableBody = doc.querySelector('.table-responsive table tbody');
+                if (newTableBody && contentTable) {
+                    contentTable.querySelector('tbody').innerHTML = newTableBody.innerHTML;
                 }
                 
                 // Update pagination component
@@ -174,8 +167,8 @@
                 }
                 
                 // Remove loading indicator
-                if (bookingTable) {
-                    bookingTable.classList.remove('loading');
+                if (contentTable) {
+                    contentTable.classList.remove('loading');
                 }
                 
                 // Reinitialize any tooltips or other needed components

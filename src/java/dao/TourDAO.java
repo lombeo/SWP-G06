@@ -1396,7 +1396,16 @@ public class TourDAO {
                 return false;
             }
             
-            // First delete any related tour schedules
+            // First delete any feedback that references reviews for this tour
+            String deleteFeedbackSql = "DELETE FROM feedback WHERE review_id IN (SELECT id FROM review WHERE tour_id = ?)";
+            
+            // Then delete any reviews for this tour
+            String deleteReviewsSql = "DELETE FROM review WHERE tour_id = ?";
+            
+            // Then delete any related trips
+            String deleteTripsSql = "DELETE FROM trip WHERE tour_id = ?";
+            
+            // Then delete any related tour schedules
             String deleteSchedulesSql = "DELETE FROM tour_schedule WHERE tour_id = ?";
             
             // Then delete any tour promotions
@@ -1409,6 +1418,9 @@ public class TourDAO {
             String deleteTourSql = "DELETE FROM tours WHERE id = ?";
             
             Connection conn = null;
+            PreparedStatement stFeedback = null;
+            PreparedStatement stReviews = null;
+            PreparedStatement stTrips = null;
             PreparedStatement stSchedules = null;
             PreparedStatement stPromotions = null;
             PreparedStatement stImages = null;
@@ -1418,6 +1430,24 @@ public class TourDAO {
                 conn = DBContext.getConnection();
                 // Start transaction
                 conn.setAutoCommit(false);
+                
+                // Delete feedback
+                stFeedback = conn.prepareStatement(deleteFeedbackSql);
+                stFeedback.setInt(1, tourId);
+                int feedbackDeleted = stFeedback.executeUpdate();
+                System.out.println("Deleted " + feedbackDeleted + " feedback entries for tour #" + tourId);
+                
+                // Delete reviews
+                stReviews = conn.prepareStatement(deleteReviewsSql);
+                stReviews.setInt(1, tourId);
+                int reviewsDeleted = stReviews.executeUpdate();
+                System.out.println("Deleted " + reviewsDeleted + " reviews for tour #" + tourId);
+                
+                // Delete trips
+                stTrips = conn.prepareStatement(deleteTripsSql);
+                stTrips.setInt(1, tourId);
+                int tripsDeleted = stTrips.executeUpdate();
+                System.out.println("Deleted " + tripsDeleted + " trips for tour #" + tourId);
                 
                 // Delete schedules
                 stSchedules = conn.prepareStatement(deleteSchedulesSql);
@@ -1467,6 +1497,9 @@ public class TourDAO {
                 }
                 
                 // Close resources
+                if (stFeedback != null) try { stFeedback.close(); } catch (SQLException e) { /* ignore */ }
+                if (stReviews != null) try { stReviews.close(); } catch (SQLException e) { /* ignore */ }
+                if (stTrips != null) try { stTrips.close(); } catch (SQLException e) { /* ignore */ }
                 if (stSchedules != null) try { stSchedules.close(); } catch (SQLException e) { /* ignore */ }
                 if (stPromotions != null) try { stPromotions.close(); } catch (SQLException e) { /* ignore */ }
                 if (stImages != null) try { stImages.close(); } catch (SQLException e) { /* ignore */ }

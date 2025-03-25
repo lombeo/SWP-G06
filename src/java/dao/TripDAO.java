@@ -838,4 +838,30 @@ public class TripDAO {
         
         return trip;
     }
+    
+    /**
+     * Get the count of all trips (including deleted ones) for a specific tour
+     * @param tourId The tour ID to check
+     * @return The count of trips for the tour
+     */
+    public int getTripCountByTourId(int tourId) {
+        String sql = "SELECT COUNT(*) FROM trip WHERE tour_id = ?";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tourId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error getting trip count by tour ID: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return 0; // Default to 0 in case of errors
+    }
 }

@@ -266,7 +266,6 @@
                                                     <th>Amount</th>
                                                     <th>Description</th>
                                                     <th>Date</th>
-                                                    <th>Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -278,22 +277,6 @@
                                                             <td>${currencyFormatter.format(transaction.amount)}</td>
                                                             <td>${transaction.description}</td>
                                                             <td>${transaction.transactionDate}</td>
-                                                            <td>
-                                                                <c:choose>
-                                                                    <c:when test="${transaction.status == 'Completed'}">
-                                                                        <span class="badge bg-success">Completed</span>
-                                                                    </c:when>
-                                                                    <c:when test="${transaction.status == 'Pending'}">
-                                                                        <span class="badge bg-warning">Pending</span>
-                                                                    </c:when>
-                                                                    <c:when test="${transaction.status == 'Failed'}">
-                                                                        <span class="badge bg-danger">Failed</span>
-                                                                    </c:when>
-                                                                    <c:otherwise>
-                                                                        <span class="badge bg-secondary">${transaction.status}</span>
-                                                                    </c:otherwise>
-                                                                </c:choose>
-                                                            </td>
                                                         </tr>
                                                     </c:if>
                                                 </c:forEach>
@@ -316,7 +299,6 @@
                                                     <th>Type</th>
                                                     <th>Description</th>
                                                     <th>Date</th>
-                                                    <th>Status</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -327,22 +309,6 @@
                                                             <td>${transaction.transactionType}</td>
                                                             <td>${transaction.description}</td>
                                                             <td>${transaction.transactionDate}</td>
-                                                            <td>
-                                                                <c:choose>
-                                                                    <c:when test="${transaction.status == 'Completed'}">
-                                                                        <span class="badge bg-success">Completed</span>
-                                                                    </c:when>
-                                                                    <c:when test="${transaction.status == 'Pending'}">
-                                                                        <span class="badge bg-warning">Pending</span>
-                                                                    </c:when>
-                                                                    <c:when test="${transaction.status == 'Failed'}">
-                                                                        <span class="badge bg-danger">Failed</span>
-                                                                    </c:when>
-                                                                    <c:otherwise>
-                                                                        <span class="badge bg-secondary">${transaction.status}</span>
-                                                                    </c:otherwise>
-                                                                </c:choose>
-                                                            </td>
                                                         </tr>
                                                     </c:if>
                                                 </c:forEach>
