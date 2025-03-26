@@ -716,7 +716,7 @@
                             </c:if>
 
                             <form action="user-profile" method="post" enctype="multipart/form-data"
-                                class="grid grid-cols-2 gap-8">
+                                class="grid grid-cols-2 gap-8" onsubmit="return validateForm()">
                                 <input type="hidden" name="action" value="update-profile">
                                 <div class="space-y-4">
                                     <div class="relative">
@@ -738,8 +738,9 @@
                                         <span class="absolute left-3 top-3 text-blue-600">
                                             <span class="material-symbols-outlined">phone</span>
                                         </span>
-                                        <input type="tel" name="phone" value="${user.phone}" placeholder="Số điện thoại"
+                                        <input type="tel" name="phone" id="phone" value="${user.phone}" placeholder="Số điện thoại"
                                             class="w-full pl-10 pr-4 py-2 border rounded-full hover:border-blue-500 focus:border-blue-500 focus:outline-none transition-colors" />
+                                        <div id="phoneError" class="text-red-500 text-sm mt-1 ml-3 hidden">Số điện thoại phải bắt đầu bằng số 0 và có 10-11 số</div>
                                     </div>
                                     <div class="relative">
                                         <span class="absolute left-3 top-3 text-blue-600">
@@ -886,6 +887,26 @@
                             alert('Mật khẩu xác nhận không khớp');
                             return false;
                         }
+                        return true;
+                    }
+
+                    // Validate form before submission
+                    function validateForm() {
+                        const phone = document.getElementById('phone').value;
+                        const phoneError = document.getElementById('phoneError');
+                        
+                        // Only validate if a phone number is provided
+                        if (phone.trim() !== '') {
+                            // Check if phone number starts with 0 and has 10-11 digits total
+                            const phoneRegex = /^0\d{9,10}$/;
+                            if (!phoneRegex.test(phone)) {
+                                phoneError.classList.remove('hidden');
+                                return false;
+                            } else {
+                                phoneError.classList.add('hidden');
+                            }
+                        }
+                        
                         return true;
                     }
                 </script>

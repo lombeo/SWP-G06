@@ -89,6 +89,19 @@ public class PaymentController extends HttpServlet {
                 return;
             }
             
+            // Validate phone number if it's present and not empty
+            String phone = user.getPhone();
+            if (phone == null || phone.isEmpty()) {
+                // If phone is not in the user object, try to get it from the form
+                phone = request.getParameter("phone");
+            }
+            
+            if (phone != null && !phone.isEmpty() && !phone.matches("^0\\d{9,10}$")) {
+                request.setAttribute("errorMessage", "Số điện thoại phải bắt đầu bằng số 0 và có 10-11 số");
+                request.getRequestDispatcher("booking?tourId=" + tourId).forward(request, response);
+                return;
+            }
+            
             // Validate payment method
             if (!"VNPAY".equals(paymentMethod)) {
                 request.setAttribute("errorMessage", "Phương thức thanh toán không được hỗ trợ!");

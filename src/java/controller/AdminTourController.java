@@ -398,17 +398,85 @@ public class AdminTourController extends HttpServlet {
         try {
             // Get form parameters
             String name = request.getParameter("name");
-            String img = request.getParameter("img");
-            double priceAdult = Double.parseDouble(request.getParameter("priceAdult"));
-            double priceChildren = Double.parseDouble(request.getParameter("priceChildren"));
-            String duration = request.getParameter("duration");
-            int departureLocationId = Integer.parseInt(request.getParameter("departureLocationId"));
-            String suitableFor = request.getParameter("suitableFor");
-            String bestTime = request.getParameter("bestTime");
-            String cuisine = request.getParameter("cuisine");
+            name = (name != null) ? name.trim() : null;
+            // Validate that name is not just spaces
+            if (name == null || name.isEmpty()) {
+                throw new Exception("Tour name cannot be empty or contain only spaces");
+            }
+            
             String region = request.getParameter("region");
+            region = (region != null) ? region.trim() : null;
+            // Validate region is one of the allowed values
+            if (region == null || (!region.equals("Bắc") && !region.equals("Trung") && !region.equals("Nam"))) {
+                throw new Exception("Region must be one of: Bắc, Trung, Nam");
+            }
+            
+            String img = request.getParameter("img");
+            img = (img != null) ? img.trim() : null;
+            
+            double priceAdult = 0;
+            try {
+                priceAdult = Double.parseDouble(request.getParameter("priceAdult"));
+                if (priceAdult < 0) {
+                    throw new Exception("Price for adults cannot be negative");
+                }
+            } catch (NumberFormatException e) {
+                throw new Exception("Invalid adult price format");
+            }
+            
+            double priceChildren = 0;
+            try {
+                priceChildren = Double.parseDouble(request.getParameter("priceChildren"));
+                if (priceChildren < 0) {
+                    throw new Exception("Price for children cannot be negative");
+                }
+            } catch (NumberFormatException e) {
+                throw new Exception("Invalid children price format");
+            }
+            
+            String duration = request.getParameter("duration");
+            duration = (duration != null) ? duration.trim() : null;
+            if (duration == null || duration.isEmpty()) {
+                throw new Exception("Duration cannot be empty");
+            }
+            
+            int departureLocationId = Integer.parseInt(request.getParameter("departureLocationId"));
+            
+            String suitableFor = request.getParameter("suitableFor");
+            suitableFor = (suitableFor != null) ? suitableFor.trim() : null;
+            if (suitableFor == null || suitableFor.isEmpty()) {
+                throw new Exception("Suitable For field cannot be empty");
+            }
+            
+            String bestTime = request.getParameter("bestTime");
+            bestTime = (bestTime != null) ? bestTime.trim() : null;
+            if (bestTime == null || bestTime.isEmpty()) {
+                throw new Exception("Best Time field cannot be empty");
+            }
+            
+            String cuisine = request.getParameter("cuisine");
+            cuisine = (cuisine != null) ? cuisine.trim() : null;
+            if (cuisine == null || cuisine.isEmpty()) {
+                throw new Exception("Cuisine field cannot be empty");
+            }
+            
             String sightseeing = request.getParameter("sightseeing");
-            int maxCapacity = Integer.parseInt(request.getParameter("maxCapacity"));
+            sightseeing = (sightseeing != null) ? sightseeing.trim() : null;
+            // Validate that sightseeing is not just spaces
+            if (sightseeing == null || sightseeing.isEmpty()) {
+                throw new Exception("Sightseeing information cannot be empty or contain only spaces");
+            }
+            
+            int maxCapacity = 0;
+            try {
+                maxCapacity = Integer.parseInt(request.getParameter("maxCapacity"));
+                if (maxCapacity <= 0) {
+                    throw new Exception("Max capacity must be greater than 0");
+                }
+            } catch (NumberFormatException e) {
+                throw new Exception("Invalid max capacity format");
+            }
+            
             int categoryId = Integer.parseInt(request.getParameter("categoryId"));
             
             // Debug: Log form parameters
@@ -571,44 +639,66 @@ public class AdminTourController extends HttpServlet {
             
             // Read form parameters with validation
             String name = request.getParameter("name");
-            if (name == null || name.trim().isEmpty()) {
-                throw new Exception("Tour name cannot be empty");
+            name = (name != null) ? name.trim() : null;
+            if (name == null || name.isEmpty()) {
+                throw new Exception("Tour name cannot be empty or contain only spaces");
             }
             
             String img = request.getParameter("img");
+            img = (img != null) ? img.trim() : null;
             
             String region = request.getParameter("region");
-            if (region == null || region.trim().isEmpty()) {
+            region = (region != null) ? region.trim() : null;
+            if (region == null || region.isEmpty()) {
                 // If region is missing in the form, use the existing one
                 region = existingTour.getRegion();
                 if (region == null || region.isEmpty()) {
                     throw new Exception("Tour region cannot be empty");
                 }
+            } else if (!region.equals("Bắc") && !region.equals("Trung") && !region.equals("Nam")) {
+                throw new Exception("Region must be one of: Bắc, Trung, Nam");
             }
             
             String duration = request.getParameter("duration");
-            if (duration == null || duration.trim().isEmpty()) {
+            duration = (duration != null) ? duration.trim() : null;
+            if (duration == null || duration.isEmpty()) {
                 duration = existingTour.getDuration(); // Use existing value if missing
+                if (duration == null || duration.isEmpty()) {
+                    throw new Exception("Duration cannot be empty");
+                }
             }
             
             String suitableFor = request.getParameter("suitableFor");
-            if (suitableFor == null) {
+            suitableFor = (suitableFor != null) ? suitableFor.trim() : null;
+            if (suitableFor == null || suitableFor.isEmpty()) {
                 suitableFor = existingTour.getSuitableFor();
+                if (suitableFor == null || suitableFor.isEmpty()) {
+                    throw new Exception("Suitable For field cannot be empty");
+                }
             }
             
             String bestTime = request.getParameter("bestTime");
-            if (bestTime == null) {
+            bestTime = (bestTime != null) ? bestTime.trim() : null;
+            if (bestTime == null || bestTime.isEmpty()) {
                 bestTime = existingTour.getBestTime();
+                if (bestTime == null || bestTime.isEmpty()) {
+                    throw new Exception("Best Time field cannot be empty");
+                }
             }
             
             String cuisine = request.getParameter("cuisine");
-            if (cuisine == null) {
+            cuisine = (cuisine != null) ? cuisine.trim() : null;
+            if (cuisine == null || cuisine.isEmpty()) {
                 cuisine = existingTour.getCuisine();
             }
             
             String sightseeing = request.getParameter("sightseeing");
-            if (sightseeing == null) {
+            sightseeing = (sightseeing != null) ? sightseeing.trim() : null;
+            if (sightseeing == null || sightseeing.isEmpty()) {
                 sightseeing = existingTour.getSightseeing();
+                if (sightseeing == null || sightseeing.isEmpty()) {
+                    throw new Exception("Sightseeing information cannot be empty or contain only spaces");
+                }
             }
             
             // Parse numeric values
@@ -672,9 +762,7 @@ public class AdminTourController extends HttpServlet {
                 if (maxCapacityStr != null && !maxCapacityStr.trim().isEmpty()) {
                     maxCapacity = Integer.parseInt(maxCapacityStr);
                     if (maxCapacity <= 0) {
-                        // Use existing value if invalid
-                        maxCapacity = existingTour.getMaxCapacity();
-                        System.out.println("Using existing max capacity: " + maxCapacity);
+                        throw new Exception("Max capacity must be greater than 0");
                     }
                 } else {
                     maxCapacity = existingTour.getMaxCapacity();
@@ -682,6 +770,22 @@ public class AdminTourController extends HttpServlet {
             } catch (NumberFormatException e) {
                 maxCapacity = existingTour.getMaxCapacity();
                 System.out.println("Using existing max capacity: " + maxCapacity);
+            }
+            
+            int availableSlot = 0;
+            try {
+                String availableSlotStr = request.getParameter("availableSlot");
+                if (availableSlotStr != null && !availableSlotStr.trim().isEmpty()) {
+                    availableSlot = Integer.parseInt(availableSlotStr);
+                    if (availableSlot < 0) {
+                        throw new Exception("Available slots cannot be negative");
+                    }
+                } else {
+                    availableSlot = existingTour.getAvailableSlot();
+                }
+            } catch (NumberFormatException e) {
+                availableSlot = existingTour.getAvailableSlot();
+                System.out.println("Using existing available slots: " + availableSlot);
             }
             
             int categoryId = 1; // Default category ID
@@ -719,7 +823,7 @@ public class AdminTourController extends HttpServlet {
             tour.setCategoryId(categoryId);
             
             // Copy other values that aren't in the form from the existing tour
-            tour.setAvailableSlot(existingTour.getAvailableSlot());
+            tour.setAvailableSlot(availableSlot);
             tour.setDestinationCity(existingTour.getDestinationCity());
             tour.setDiscountPercentage(existingTour.getDiscountPercentage());
             tour.setDepartureCity(existingTour.getDepartureCity());

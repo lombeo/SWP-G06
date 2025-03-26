@@ -64,7 +64,19 @@ public class UserProfileServlet extends HttpServlet {
                 User user = new User();
                 user.setId(sessionUser.getId());
                 user.setFullName(request.getParameter("fullName"));
-                user.setPhone(request.getParameter("phone"));
+                
+                // Get phone number and validate it
+                String phone = request.getParameter("phone");
+                // Validate phone number: starts with 0 and has 10-11 digits
+                if (phone != null && !phone.isEmpty()) {
+                    if (!phone.matches("^0\\d{9,10}$")) {
+                        request.setAttribute("error", "Số điện thoại phải bắt đầu bằng số 0 và có 10-11 số");
+                        request.getRequestDispatcher("user-profile.jsp").forward(request, response);
+                        return;
+                    }
+                }
+                
+                user.setPhone(phone);
                 user.setAddress(request.getParameter("address"));
                 user.setGenderFromText(request.getParameter("gender"));
                 user.setDob(request.getParameter("dob"));

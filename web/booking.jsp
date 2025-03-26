@@ -135,9 +135,15 @@
                             </div>
                         </div>
                         
+                        <% if (request.getAttribute("errorMessage") != null) { %>
+                            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 mb-4 rounded">
+                                <%= request.getAttribute("errorMessage") %>
+                            </div>
+                        <% } %>
+                        
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                             <div class="md:col-span-2">
-                                <form id="bookingForm" action="<%= request.getContextPath() %>/payment" method="post">
+                                <form id="bookingForm" action="<%= request.getContextPath() %>/payment" method="post" onsubmit="return validatePhoneNumber()">
                                     <input type="hidden" name="tourId" value="<%= tour.getId() %>">
                                     <input type="hidden" name="tripId" value="<%= request.getParameter("tripId") %>">
                                     <input type="hidden" name="hasPromotion" value="<%= hasPromotion %>">
@@ -163,11 +169,13 @@
                                                 <label class="block mb-1 text-sm">Số điện thoại <span class="text-red-500">*</span></label>
                                                 <input
                                                     type="text"
+                                                    id="phone"
                                                     name="phone"
                                                     placeholder="Nhập số điện thoại"
                                                     value="<%= user.getPhone() != null ? user.getPhone() : "" %>"
                                                     <%= user.getPhone() != null && !user.getPhone().isEmpty() ? "readonly class=\"w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed\"" : "class=\"w-full border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 transition\"" %>
                                                 />
+                                                <div id="phoneError" class="text-red-500 text-sm mt-1 hidden">Số điện thoại phải bắt đầu bằng số 0 và có 10-11 số</div>
                                             </div>
                                             <div>
                                                 <label class="block mb-1 text-sm">Email <span class="text-red-500">*</span></label>
@@ -499,6 +507,29 @@
             
             // Initialize price display
             updatePrice();
+
+            // Phone number validation
+            function validatePhoneNumber() {
+                const phoneInput = document.getElementById('phone');
+                // If the field is readonly, don't validate
+                if (phoneInput.readOnly) {
+                    return true;
+                }
+                
+                const phone = phoneInput.value.trim();
+                const phoneError = document.getElementById('phoneError');
+                
+                // Check if phone number starts with 0 and has 10-11 digits total
+                const phoneRegex = /^0\d{9,10}$/;
+                if (!phoneRegex.test(phone)) {
+                    phoneError.classList.remove('hidden');
+                    phoneInput.focus();
+                    return false;
+                } else {
+                    phoneError.classList.add('hidden');
+                    return true;
+                }
+            }
         </script>
         <script>
             tailwind.config = {

@@ -42,17 +42,6 @@
                         <input type="text" class="form-control" id="title" name="title" value="${title}" placeholder="Search by title">
                     </div>
                     
-                    <!-- Status Filter -->
-                    <div class="col-md-6">
-                        <label for="status" class="form-label">Status</label>
-                        <select class="form-select" id="status" name="status">
-                            <option value="" ${empty status ? 'selected' : ''}>All Statuses</option>
-                            <option value="active" ${status == 'active' ? 'selected' : ''}>Active</option>
-                            <option value="upcoming" ${status == 'upcoming' ? 'selected' : ''}>Upcoming</option>
-                            <option value="expired" ${status == 'expired' ? 'selected' : ''}>Expired</option>
-                        </select>
-                    </div>
-                    
                     <!-- Discount Range -->
                     <div class="col-md-6">
                         <label class="form-label">Discount Percentage Range</label>
@@ -72,27 +61,15 @@
                         </div>
                     </div>
                     
-                    <!-- Date Filters -->
+                    <!-- Date Range -->
                     <div class="col-md-6">
-                        <label class="form-label">Start Date Range</label>
+                        <label class="form-label">Date Range</label>
                         <div class="row g-2">
                             <div class="col">
-                                <input type="datetime-local" class="form-control" name="startDateFrom" value="${startDateFrom}" placeholder="From" />
+                                <input type="datetime-local" class="form-control" name="startDateFrom" value="${startDateFrom}" placeholder="From">
                             </div>
                             <div class="col">
-                                <input type="datetime-local" class="form-control" name="startDateTo" value="${startDateTo}" placeholder="To" />
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="col-md-6">
-                        <label class="form-label">End Date Range</label>
-                        <div class="row g-2">
-                            <div class="col">
-                                <input type="datetime-local" class="form-control" name="endDateFrom" value="${endDateFrom}" placeholder="From" />
-                            </div>
-                            <div class="col">
-                                <input type="datetime-local" class="form-control" name="endDateTo" value="${endDateTo}" placeholder="To" />
+                                <input type="datetime-local" class="form-control" name="endDateTo" value="${endDateTo}" placeholder="To">
                             </div>
                         </div>
                     </div>

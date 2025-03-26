@@ -26,8 +26,8 @@
                     <div class="col-md-6">
                         <div class="mb-3">
                             <label for="name" class="form-label">Tour Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                            <div class="invalid-feedback">Please provide a tour name.</div>
+                            <input type="text" class="form-control" id="name" name="name" required pattern=".*\S+.*" title="Tour name cannot be only spaces">
+                            <div class="invalid-feedback">Please provide a valid tour name (cannot be only spaces).</div>
                         </div>
                         
                         <div class="mb-3">
@@ -54,8 +54,13 @@
                         
                         <div class="mb-3">
                             <label for="region" class="form-label">Region</label>
-                            <input type="text" class="form-control" id="region" name="region" required>
-                            <div class="invalid-feedback">Please provide a region.</div>
+                            <select class="form-select" id="region" name="region" required>
+                                <option value="" selected disabled>Select a region</option>
+                                <option value="Bắc">Bắc</option>
+                                <option value="Trung">Trung</option>
+                                <option value="Nam">Nam</option>
+                            </select>
+                            <div class="invalid-feedback">Please select a region.</div>
                         </div>
                     </div>
                     
@@ -129,8 +134,8 @@
                         
                         <div class="mb-3">
                             <label for="sightseeing" class="form-label">Sightseeing Highlights</label>
-                            <textarea class="form-control" id="sightseeing" name="sightseeing" rows="3" required></textarea>
-                            <div class="invalid-feedback">Please provide sightseeing information.</div>
+                            <textarea class="form-control" id="sightseeing" name="sightseeing" rows="3" required pattern=".*\S+.*"></textarea>
+                            <div class="invalid-feedback">Please provide valid sightseeing information (cannot be only spaces).</div>
                         </div>
                     </div>
                 </div>
