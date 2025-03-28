@@ -116,11 +116,6 @@
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link" id="pending-payment-tab" data-bs-toggle="tab" data-bs-target="#pending-payment-bookings" type="button" role="tab" aria-controls="pending-payment-bookings" aria-selected="false">
-                                Chờ thanh toán <span class="badge bg-warning ms-1">${pendingPaymentCount}</span>
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
                             <button class="nav-link" id="paid-tab" data-bs-toggle="tab" data-bs-target="#paid-bookings" type="button" role="tab" aria-controls="paid-bookings" aria-selected="false">
                                 Đã thanh toán <span class="badge bg-primary ms-1">${paidCount}</span>
                             </button>
@@ -266,10 +261,6 @@
                         </div>
                         
                         <!-- Status-specific tabs will be populated by JavaScript -->
-                        <div class="tab-pane fade" id="pending-payment-bookings" role="tabpanel" aria-labelledby="pending-payment-tab">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                        
                         <div class="tab-pane fade" id="paid-bookings" role="tabpanel" aria-labelledby="paid-tab">
                             <!-- Will be populated by JavaScript -->
                         </div>
@@ -409,7 +400,6 @@
             
             // Create tables for each status
             const statusTables = {
-                'pending-payment': { selector: '#pending-payment-bookings', status: 'Chờ thanh toán', items: [] },
                 'paid': { selector: '#paid-bookings', status: 'Đã thanh toán', items: [] },
                 'approved': { selector: '#approved-bookings', status: 'Đã duyệt', items: [] },
                 'completed': { selector: '#completed-bookings', status: 'Hoàn thành', items: [] },
@@ -477,7 +467,6 @@
             }
             
             // Update the status count badges
-            document.querySelector('#pending-payment-tab .badge').textContent = statusTables['pending-payment'].items.length;
             document.querySelector('#paid-tab .badge').textContent = statusTables['paid'].items.length;
             document.querySelector('#approved-tab .badge').textContent = statusTables['approved'].items.length;
             document.querySelector('#completed-tab .badge').textContent = statusTables['completed'].items.length;
