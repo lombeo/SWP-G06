@@ -273,17 +273,43 @@ public class BookingDAO {
     }
     
     /**
-     * Count total bookings with filters
-     * @param search Search query for customer name or tour name
-     * @param date Date filter
-     * @return Total count of bookings matching the filters
+     * Count all bookings with specified filters
+     * @param search Search query for user name or tour name
+     * @param status Booking status
+     * @param date Booking date
+     * @param tripId Specific trip ID (optional)
+     * @return Total count of bookings matching filters
      */
-    public int countBookings(String search, String date) {
-        StringBuilder sql = new StringBuilder("SELECT COUNT(*) FROM booking b ");
+    public int countBookings(String search, String status, String date, Integer tripId) {
+        // If status filter is used, we need to get all bookings and count in Java
+        if (status != null && !status.trim().isEmpty()) {
+            List<Booking> allBookings = getAllBookingsForStatusFiltering(search, date, tripId);
+            
+            // Filter by status
+            int count = 0;
+            for (Booking booking : allBookings) {
+                try {
+                    TransactionDAO transactionDAO = new TransactionDAO();
+                    List<Transaction> transactions = transactionDAO.getTransactionsByBookingId(booking.getId());
+                    String bookingStatus = determineBookingStatus(transactions);
+                    
+                    if (status.equals(bookingStatus)) {
+                        count++;
+                    }
+                } catch (Exception e) {
+                    System.out.println("Error determining status for booking " + booking.getId() + ": " + e.getMessage());
+                }
+            }
+            
+            return count;
+        }
+        
+        // Otherwise, use SQL COUNT
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT COUNT(*) FROM booking b ");
         sql.append("JOIN account a ON b.account_id = a.id ");
         sql.append("JOIN trip t ON b.trip_id = t.id ");
         sql.append("JOIN tours tr ON t.tour_id = tr.id ");
-        sql.append("LEFT JOIN (SELECT booking_id, SUM(amount) as total_amount FROM [transaction] WHERE transaction_type = 'Payment' GROUP BY booking_id) trans ON b.id = trans.booking_id ");
         sql.append("WHERE b.is_delete = 0 ");
         
         List<Object> params = new ArrayList<>();
@@ -299,6 +325,12 @@ public class BookingDAO {
         if (date != null && !date.trim().isEmpty()) {
             sql.append("AND CONVERT(DATE, t.departure_date) = ? ");
             params.add(date.trim());
+        }
+        
+        // Add trip condition
+        if (tripId != null && tripId > 0) {
+            sql.append("AND b.trip_id = ? ");
+            params.add(tripId);
         }
         
         try (Connection conn = DBContext.getConnection();
@@ -323,43 +355,23 @@ public class BookingDAO {
     }
     
     /**
-     * Alternative method that accepts status parameter but ignores it for database query
-     * Status filtering will be done in Java after retrieving results
+     * Count all bookings with specified filters (legacy method)
      */
     public int countBookings(String search, String status, String date) {
-        // If no status filter is applied, just count all bookings
-        if (status == null || status.trim().isEmpty()) {
-            return countBookings(search, date);
-        }
-        
-        // Otherwise, we need to get all bookings and filter them by status
-        List<Booking> allBookings = getAllBookingsForStatusFiltering(search, date);
-        
-        // Use TransactionDAO to determine status for each booking
-        TransactionDAO transactionDAO = new TransactionDAO();
-        int count = 0;
-        
-        for (Booking booking : allBookings) {
-            try {
-                List<Transaction> transactions = transactionDAO.getTransactionsByBookingId(booking.getId());
-                String bookingStatus = determineBookingStatus(transactions);
-                
-                // Count only bookings that match the requested status
-                if (status.equals(bookingStatus)) {
-                    count++;
-                }
-            } catch (Exception e) {
-                System.out.println("Error determining status for booking " + booking.getId() + ": " + e.getMessage());
-            }
-        }
-        
-        return count;
+        return countBookings(search, status, date, null);
     }
     
     /**
-     * Get all bookings for status filtering without pagination
+     * Legacy method to maintain backwards compatibility
      */
-    private List<Booking> getAllBookingsForStatusFiltering(String search, String date) {
+    public int countBookings(String search, String date) {
+        return countBookings(search, null, date, null);
+    }
+    
+    /**
+     * Get all bookings for filtering by status, with optional filters
+     */
+    private List<Booking> getAllBookingsForStatusFiltering(String search, String date, Integer tripId) {
         List<Booking> bookings = new ArrayList<>();
         
         StringBuilder sql = new StringBuilder();
@@ -384,6 +396,12 @@ public class BookingDAO {
             params.add(date.trim());
         }
         
+        // Add trip condition
+        if (tripId != null && tripId > 0) {
+            sql.append("AND b.trip_id = ? ");
+            params.add(tripId);
+        }
+        
         sql.append("ORDER BY b.created_date DESC");
         
         try (Connection conn = DBContext.getConnection();
@@ -405,6 +423,13 @@ public class BookingDAO {
         }
         
         return bookings;
+    }
+    
+    /**
+     * Legacy method to maintain backwards compatibility
+     */
+    private List<Booking> getAllBookingsForStatusFiltering(String search, String date) {
+        return getAllBookingsForStatusFiltering(search, date, null);
     }
     
     /**
@@ -452,22 +477,23 @@ public class BookingDAO {
     
     /**
      * Get bookings with pagination and filters
-     * @param search Search query for customer name or tour name
-     * @param status Status filter (handled in Java code)
-     * @param date Date filter
-     * @param sort Sort order (date_asc, date_desc, amount_asc, amount_desc)
+     * @param search Search query for user name or tour name
+     * @param status Booking status
+     * @param date Booking date
+     * @param sort Sort order
      * @param page Page number (1-based)
      * @param itemsPerPage Number of items per page
-     * @return List of bookings matching the criteria
+     * @param tripId Specific trip ID (optional)
+     * @return List of bookings matching filters for the current page
      */
-    public List<Booking> getBookingsWithFilters(String search, String status, String date, String sort, int page, int itemsPerPage) {
+    public List<Booking> getBookingsWithFilters(String search, String status, String date, String sort, int page, int itemsPerPage, Integer tripId) {
         // If no status filter is applied, use regular pagination
         if (status == null || status.trim().isEmpty()) {
-            return getBookingsWithFiltersWithoutStatusFiltering(search, date, sort, page, itemsPerPage);
+            return getBookingsWithFiltersWithoutStatusFiltering(search, date, sort, page, itemsPerPage, tripId);
         }
         
         // Otherwise, we need to get all bookings, filter by status, and implement pagination in Java
-        List<Booking> allBookings = getAllBookingsForStatusFiltering(search, date);
+        List<Booking> allBookings = getAllBookingsForStatusFiltering(search, date, tripId);
         List<Booking> filteredBookings = new ArrayList<>();
         
         // Use TransactionDAO to determine status for each booking
@@ -516,9 +542,16 @@ public class BookingDAO {
     }
     
     /**
+     * Legacy method to maintain backwards compatibility
+     */
+    public List<Booking> getBookingsWithFilters(String search, String status, String date, String sort, int page, int itemsPerPage) {
+        return getBookingsWithFilters(search, status, date, sort, page, itemsPerPage, null);
+    }
+    
+    /**
      * Get bookings with pagination and filters, without status filtering
      */
-    private List<Booking> getBookingsWithFiltersWithoutStatusFiltering(String search, String date, String sort, int page, int itemsPerPage) {
+    private List<Booking> getBookingsWithFiltersWithoutStatusFiltering(String search, String date, String sort, int page, int itemsPerPage, Integer tripId) {
         List<Booking> bookings = new ArrayList<>();
         
         // For SQL Server pagination
@@ -548,6 +581,12 @@ public class BookingDAO {
         if (date != null && !date.trim().isEmpty()) {
             sql.append("AND CONVERT(DATE, t.departure_date) = ? ");
             params.add(date.trim());
+        }
+        
+        // Add trip condition
+        if (tripId != null && tripId > 0) {
+            sql.append("AND b.trip_id = ? ");
+            params.add(tripId);
         }
         
         // For SQL Server pagination with ORDER BY
@@ -599,6 +638,13 @@ public class BookingDAO {
         }
         
         return bookings;
+    }
+    
+    /**
+     * Legacy method to maintain backwards compatibility
+     */
+    private List<Booking> getBookingsWithFiltersWithoutStatusFiltering(String search, String date, String sort, int page, int itemsPerPage) {
+        return getBookingsWithFiltersWithoutStatusFiltering(search, date, sort, page, itemsPerPage, null);
     }
     
     /**

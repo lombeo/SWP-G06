@@ -49,12 +49,22 @@ public class LoginServlet extends HttpServlet {
             
             UserDAO userDAO = new UserDAO();
             
-            // First check if the email exists but account is banned
-            User checkUser = userDAO.findByEmail(email);
-            if (checkUser != null && checkUser.isIsDelete()) {
-                request.setAttribute("error", "Tài khoản của bạn đã bị cấm. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.");
-                request.getRequestDispatcher("login.jsp").forward(request, response);
-                return;
+            // First check if email exists but account is banned or not verified
+            User checkUser = userDAO.findByEmailForVerification(email);
+            if (checkUser != null) {
+                if (checkUser.isIsDelete() && checkUser.isEmailVerified()) {
+                    // Account is banned
+                    request.setAttribute("error", "Tài khoản của bạn đã bị cấm. Vui lòng liên hệ với quản trị viên để biết thêm chi tiết.");
+                    request.getRequestDispatcher("login.jsp").forward(request, response);
+                    return;
+                } else if (checkUser.isIsDelete() && !checkUser.isEmailVerified()) {
+                    // Account exists but is not verified
+                    request.setAttribute("email", email);
+                    request.setAttribute("error", "Tài khoản của bạn chưa được xác thực. Vui lòng xác thực email trước khi đăng nhập.");
+                    request.setAttribute("needVerification", true);
+                    request.getRequestDispatcher("login.jsp").forward(request, response);
+                    return;
+                }
             }
             
             User user = userDAO.login(email, password);

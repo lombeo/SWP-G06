@@ -22,7 +22,7 @@ public class UserDAO {
     }
 
     public void register(User user) throws SQLException, ClassNotFoundException, NoSuchAlgorithmException {
-        String sql = "INSERT INTO Account (full_name, email, password, roleId, is_delete, create_date) VALUES (?, ?, ?, 1, 0, GETDATE())";
+        String sql = "INSERT INTO Account (full_name, email, password, roleId, is_delete, create_date) VALUES (?, ?, ?, 1, 1, GETDATE())";
         try (Connection conn = DBContext.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
             ps.setString(1, user.getFullName().trim());
@@ -61,6 +61,7 @@ public class UserDAO {
                             user.setGoogleId(rs.getString("googleID"));
                             user.setCreateDate(rs.getString("create_date"));
                             user.setIsDelete(rs.getBoolean("is_delete"));
+                            user.setEmailVerified(true);
                             System.out.println("User found: " + user.getFullName());
                             return user;
                         } else {
@@ -409,6 +410,43 @@ public class UserDAO {
             ps.setInt(2, userId);
             ps.executeUpdate();
         }
+    }
+
+    public void verifyEmail(String email) throws SQLException, ClassNotFoundException {
+        String sql = "UPDATE Account SET is_delete = 0 WHERE email = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            ps.executeUpdate();
+        }
+    }
+    
+    public User findByEmailForVerification(String email) throws SQLException, ClassNotFoundException {
+        String sql = "SELECT * FROM Account WHERE email = ?";
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setString(1, email);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    User user = new User();
+                    user.setId(rs.getInt("id"));
+                    user.setFullName(rs.getString("full_name").trim());
+                    user.setEmail(rs.getString("email").trim());
+                    user.setRoleId(rs.getInt("roleId"));
+                    user.setPhone(rs.getString("phone"));
+                    user.setAddress(rs.getString("address"));
+                    user.setGender(rs.getBoolean("gender"));
+                    user.setDob(rs.getString("dob"));
+                    user.setAvatar(rs.getString("avatar"));
+                    user.setGoogleId(rs.getString("googleID"));
+                    user.setCreateDate(rs.getString("create_date"));
+                    user.setIsDelete(rs.getBoolean("is_delete"));
+                    user.setEmailVerified(!rs.getBoolean("is_delete"));
+                    return user;
+                }
+            }
+        }
+        return null;
     }
 
     public static void main(String[] args) {

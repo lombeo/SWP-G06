@@ -1,6 +1,7 @@
 package dao;
 
 import model.Trip;
+import model.Tour;
 import utils.DBContext;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import dao.BookingDAO;
+import dao.TourDAO;
 
 /**
  * Data Access Object for Trip model
@@ -863,5 +865,40 @@ public class TripDAO {
         }
         
         return 0; // Default to 0 in case of errors
+    }
+    
+    /**
+     * Get all active trips with tour information for filtering
+     * @return List of active trips (limited to 100 most recent to prevent performance issues)
+     */
+    public List<Trip> getAllActiveTrips() {
+        List<Trip> trips = new ArrayList<>();
+        String sql = "SELECT TOP 100 t.*, tr.name as tour_name FROM trip t " +
+                     "JOIN tours tr ON t.tour_id = tr.id " +
+                     "WHERE t.is_delete = 0 AND t.departure_date >= CONVERT(date, GETDATE()) " +
+                     "ORDER BY t.departure_date ASC";
+        
+        try (Connection conn = DBContext.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            while (rs.next()) {
+                Trip trip = mapTrip(rs);
+                // Set tour name directly instead of loading the whole tour object
+                // to improve performance
+                if (trip != null) {
+                    Tour tour = new Tour();
+                    tour.setId(trip.getTourId());
+                    tour.setName(rs.getString("tour_name"));
+                    trip.setTour(tour);
+                    trips.add(trip);
+                }
+            }
+        } catch (SQLException | ClassNotFoundException e) {
+            System.out.println("Error getting all active trips: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return trips;
     }
 }

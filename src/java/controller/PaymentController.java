@@ -102,6 +102,12 @@ public class PaymentController extends HttpServlet {
                 return;
             }
             
+            // If we get here and have a valid phone number, update the user's phone
+            if (phone != null && !phone.isEmpty() && phone.matches("^0\\d{9,10}$")) {
+                // Phone will be processed by setPhone() method in User class
+                user.setPhone(phone);
+            }
+            
             // Validate payment method
             if (!"VNPAY".equals(paymentMethod)) {
                 request.setAttribute("errorMessage", "Phương thức thanh toán không được hỗ trợ!");

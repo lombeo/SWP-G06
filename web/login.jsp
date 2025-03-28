@@ -683,8 +683,31 @@
                 <h3 class="text-2xl font-semibold mb-6">Đăng nhập</h3>
                 <form class="space-y-4" action="login" method="POST">
                     <% if (request.getAttribute("error") != null) { %>
-                        <div class="text-red-500 text-sm text-center">
-                            <%= request.getAttribute("error") %>
+                        <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline"><%= request.getAttribute("error") %></span>
+                        </div>
+                    <% } %>
+
+                    <% if (request.getParameter("success") != null) { %>
+                        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <% if ("true".equals(request.getParameter("success"))) { %>
+                                <span class="block sm:inline">Đăng ký tài khoản thành công! Vui lòng đăng nhập.</span>
+                            <% } else if ("verification".equals(request.getParameter("success"))) { %>
+                                <span class="block sm:inline">Xác thực email thành công! Vui lòng đăng nhập.</span>
+                            <% } %>
+                        </div>
+                    <% } %>
+                    
+                    <% if (request.getAttribute("needVerification") != null && (boolean) request.getAttribute("needVerification")) { %>
+                        <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative mb-4" role="alert">
+                            <span class="block sm:inline">Tài khoản chưa được xác thực.</span>
+                            <form action="register" method="POST" class="mt-2">
+                                <input type="hidden" name="action" value="resend_otp">
+                                <input type="hidden" name="email" value="<%= request.getAttribute("email") %>">
+                                <button type="submit" class="text-blue-500 underline">
+                                    Gửi lại mã xác thực
+                                </button>
+                            </form>
                         </div>
                     <% } %>
                     <div>

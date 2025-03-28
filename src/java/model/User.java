@@ -14,6 +14,7 @@ public class User {
     private String googleId;
     private String createDate;
     private boolean isDelete;
+    private boolean emailVerified; // New field for email verification status
     
     public User() {
     }
@@ -23,6 +24,7 @@ public class User {
         this.email = email;
         this.password = password;
         this.roleId = roleId;
+        this.emailVerified = false; // Default to false for new users
     }
 
     public int getId() {
@@ -66,11 +68,25 @@ public class User {
     }
 
     public String getPhone() {
+        if (phone == null || phone.isEmpty()) {
+            return phone;
+        }
+        
+        // If the phone number doesn't start with 0, add it
+        if (!phone.startsWith("0")) {
+            return "0" + phone;
+        }
+        
         return phone;
     }
 
     public void setPhone(String phone) {
-        this.phone = phone;
+        // If the phone number starts with 0, remove it for database storage as integer
+        if (phone != null && phone.startsWith("0")) {
+            this.phone = phone.substring(1);
+        } else {
+            this.phone = phone;
+        }
     }
 
     public String getAddress() {
@@ -135,5 +151,13 @@ public class User {
 
     public void setIsDelete(boolean isDelete) {
         this.isDelete = isDelete;
+    }
+    
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 } 

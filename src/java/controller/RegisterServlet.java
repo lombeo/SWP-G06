@@ -15,6 +15,8 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.util.Collections;
 import model.User;
+import utils.EmailUtil;
+import utils.OTPUtil;
 
 @WebServlet(name = "RegisterServlet", urlPatterns = {"/register"})
 public class RegisterServlet extends HttpServlet {
@@ -33,6 +35,10 @@ public class RegisterServlet extends HttpServlet {
         
         if ("google_register".equals(action)) {
             handleGoogleRegister(request, response);
+        } else if ("verify_email".equals(action)) {
+            handleEmailVerification(request, response);
+        } else if ("resend_otp".equals(action)) {
+            handleResendOTP(request, response);
         } else {
             handleNormalRegister(request, response);
         }
@@ -83,12 +89,98 @@ public class RegisterServlet extends HttpServlet {
             User user = new User(fullName, email, password, 1);
             userDAO.register(user);
             
-            // Redirect to login page with success message
-            response.sendRedirect("login.jsp?success=true");
+            // Generate OTP and send verification email
+            String otp = OTPUtil.generateOTP(email);
+            boolean emailSent = EmailUtil.sendOTPEmail(email, otp, fullName);
+            
+            if (emailSent) {
+                // Redirect to verification page
+                request.setAttribute("email", email);
+                request.setAttribute("message", "Đăng ký thành công! Vui lòng kiểm tra email để xác thực tài khoản.");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+            } else {
+                // Email failed to send
+                request.setAttribute("error", "Không thể gửi email xác thực. Vui lòng thử lại sau.");
+                request.getRequestDispatcher("register.jsp").forward(request, response);
+            }
             
         } catch (Exception e) {
             request.setAttribute("error", "Đã xảy ra lỗi trong quá trình đăng ký");
             request.getRequestDispatcher("register.jsp").forward(request, response);
+        }
+    }
+    
+    private void handleEmailVerification(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            String email = request.getParameter("email");
+            String otp = request.getParameter("otp");
+            
+            if (email == null || email.isEmpty() || otp == null || otp.isEmpty()) {
+                request.setAttribute("error", "Email hoặc mã OTP không hợp lệ");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+                return;
+            }
+            
+            // Verify OTP
+            boolean isValid = OTPUtil.validateOTP(email, otp);
+            
+            if (isValid) {
+                // Update user's verification status
+                UserDAO userDAO = new UserDAO();
+                userDAO.verifyEmail(email);
+                
+                // Redirect to login with success message
+                response.sendRedirect("login.jsp?success=verification");
+            } else {
+                // Invalid OTP
+                request.setAttribute("email", email);
+                request.setAttribute("error", "Mã OTP không đúng hoặc đã hết hạn");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+            }
+        } catch (Exception e) {
+            request.setAttribute("error", "Đã xảy ra lỗi trong quá trình xác thực email");
+            request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+        }
+    }
+    
+    private void handleResendOTP(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+            String email = request.getParameter("email");
+            
+            if (email == null || email.isEmpty()) {
+                request.setAttribute("error", "Email không hợp lệ");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+                return;
+            }
+            
+            // Check if email exists
+            UserDAO userDAO = new UserDAO();
+            User user = userDAO.findByEmailForVerification(email);
+            
+            if (user == null) {
+                request.setAttribute("error", "Email không tồn tại trong hệ thống");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+                return;
+            }
+            
+            // Generate new OTP and send verification email
+            String otp = OTPUtil.generateOTP(email);
+            boolean emailSent = EmailUtil.sendOTPEmail(email, otp, user.getFullName());
+            
+            if (emailSent) {
+                request.setAttribute("email", email);
+                request.setAttribute("message", "Mã OTP mới đã được gửi đến email của bạn");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+            } else {
+                request.setAttribute("email", email);
+                request.setAttribute("error", "Không thể gửi lại mã OTP. Vui lòng thử lại sau.");
+                request.getRequestDispatcher("verify-email.jsp").forward(request, response);
+            }
+        } catch (Exception e) {
+            request.setAttribute("error", "Đã xảy ra lỗi trong quá trình gửi lại mã OTP");
+            request.getRequestDispatcher("verify-email.jsp").forward(request, response);
         }
     }
     
@@ -125,7 +217,7 @@ public class RegisterServlet extends HttpServlet {
                 if (user == null) {
                     // Only create a new user if no account (including banned) exists with this email
                     if (bannedCheck == null) {
-                        // Create new user
+                        // Create new user (Google-authenticated users are automatically verified)
                         user = new User();
                         user.setEmail(email);
                         user.setFullName(name);

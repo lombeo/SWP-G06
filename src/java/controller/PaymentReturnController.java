@@ -1,8 +1,10 @@
 package controller;
 
 import dao.BookingDAO;
+import dao.TourDAO;
 import dao.TripDAO;
 import dao.TransactionDAO;
+import dao.UserDAO;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -12,10 +14,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.NumberFormat;
 import java.text.SimpleDateFormat;
+import java.util.Currency;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
@@ -25,9 +30,12 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import model.Booking;
 import model.Trip;
+import model.Tour;
 import model.Transaction;
-import vnpay.Config;
+import model.User;
 import utils.DBContext;
+import utils.EmailUtil;
+import vnpay.Config;
 
 @WebServlet(name = "PaymentReturnController", urlPatterns = {"/payment-return"})
 public class PaymentReturnController extends HttpServlet {
@@ -253,6 +261,80 @@ public class PaymentReturnController extends HttpServlet {
                             // Clean up session data
                             session.removeAttribute("pendingBooking");
                             session.removeAttribute("vnp_TxnRef");
+                            
+                            // Send email confirmation to user
+                            try {
+                                // Get user details
+                                UserDAO userDAO = new UserDAO();
+                                User user = userDAO.getUserById(pendingBooking.getAccountId());
+                                
+                                if (user != null && user.getEmail() != null) {
+                                    // Get booking details
+                                    Booking completeBooking = bookingDAO.getBookingById(bookingId);
+                                    
+                                    // Format date and currency
+                                    SimpleDateFormat dateFormatter = new SimpleDateFormat("dd/MM/yyyy");
+                                    NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+                                    currencyFormatter.setCurrency(Currency.getInstance("VND"));
+                                    
+                                    // Format amount (VNPAY returns amount * 100)
+                                    double paymentAmount = Double.parseDouble(vnp_Amount) / 100;
+                                    String formattedAmount = currencyFormatter.format(paymentAmount);
+                                    
+                                    // Create email subject
+                                    String subject = "Xác nhận đặt tour thành công - TourNest";
+                                    
+                                    // Create email content with booking details
+                                    String content = ""
+                                            + "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>"
+                                            + "<div style='background-color: #4F46E5; padding: 20px; text-align: center; color: white;'>"
+                                            + "<h1>TourNest - Xác nhận đặt tour thành công</h1>"
+                                            + "</div>"
+                                            + "<div style='padding: 20px; background-color: #f9f9f9;'>"
+                                            + "<p>Xin chào <strong>" + user.getFullName() + "</strong>,</p>"
+                                            + "<p>Cảm ơn bạn đã đặt tour tại TourNest. Chúng tôi xin xác nhận tour của bạn đã được đặt thành công.</p>"
+                                            + "<div style='background-color: #ffffff; padding: 15px; margin: 20px 0; border: 1px solid #eee;'>"
+                                            + "<h2 style='color: #4F46E5; margin-top: 0;'>Thông tin đặt tour</h2>"
+                                            + "<p><strong>Mã đặt tour:</strong> #" + bookingId + "</p>";
+                                    
+                                    // Add trip details if available
+                                    if (trip != null) {
+                                        // Get tour details
+                                        TourDAO tourDAO = new TourDAO();
+                                        Tour tour = tourDAO.getTourById(trip.getTourId());
+                                        
+                                        content += "<p><strong>Tour:</strong> " + (tour != null ? tour.getName() : "N/A") + "</p>"
+                                                + "<p><strong>Ngày khởi hành:</strong> " + (trip.getDepartureDate() != null ? dateFormatter.format(trip.getDepartureDate()) : "N/A") + "</p>"
+                                                + "<p><strong>Ngày kết thúc:</strong> " + (trip.getReturnDate() != null ? dateFormatter.format(trip.getReturnDate()) : "N/A") + "</p>"
+                                                + "<p><strong>Giờ khởi hành:</strong> " + trip.getStartTime() + "</p>";
+                                    }
+                                    
+                                    content += "<p><strong>Số người lớn:</strong> " + pendingBooking.getAdultNumber() + "</p>"
+                                            + "<p><strong>Số trẻ em:</strong> " + pendingBooking.getChildNumber() + "</p>"
+                                            + "<p><strong>Tổng thanh toán:</strong> " + formattedAmount + "</p>"
+                                            + "<p><strong>Phương thức thanh toán:</strong> VNPAY</p>"
+                                            + "<p><strong>Mã giao dịch:</strong> " + vnp_TransactionNo + "</p>"
+                                            + "</div>"
+                                            + "<p>Vui lòng giữ lại thông tin này để tham khảo. Bạn có thể xem lại thông tin đặt tour của mình bất kỳ lúc nào trong phần <a href='" + request.getScheme() + "://" + request.getServerName() + ":" + request.getServerPort() + request.getContextPath() + "/my-bookings' style='color: #4F46E5;'>Tour đã đặt</a> trên trang web của chúng tôi.</p>"
+                                            + "<p>Nếu bạn có bất kỳ câu hỏi hoặc cần hỗ trợ thêm, vui lòng liên hệ với chúng tôi qua email <a href='mailto:support@tournest.com' style='color: #4F46E5;'>support@tournest.com</a> hoặc số điện thoại <strong>0987 654 321</strong>.</p>"
+                                            + "<p>Chúc bạn có chuyến đi vui vẻ!</p>"
+                                            + "<p>Trân trọng,<br>Đội ngũ TourNest</p>"
+                                            + "</div>"
+                                            + "<div style='background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666;'>"
+                                            + "<p>© " + java.time.Year.now().getValue() + " TourNest. Tất cả các quyền được bảo lưu.</p>"
+                                            + "</div>"
+                                            + "</div>";
+                                    
+                                    // Send the email
+                                    boolean emailSent = EmailUtil.sendEmail(user.getEmail(), subject, content);
+                                    System.out.println("Booking confirmation email " + (emailSent ? "sent successfully" : "failed to send") + " to: " + user.getEmail());
+                                } else {
+                                    System.out.println("Could not send booking confirmation email: User or email not found");
+                                }
+                            } catch (Exception e) {
+                                System.out.println("Error sending booking confirmation email: " + e.getMessage());
+                                e.printStackTrace();
+                            }
                             
                             // Set success attributes
                             request.setAttribute("paymentSuccess", true);

@@ -270,6 +270,7 @@ public class AdminController extends HttpServlet {
             System.out.println("- Search: " + request.getParameter("search"));
             System.out.println("- Status: " + request.getParameter("status"));
             System.out.println("- Date: " + request.getParameter("date"));
+            System.out.println("- Trip: " + request.getParameter("trip"));
             System.out.println("- Sort: " + request.getParameter("sort"));
             System.out.println("- Page: " + request.getParameter("page"));
             
@@ -279,6 +280,17 @@ public class AdminController extends HttpServlet {
             String status = request.getParameter("status");
             String date = request.getParameter("date");
             String sort = request.getParameter("sort");
+            
+            // Parse trip ID parameter
+            Integer tripId = null;
+            String tripParam = request.getParameter("trip");
+            if (tripParam != null && !tripParam.isEmpty()) {
+                try {
+                    tripId = Integer.parseInt(tripParam);
+                } catch (NumberFormatException e) {
+                    // Invalid trip parameter, ignore it
+                }
+            }
             
             // Get page and itemsPerPage parameters
             String pageParam = request.getParameter("page");
@@ -310,7 +322,7 @@ public class AdminController extends HttpServlet {
             TransactionDAO transactionDAO = new TransactionDAO();
             
             // Get total count of bookings with filters
-            int totalBookings = bookingDAO.countBookings(searchQuery, status, date);
+            int totalBookings = bookingDAO.countBookings(searchQuery, status, date, tripId);
             
             // Calculate total pages
             int totalPages = (int) Math.ceil((double) totalBookings / itemsPerPage);
@@ -319,7 +331,15 @@ public class AdminController extends HttpServlet {
             }
             
             // Get bookings for current page with filters
-            List<Booking> bookings = bookingDAO.getBookingsWithFilters(searchQuery, status, date, sort, page, itemsPerPage);
+            List<Booking> bookings = bookingDAO.getBookingsWithFilters(searchQuery, status, date, sort, page, itemsPerPage, tripId);
+            
+            // Count bookings for each status type for tab badges
+            int pendingPaymentCount = bookingDAO.countBookings(searchQuery, "Chờ thanh toán", date, tripId);
+            int paidCount = bookingDAO.countBookings(searchQuery, "Đã thanh toán", date, tripId);
+            int approvedCount = bookingDAO.countBookings(searchQuery, "Đã duyệt", date, tripId);
+            int completedCount = bookingDAO.countBookings(searchQuery, "Hoàn thành", date, tripId);
+            int cancelledCount = bookingDAO.countBookings(searchQuery, "Đã hủy", date, tripId);
+            int cancelledLateCount = bookingDAO.countBookings(searchQuery, "Đã hủy muộn", date, tripId);
             
             // Enhance bookings with related data
             for (Booking booking : bookings) {
@@ -355,6 +375,14 @@ public class AdminController extends HttpServlet {
             request.setAttribute("currentPage", page);
             request.setAttribute("itemsPerPage", itemsPerPage);
             request.setAttribute("totalPages", totalPages);
+            
+            // Add status counts for the tabs
+            request.setAttribute("pendingPaymentCount", pendingPaymentCount);
+            request.setAttribute("paidCount", paidCount);
+            request.setAttribute("approvedCount", approvedCount);
+            request.setAttribute("completedCount", completedCount);
+            request.setAttribute("cancelledCount", cancelledCount);
+            request.setAttribute("cancelledLateCount", cancelledLateCount);
             
             // Add current date to session for status checks in JSP
             request.getSession().setAttribute("currentDate", new java.util.Date());

@@ -74,6 +74,7 @@ public class UserProfileServlet extends HttpServlet {
                         request.getRequestDispatcher("user-profile.jsp").forward(request, response);
                         return;
                     }
+                    // Phone will be processed by setPhone() method in User class
                 }
                 
                 user.setPhone(phone);
